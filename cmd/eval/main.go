@@ -148,6 +148,15 @@ func max1(x int) int {
 	return x
 }
 
+const howToRead = "## How to read this report\n\n" +
+	"- **Pillar 1 (label engine).** `implicit` precision/recall of catching the *inadequate* answers that need escalation, graded vs planted truth. High precision + partial recall is the intended profile: implicit signals are trustworthy when present but miss quietly-abandoned failures.\n" +
+	"- **Pillar 2 (routers).** IRT ability recovery: recovered θ ordering/sign should match planted (magnitudes compress under noisy labels — that's fine, routing only needs the ordering).\n" +
+	"- **dual-arm-gold** is the only ABSOLUTE anchor. Read it as: **AIQ** (higher = more quality per unit cost; a good learned router beats both baselines), **qual_retention** vs **cost_vs_local** (e.g. matching frontier quality at a fraction of frontier cost is the win), and **under_escal_cellB** (the costly miss — lower is better).\n" +
+	"- **temporal-backtest** only RANKS (observational censoring). It enforces eval labels be a strictly-stronger source than train; at this tiny scale the held-out judge set can be single-class, making AUC uninformative (see its warning) — that is a data-scale limit, not a router verdict.\n" +
+	"- **off-policy-ips-dr** estimates the reward of *deploying* each router from logs with propensities; `uplift_dr` > 0 means it beats the logging policy. Watch **ess** (low ⇒ high-variance IPS).\n" +
+	"- **guardrail-suite**: `difficulty_monotonicity` should be ~1.0 and `topic_flip_rate` ~0.0 (routes on difficulty, not topic). Baselines score 0 monotonicity by design (constant scores).\n" +
+	"- **policy layer** shows a deployable threshold calibrated on the best-AIQ router, plus a frontier quota gate.\n\n"
+
 func assembleResults(cfg config.Config, evalBody string, reports map[string]eval.Report) error {
 	read := func(name string) string {
 		b, err := os.ReadFile(filepath.Join(cfg.DataDir, name))
@@ -163,6 +172,7 @@ func assembleResults(cfg config.Config, evalBody string, reports map[string]eval
 	fmt.Fprintf(&b, "End-to-end run on the small default config (seed=%d, %d local models + frontier `%s`).\n\n",
 		cfg.Seed, len(cfg.LocalModels), cfg.FrontierModel)
 	b.WriteString("_Absolute cost/quality numbers come from the dual-arm gold set only; backtests rank routers; off-policy estimates the counterfactual reward from logged propensities._\n\n")
+	b.WriteString(howToRead)
 	b.WriteString("---\n\n")
 
 	if s := read("extractor_report.md"); s != "" {

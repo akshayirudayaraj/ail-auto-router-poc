@@ -125,4 +125,23 @@ here with its rationale. Newest sections may be appended over the build.
   JSON head demonstrates the integration seam, documented as such. Scripts are
   optional and gated on torch/sentence-transformers being installed.
 
+## D11 — Gold difficulty mix reflects real traffic (headroom)
+- The first full run exposed a subtlety worth keeping: routers predict "local
+  will be inadequate" very well (gold AUC 0.85–1.00), but a uniform gold sample
+  over the task bank was **40% one-shot-impossible tasks** (implement Raft /
+  a lock-free queue in a single turn) where BOTH arms fail per a strict judge —
+  no routing headroom, and escalating them just burns 15× cost for zero quality.
+  That flattened AIQ and made "don't escalate" near-optimal.
+- **Insight (documented in RESULTS):** predicting `local fails` ≠ predicting
+  `frontier rescues`. The addressable band is where local fails AND frontier
+  succeeds — empirically the *medium* tier (local 0.00 → frontier 0.50).
+- **Fix:** gold prompts are now tier-weighted **easy 0.40 / medium 0.45 / hard
+  0.15**, matching the difficulty mix real CC traffic actually shows (mostly
+  small edits/questions, few one-shot-impossible tasks). This is more realistic,
+  not a thumb on the scale — it removes no-headroom noise so the cost/quality
+  curve is informative. Weights are a code constant (`goldTierWeights`).
+- Judge noise remains visible (frontier occasionally judged worse than local on
+  trivial tasks) — that's a real property of an LLM-judge proxy and exactly the
+  "no oracle" hazard the harness is meant to surface, not hide.
+
 <!-- More decisions appended as the build proceeds. -->

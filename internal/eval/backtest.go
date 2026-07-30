@@ -124,10 +124,18 @@ func (t *TemporalBacktest) Run(routers []router.Router, d Data) (Report, error) 
 	}
 
 	labels := make([]int, len(evalRows))
+	var npos int
 	for i, r := range evalRows {
 		if r.Outcome == 0 { // local inadequate -> should escalate
 			labels[i] = 1
+			npos++
 		}
+	}
+	if len(evalRows) > 0 && (npos == 0 || npos == len(evalRows)) {
+		rep.Warnings = append(rep.Warnings, fmt.Sprintf(
+			"held-out strong-label eval set is single-class (%d/%d positive) — AUC is uninformative (0.5). "+
+				"Scale AIL_JUDGE_SAMPLE (or add executed labels) so the held-out split has both classes.",
+			npos, len(evalRows)))
 	}
 
 	for _, r := range routers {

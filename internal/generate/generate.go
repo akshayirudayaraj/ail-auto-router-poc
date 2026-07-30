@@ -64,19 +64,53 @@ func New(cfg config.Config) *Generator {
 // tests. It is ground truth about the generative model, not extracted data.
 func Abilities(cfg config.Config) map[string]float64 { return assignAbilities(cfg) }
 
-// SamplePrompts returns n dense, code-heavy prompts spread across difficulty
-// tiers, for building the dual-arm gold benchmark. Seeded and deterministic.
+// goldTierWeights bias the gold benchmark toward the difficulty mix real CC
+// traffic actually shows: mostly easy/medium edits and questions, few
+// one-shot-impossible tasks. Over-weighting "hard" (e.g. implement Raft in one
+// turn) fills the benchmark with no-headroom rows where BOTH arms fail, which
+// tells you nothing about routing. See DECISIONS D11.
+var goldTierWeights = map[string]float64{"easy": 0.40, "medium": 0.45, "hard": 0.15}
+
+// SamplePrompts returns n dense, code-heavy prompts drawn across difficulty
+// tiers with goldTierWeights, for building the dual-arm gold benchmark. Seeded
+// and deterministic.
 func SamplePrompts(n int, seed int64) []struct {
 	Prompt     string
 	Difficulty float64
 } {
+	// per-task weight = tier weight / #tasks in that tier
+	tierCount := map[string]int{}
+	for _, tk := range taskBank {
+		tierCount[tk.Tier]++
+	}
+	weights := make([]float64, len(taskBank))
+	var total float64
+	for i, tk := range taskBank {
+		w := goldTierWeights[tk.Tier]
+		if c := tierCount[tk.Tier]; c > 0 {
+			w /= float64(c)
+		}
+		weights[i] = w
+		total += w
+	}
+
 	r := rand.New(rand.NewSource(seed + 101))
 	out := make([]struct {
 		Prompt     string
 		Difficulty float64
 	}, 0, n)
 	for i := 0; i < n; i++ {
-		tk := taskBank[r.Intn(len(taskBank))]
+		x := r.Float64() * total
+		var acc float64
+		pick := 0
+		for j, w := range weights {
+			acc += w
+			if x <= acc {
+				pick = j
+				break
+			}
+		}
+		tk := taskBank[pick]
 		out = append(out, struct {
 			Prompt     string
 			Difficulty float64
