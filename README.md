@@ -42,6 +42,32 @@ reruns are free and an interrupted overnight run resumes cheaply.
 
 ---
 
+## Web console
+
+A stdlib-only (`net/http` + embedded SPA, no external deps) UI over everything:
+
+```bash
+make all      # produce the datasets first
+make serve    # then open http://localhost:8080   (AIL_ADDR=:9000 to change port)
+```
+
+Four views:
+- **Traces** — browse raw session logs turn-by-turn, with the served model, the
+  **mined** implicit label/signal per assistant turn, and the **planted truth**
+  side-by-side (so you can see the extractor agreeing/disagreeing).
+- **Labeled data** — the pointwise / pairwise / gold datasets as filterable
+  tables (gold rows tagged by cell: frontier-rescues / both-pass / local-only /
+  both-fail).
+- **Fit & evaluate** — fit all routers on a chosen label source; see IRT ability
+  recovery (planted vs recovered θ) and the live gold leaderboard (AIQ, AUC,
+  cell-B, …).
+- **Route a prompt** — type any prompt; it is embedded live (Ollama) and scored
+  by every fitted router, showing per-router escalation score + decision, the
+  consensus, and the model-free feature vector that drove it.
+
+The console reads the same files the CLI stages write and calls the same
+`router`/`eval`/`extract` code — it is a view, not a reimplementation.
+
 ## Architecture
 
 ```
@@ -98,7 +124,9 @@ Package layout:
 | `internal/extract` | Pillar 1b extraction + 1c quality report |
 | `internal/router` | Pillar 2 routers + interface |
 | `internal/eval` | Pillar 3 harness, metrics, policy |
+| `internal/server` | web console (stdlib `net/http` + embedded SPA) |
 | `cmd/{gen,extract,train,eval}` | stage entrypoints |
+| `cmd/serve` | web console server (`make serve`) |
 | `python/` | **non-portable** encoder + SLM-head training |
 
 ---

@@ -1,0 +1,417 @@
+package server
+
+import (
+	"encoding/json"
+	"net/http"
+	"os"
+	"path/filepath"
+	"sort"
+
+	"github.com/akshayirudayaraj/ail-routing-test/internal/eval"
+	"github.com/akshayirudayaraj/ail-routing-test/internal/extract"
+	"github.com/akshayirudayaraj/ail-routing-test/internal/feature"
+	"github.com/akshayirudayaraj/ail-routing-test/internal/router"
+	"github.com/akshayirudayaraj/ail-routing-test/internal/schema"
+)
+
+func osReadFile(path string) ([]byte, error) { return os.ReadFile(path) }
+
+// ---- /api/traces ----
+
+// traceTurn is the UI view of one turn.
+type traceTurn struct {
+	TurnIndex   int      `json:"turn_index"`
+	Role        string   `json:"role"`
+	Content     string   `json:"content"`
+	ServedModel string   `json:"served_model,omitempty"`
+	Propensity  *float64 `json:"propensity,omitempty"`
+	// mined (assistant turns): what the extractor inferred
+	MinedOutcome    *int    `json:"mined_outcome,omitempty"`
+	MinedConfidence float64 `json:"mined_confidence,omitempty"`
+	MinedSignal     string  `json:"mined_signal,omitempty"`
+	// planted truth (grader-only; shown for inspection, clearly labeled)
+	TruthAdequate   *bool    `json:"truth_adequate,omitempty"`
+	TruthDifficulty *float64 `json:"truth_difficulty,omitempty"`
+	TruthSignal     string   `json:"truth_signal,omitempty"`
+}
+
+type traceSession struct {
+	SessionID string      `json:"session_id"`
+	NumTurns  int         `json:"num_turns"`
+	Task      string      `json:"task"` // first prompt, truncated
+	Turns     []traceTurn `json:"turns"`
+}
+
+func (s *Server) handleTraces(w http.ResponseWriter, r *http.Request) {
+	path := filepath.Join(s.cfg.DataDir, "raw_logs.jsonl")
+	// load WITH hidden truth for display; mining reads only non-hidden fields.
+	turns, err := extract.LoadRaw(path, false)
+	if err != nil {
+		writeJSON(w, 200, map[string]any{"sessions": []any{}, "error": "no raw logs — run `make gen`"})
+		return
+	}
+	sessions := extract.Reconstruct(turns)
+
+	// mine implicit labels per assistant observation
+	isFrontier := func(m string) bool {
+		return m == s.cfg.FrontierModel || (len(m) >= 6 && m[:6] == "claude")
+	}
+	obs := extract.Observations(sessions)
+	mined := map[string]extract.ImplicitLabel{}
+	for _, o := range obs {
+		mined[o.PromptID] = extract.InferSignal(o, isFrontier)
+	}
+
+	var out []traceSession
+	for _, sess := range sessions {
+		ts := traceSession{SessionID: sess.ID, NumTurns: len(sess.Turns)}
+		for _, t := range sess.Turns {
+			tt := traceTurn{
+				TurnIndex: t.TurnIndex, Role: string(t.Role), Content: t.Content,
+				ServedModel: t.ServedModel, Propensity: t.Propensity,
+			}
+			if t.Role == schema.RoleAssistant {
+				pid := sess.ID + "-t" + pad2(t.TurnIndex)
+				if lab, ok := mined[pid]; ok {
+					o := lab.Outcome
+					tt.MinedOutcome = &o
+					tt.MinedConfidence = lab.Confidence
+					tt.MinedSignal = string(lab.Signal)
+				}
+				tt.TruthAdequate = t.TrueAdequate
+				tt.TruthDifficulty = t.TrueDifficulty
+			} else {
+				if ts.Task == "" {
+					ts.Task = truncate(t.Content, 90)
+				}
+				tt.TruthSignal = t.TrueSignal
+			}
+			ts.Turns = append(ts.Turns, tt)
+		}
+		out = append(out, ts)
+	}
+	writeJSON(w, 200, map[string]any{"sessions": out})
+}
+
+func pad2(n int) string {
+	if n < 10 {
+		return "0" + itoa(n)
+	}
+	return itoa(n)
+}
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var b []byte
+	for n > 0 {
+		b = append([]byte{byte('0' + n%10)}, b...)
+		n /= 10
+	}
+	return string(b)
+}
+
+// ---- /api/pointwise, /api/pairwise, /api/gold ----
+
+func (s *Server) handlePointwise(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	rows := s.pointwise
+	s.mu.RUnlock()
+	src := r.URL.Query().Get("source")
+	var out []map[string]any
+	for _, row := range rows {
+		if src != "" && string(row.LabelSource) != src {
+			continue
+		}
+		out = append(out, map[string]any{
+			"prompt_id":  row.PromptID,
+			"prompt":     truncate(row.PromptText, 120),
+			"model":      row.Model,
+			"outcome":    row.Outcome,
+			"source":     row.LabelSource,
+			"confidence": round3(row.LabelConfidence),
+			"turn_type":  row.Features.TurnType,
+			"hard_kw":    round3(row.Features.HardKeywordScore),
+			"tokens":     row.Features.PromptTokensApprox,
+			"session_id": row.SessionID,
+			"has_embed":  len(row.Embedding) > 0,
+			"propensity": row.Propensity,
+		})
+	}
+	writeJSON(w, 200, map[string]any{"rows": out, "total": len(out)})
+}
+
+func (s *Server) handlePairwise(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	rows := s.pairwise
+	s.mu.RUnlock()
+	var out []map[string]any
+	for _, row := range rows {
+		out = append(out, map[string]any{
+			"prompt_id": row.PromptID,
+			"prompt":    truncate(row.PromptText, 100),
+			"model_a":   row.ModelA,
+			"model_b":   row.ModelB,
+			"preferred": row.Preferred,
+			"source":    row.Source,
+		})
+	}
+	writeJSON(w, 200, map[string]any{"rows": out, "total": len(out)})
+}
+
+func (s *Server) handleGold(w http.ResponseWriter, r *http.Request) {
+	s.mu.RLock()
+	rows := s.gold
+	s.mu.RUnlock()
+	var out []map[string]any
+	for _, row := range rows {
+		out = append(out, map[string]any{
+			"prompt_id":        row.PromptID,
+			"prompt":           truncate(row.PromptText, 110),
+			"outcome_local":    row.OutcomeLocal,
+			"outcome_frontier": row.OutcomeFrontier,
+			"cost_local":       round3(row.CostLocal),
+			"cost_frontier":    round3(row.CostFrontier),
+			"cell":             goldCell(row),
+			"executable":       row.Executable,
+		})
+	}
+	writeJSON(w, 200, map[string]any{"rows": out, "total": len(out)})
+}
+
+// goldCell labels the escalation-relevant cell for a gold row.
+func goldCell(row schema.GoldRow) string {
+	switch {
+	case row.OutcomeLocal == 0 && row.OutcomeFrontier == 1:
+		return "frontier-rescues" // escalation pays off
+	case row.OutcomeLocal == 1 && row.OutcomeFrontier == 1:
+		return "both-pass"
+	case row.OutcomeLocal == 1 && row.OutcomeFrontier == 0:
+		return "local-only"
+	default:
+		return "both-fail" // no headroom
+	}
+}
+
+// ---- /api/reports ----
+
+// handleReports serves the saved JSON reports (extractor, train, eval methods).
+func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
+	out := map[string]any{}
+	load := func(key, name string) {
+		var v any
+		if s.readJSON(filepath.Join(s.cfg.DataDir, name), &v) == nil {
+			out[key] = v
+		}
+	}
+	load("extractor", "extractor_report.json")
+	load("train", "train_summary.json")
+	load("gold", "eval_dual-arm-gold.json")
+	load("backtest", "eval_temporal-backtest.json")
+	load("offpolicy", "eval_off-policy-ips-dr.json")
+	load("guardrail", "eval_guardrail-suite.json")
+	writeJSON(w, 200, out)
+}
+
+// ---- /api/fit ----
+
+type fitRequest struct {
+	TrainSource string  `json:"train_source"`
+	Threshold   float64 `json:"threshold"`
+}
+
+func (s *Server) handleFit(w http.ResponseWriter, r *http.Request) {
+	var req fitRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	src := schema.LabelSource(req.TrainSource)
+	if src == "" {
+		src = schema.LabelImplicit
+	}
+	thr := req.Threshold
+	if thr <= 0 {
+		thr = 0.5
+	}
+	if err := s.fit(src, thr); err != nil {
+		writeJSON(w, 400, map[string]any{"error": err.Error()})
+		return
+	}
+	writeJSON(w, 200, s.fitReport(thr))
+}
+
+// fit refits router.Registry() on the chosen source and stores them for routing.
+func (s *Server) fit(src schema.LabelSource, thr float64) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.pointwise) == 0 {
+		return errNoData
+	}
+	routers := router.Registry()
+	td := router.TrainData{
+		Pointwise: s.pointwise, Pairwise: s.pairwise,
+		LocalModels: s.cfg.LocalModels, FrontierModel: s.cfg.FrontierModel,
+		TrainSource: src,
+	}
+	for _, rt := range routers {
+		if err := rt.Fit(td); err != nil {
+			return err
+		}
+	}
+	s.routers = routers
+	s.fitSource = src
+	s.fitThresh = thr
+	return nil
+}
+
+// fitReport builds the IRT-recovery + gold-leaderboard payload.
+func (s *Server) fitReport(thr float64) map[string]any {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// IRT abilities from the fitted registry
+	abilities := map[string]float64{}
+	for _, rt := range s.routers {
+		if irt, ok := rt.(*router.IRT); ok {
+			abilities = irt.Abilities()
+		}
+	}
+	var planted map[string]float64
+	_ = s.readJSON(filepath.Join(s.cfg.DataDir, "_truth.json"), &struct {
+		Abilities *map[string]float64 `json:"abilities"`
+	}{Abilities: &planted})
+
+	// gold leaderboard (only if gold present)
+	var leaderboard []eval.ReportRow
+	if len(s.gold) > 0 {
+		data := eval.Data{Cfg: s.cfg, Pointwise: s.pointwise, Pairwise: s.pairwise, Gold: s.gold}
+		ge := &eval.GoldEval{Threshold: thr, TrainSource: s.fitSource}
+		if rep, err := ge.Run(router.Registry(), data); err == nil {
+			leaderboard = rep.Rows
+		}
+	}
+
+	// build ability rows (reference-centered planted vs recovered)
+	type abRow struct {
+		Model     string   `json:"model"`
+		Planted   *float64 `json:"planted,omitempty"`
+		Recovered float64  `json:"recovered"`
+	}
+	var abRows []abRow
+	ref := s.cfg.LocalModels[0]
+	shift := 0.0
+	if planted != nil {
+		shift = planted[ref]
+	}
+	for _, m := range s.cfg.AllModels() {
+		row := abRow{Model: m, Recovered: round3(abilities[m])}
+		if planted != nil {
+			p := round3(planted[m] - shift)
+			row.Planted = &p
+		}
+		abRows = append(abRows, row)
+	}
+	sort.Slice(abRows, func(i, j int) bool { return abRows[i].Recovered < abRows[j].Recovered })
+
+	return map[string]any{
+		"train_source": s.fitSource,
+		"threshold":    thr,
+		"n_pointwise":  len(s.pointwise),
+		"n_pairwise":   len(s.pairwise),
+		"abilities":    abRows,
+		"leaderboard":  leaderboard,
+		"has_gold":     len(s.gold) > 0,
+	}
+}
+
+// ---- /api/route ----
+
+type routeRequest struct {
+	Prompt    string  `json:"prompt"`
+	TurnType  string  `json:"turn_type"`
+	Threshold float64 `json:"threshold"`
+}
+
+func (s *Server) handleRoute(w http.ResponseWriter, r *http.Request) {
+	var req routeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Prompt == "" {
+		writeJSON(w, 400, map[string]any{"error": "provide a non-empty prompt"})
+		return
+	}
+	turnType := req.TurnType
+	if turnType == "" {
+		turnType = "open"
+	}
+	thr := req.Threshold
+	if thr <= 0 {
+		thr = s.fitThresh
+	}
+
+	s.mu.RLock()
+	routers := s.routers
+	s.mu.RUnlock()
+	if len(routers) == 0 {
+		if err := s.fit(schema.LabelImplicit, 0.5); err != nil {
+			writeJSON(w, 400, map[string]any{"error": "no fitted routers and no data to fit: " + err.Error()})
+			return
+		}
+		s.mu.RLock()
+		routers = s.routers
+		s.mu.RUnlock()
+	}
+
+	feats := feature.Extract(req.Prompt, turnType)
+	inst := router.Instance{Features: feats}
+	embedErr := ""
+	if emb, err := s.be.Embed(r.Context(), req.Prompt); err == nil {
+		inst.Embedding = emb
+	} else {
+		embedErr = err.Error()
+	}
+
+	type rr struct {
+		Name     string  `json:"name"`
+		Score    float64 `json:"score"`
+		Escalate bool    `json:"escalate"`
+	}
+	var results []rr
+	escVotes := 0
+	for _, rt := range routers {
+		sc := rt.Score(inst)
+		dec := rt.Decide(inst, thr)
+		if dec {
+			escVotes++
+		}
+		results = append(results, rr{Name: rt.Name(), Score: round3(sc), Escalate: dec})
+	}
+	sort.Slice(results, func(i, j int) bool { return results[i].Score > results[j].Score })
+
+	// feature vector (named) for transparency
+	names := feature.VectorNames()
+	vec := feature.Vector(feats)
+	featOut := make([]map[string]any, len(names))
+	for i := range names {
+		featOut[i] = map[string]any{"name": names[i], "value": round3(vec[i])}
+	}
+
+	writeJSON(w, 200, map[string]any{
+		"threshold":      thr,
+		"turn_type":      turnType,
+		"embedding_dim":  len(inst.Embedding),
+		"embed_error":    embedErr,
+		"features":       featOut,
+		"routers":        results,
+		"escalate_votes": escVotes,
+		"total_routers":  len(results),
+		"local_model":    s.cfg.LocalModels[0],
+		"frontier_model": s.cfg.FrontierModel,
+	})
+}
+
+func round3(f float64) float64 {
+	return float64(int(f*1000+sign(f)*0.5)) / 1000
+}
+func sign(f float64) float64 {
+	if f < 0 {
+		return -1
+	}
+	return 1
+}

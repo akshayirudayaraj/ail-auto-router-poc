@@ -11,7 +11,7 @@ BIN     := bin
 DATA    ?= data
 CACHE   ?= cache
 
-.PHONY: all gen extract train eval test build clean fmt vet tidy demo
+.PHONY: all gen extract train eval test build clean fmt vet tidy demo serve
 
 ## build: compile all command binaries into ./bin
 build:
@@ -20,6 +20,7 @@ build:
 	$(GO) build -o $(BIN)/extract  ./cmd/extract
 	$(GO) build -o $(BIN)/train    ./cmd/train
 	$(GO) build -o $(BIN)/eval     ./cmd/eval
+	$(GO) build -o $(BIN)/serve    ./cmd/serve
 
 ## gen: generate synthetic CC session logs (Pillar 1a)
 gen: build
@@ -36,6 +37,10 @@ train: build
 ## eval: run the evaluation harness over trained routers (Pillar 3)
 eval: build
 	$(BIN)/eval
+
+## serve: launch the web console (traces, data, fit, route) on :8080
+serve: build
+	$(BIN)/serve
 
 ## all: full end-to-end pipeline, then print where results landed
 all: gen extract train eval
