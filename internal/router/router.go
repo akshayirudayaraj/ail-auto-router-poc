@@ -43,6 +43,21 @@ type TrainData struct {
 	TrainSource schema.LabelSource
 }
 
+// Registry returns the default set of candidate routers to train and evaluate,
+// in a stable order (baselines first, then learned routers, then the
+// non-portable stubs).
+func Registry() []Router {
+	return []Router{
+		AlwaysLocal{},
+		AlwaysFrontier{},
+		NewRouteLLM(),
+		NewIRT(),
+		NewKNN(15),
+		NewEncoderMLP(),
+		NewSLMHead(),
+	}
+}
+
 // Router is the common interface.
 type Router interface {
 	// Fit trains on the dataset. Training-free routers may just store data.
