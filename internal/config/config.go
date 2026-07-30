@@ -21,9 +21,9 @@ type Config struct {
 	Seed int64
 
 	// Dataset sizes (small by default so an overnight run completes cheaply).
-	NumSessions   int // raw sessions to generate
-	NumGoldRows   int // dual-arm gold benchmark size
-	JudgeSample   int // max (prompt,response) pairs sent to the frontier judge
+	NumSessions   int     // raw sessions to generate
+	NumGoldRows   int     // dual-arm gold benchmark size
+	JudgeSample   int     // max (prompt,response) pairs sent to the frontier judge
 	EpsilonGreedy float64 // logging-policy exploration prob (enables off-policy eval)
 
 	// Models. LocalModels is the cheap open-weight rung; FrontierModel is the
@@ -34,9 +34,9 @@ type Config struct {
 	EmbedModel    string
 
 	// Backends.
-	OllamaURL   string
+	OllamaURL    string
 	AnthropicKey string // optional; empty => prefer claude CLI subprocess
-	Concurrency int
+	Concurrency  int
 
 	// Spend/rate caps (hard stops; the backend refuses calls past these).
 	MaxFrontierCalls int
@@ -52,7 +52,7 @@ type Config struct {
 func Default() Config {
 	return Config{
 		Seed:          42,
-		NumSessions:   60,  // ~150+ prompts once multi-turn is expanded
+		NumSessions:   60, // ~150+ prompts once multi-turn is expanded
 		NumGoldRows:   40,
 		JudgeSample:   40,
 		EpsilonGreedy: 0.2,

@@ -6,21 +6,21 @@ import "strings"
 type SignalKind string
 
 const (
-	SigNone      SignalKind = "none"
-	SigRetry     SignalKind = "retry"
-	SigPasteErr  SignalKind = "paste_error"
-	SigNegative  SignalKind = "negative"
-	SigSwitch    SignalKind = "switch"   // local->frontier escalation: STRONGEST
-	SigMoveOn    SignalKind = "moveon"
-	SigComplete  SignalKind = "complete" // session ended cleanly after the answer
+	SigNone     SignalKind = "none"
+	SigRetry    SignalKind = "retry"
+	SigPasteErr SignalKind = "paste_error"
+	SigNegative SignalKind = "negative"
+	SigSwitch   SignalKind = "switch" // local->frontier escalation: STRONGEST
+	SigMoveOn   SignalKind = "moveon"
+	SigComplete SignalKind = "complete" // session ended cleanly after the answer
 )
 
 // ImplicitLabel is a weak, noisy outcome label derived from user behavior.
 // Per the brief it should be treated as a NOISY FEATURE anchored by the judge,
 // not a clean label — the confidence reflects that.
 type ImplicitLabel struct {
-	Outcome    int        // 1 = adequate, 0 = inadequate
-	Confidence float64    // [0,1]
+	Outcome    int     // 1 = adequate, 0 = inadequate
+	Confidence float64 // [0,1]
 	Signal     SignalKind
 }
 

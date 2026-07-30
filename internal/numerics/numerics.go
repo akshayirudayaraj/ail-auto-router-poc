@@ -123,10 +123,10 @@ type LogisticRegression struct {
 
 // LogRegParams controls training.
 type LogRegParams struct {
-	LR      float64 // learning rate
-	L2      float64 // L2 penalty (not applied to bias)
-	Epochs  int
-	Tol     float64 // stop if mean |gradient| < Tol
+	LR     float64 // learning rate
+	L2     float64 // L2 penalty (not applied to bias)
+	Epochs int
+	Tol    float64 // stop if mean |gradient| < Tol
 }
 
 // DefaultLogRegParams are sane defaults for standardized features.

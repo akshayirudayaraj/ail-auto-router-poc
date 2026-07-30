@@ -45,10 +45,10 @@ type Backend interface {
 
 // Stats is a snapshot of call counts (for spend accounting and logging).
 type Stats struct {
-	EmbedCalls, EmbedHits       int64
-	GenLocalCalls, GenLocalHits int64
+	EmbedCalls, EmbedHits             int64
+	GenLocalCalls, GenLocalHits       int64
 	GenFrontierCalls, GenFrontierHits int64
-	JudgeCalls, JudgeHits       int64
+	JudgeCalls, JudgeHits             int64
 }
 
 // ErrCapExceeded is returned when a hard spend cap would be crossed.
@@ -84,10 +84,10 @@ type Client struct {
 	anthropic anthropicMode
 
 	// counters (atomic)
-	embedCalls, embedHits int64
-	genLocalCalls, genLocalHits int64
+	embedCalls, embedHits             int64
+	genLocalCalls, genLocalHits       int64
 	genFrontierCalls, genFrontierHits int64
-	judgeCalls, judgeHits int64
+	judgeCalls, judgeHits             int64
 
 	once sync.Once
 }

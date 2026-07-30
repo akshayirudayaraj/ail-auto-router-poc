@@ -25,12 +25,12 @@ type Backend interface {
 
 // Result summarizes an extraction run.
 type Result struct {
-	Observations int
-	ImplicitRows int
-	JudgeRows    int
-	PairwiseRows int
-	EmbedFail    int
-	JudgeFail    int
+	Observations  int
+	ImplicitRows  int
+	JudgeRows     int
+	PairwiseRows  int
+	EmbedFail     int
+	JudgeFail     int
 	PointwisePath string
 	PairwisePath  string
 }

@@ -77,16 +77,16 @@ func Reconstruct(turns []schema.RawTurn) []Session {
 // the user prompt that preceded it, and the next user turn (which carries the
 // implicit outcome signal). It carries NO ground truth.
 type ServedObs struct {
-	PromptID  string
-	Prompt    string // preceding user turn content
-	TurnType  string // "open" | "followup"
-	Model     string
-	Response  string
+	PromptID   string
+	Prompt     string // preceding user turn content
+	TurnType   string // "open" | "followup"
+	Model      string
+	Response   string
 	Propensity *float64
-	SessionID string
-	TurnIndex int
-	Timestamp int64
-	NextUser  *schema.RawTurn // following user turn, nil if session ended
+	SessionID  string
+	TurnIndex  int
+	Timestamp  int64
+	NextUser   *schema.RawTurn // following user turn, nil if session ended
 	// PrevModel/NextModel let signal heuristics detect escalation (switch).
 	NextModel string // model that served the NEXT assistant turn ("" if none)
 }

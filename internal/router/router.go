@@ -78,10 +78,10 @@ func decideAt(score, threshold float64) bool { return score >= threshold }
 // under-escalation.
 type AlwaysLocal struct{}
 
-func (AlwaysLocal) Fit(TrainData) error              { return nil }
-func (AlwaysLocal) Score(Instance) float64           { return 0 }
-func (AlwaysLocal) Decide(Instance, float64) bool    { return false }
-func (AlwaysLocal) Name() string                     { return "always-local" }
+func (AlwaysLocal) Fit(TrainData) error           { return nil }
+func (AlwaysLocal) Score(Instance) float64        { return 0 }
+func (AlwaysLocal) Decide(Instance, float64) bool { return false }
+func (AlwaysLocal) Name() string                  { return "always-local" }
 
 // AlwaysFrontier always escalates (score 1). Upper bound on cost and quality.
 type AlwaysFrontier struct{}

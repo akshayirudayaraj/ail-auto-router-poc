@@ -116,17 +116,17 @@ func (t RawTurn) HasHidden() bool {
 // Features are the prompt-derived structural signals used by every router.
 // They are deliberately cheap to compute in a real gateway (no model call).
 type Features struct {
-	PromptLen            int     `json:"prompt_len"`             // characters
-	PromptTokensApprox   int     `json:"prompt_tokens_approx"`   // len/4 heuristic
-	AttachedCtxTokens    int     `json:"attached_context_tokens"` // pasted code/files
-	ToolCount            int     `json:"tool_count"`             // tools available/used
-	TurnType             string  `json:"turn_type"`             // "open" | "followup"
-	CodeFenceCount       int     `json:"code_fence_count"`
-	QuestionCount        int     `json:"question_count"`
-	ImperativeVerbCount  int     `json:"imperative_verb_count"`
-	HardKeywordScore     float64 `json:"hard_keyword_score"`    // concurrency/refactor/etc.
-	LineCount            int     `json:"line_count"`
-	DigitRatio           float64 `json:"digit_ratio"`
+	PromptLen           int     `json:"prompt_len"`              // characters
+	PromptTokensApprox  int     `json:"prompt_tokens_approx"`    // len/4 heuristic
+	AttachedCtxTokens   int     `json:"attached_context_tokens"` // pasted code/files
+	ToolCount           int     `json:"tool_count"`              // tools available/used
+	TurnType            string  `json:"turn_type"`               // "open" | "followup"
+	CodeFenceCount      int     `json:"code_fence_count"`
+	QuestionCount       int     `json:"question_count"`
+	ImperativeVerbCount int     `json:"imperative_verb_count"`
+	HardKeywordScore    float64 `json:"hard_keyword_score"` // concurrency/refactor/etc.
+	LineCount           int     `json:"line_count"`
+	DigitRatio          float64 `json:"digit_ratio"`
 }
 
 // PointwiseRow is one observed (model, prompt) -> outcome record. This is the
@@ -143,9 +143,9 @@ type PointwiseRow struct {
 	LabelSource     LabelSource `json:"label_source"`
 	LabelConfidence float64     `json:"label_confidence"` // [0,1]
 
-	SessionID string   `json:"session_id"`
-	TurnIndex int      `json:"turn_index"`
-	Timestamp int64    `json:"timestamp"`
+	SessionID  string   `json:"session_id"`
+	TurnIndex  int      `json:"turn_index"`
+	Timestamp  int64    `json:"timestamp"`
 	Propensity *float64 `json:"propensity,omitempty"` // logging-policy prob, nullable
 }
 
@@ -168,9 +168,9 @@ type PairwiseRow struct {
 // This is the only source that yields trustworthy ABSOLUTE cost/quality
 // numbers. Executable=true leaves a seam for real unit-test ground truth.
 type GoldRow struct {
-	PromptID   string   `json:"prompt_id"`
-	PromptText string   `json:"prompt_text"`
-	Features   Features `json:"features"`
+	PromptID   string    `json:"prompt_id"`
+	PromptText string    `json:"prompt_text"`
+	Features   Features  `json:"features"`
 	Embedding  []float32 `json:"embedding,omitempty"`
 
 	OutcomeLocal    int `json:"outcome_local"`    // 1 = local adequate
@@ -179,7 +179,7 @@ type GoldRow struct {
 	LocalModel    string `json:"local_model"`
 	FrontierModel string `json:"frontier_model"`
 
-	CostLocal    float64 `json:"cost_local"`    // relative units (e.g. tokens*price)
+	CostLocal    float64 `json:"cost_local"` // relative units (e.g. tokens*price)
 	CostFrontier float64 `json:"cost_frontier"`
 
 	Executable bool `json:"executable"` // true when outcomes come from executed tests

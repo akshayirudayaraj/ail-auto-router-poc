@@ -83,10 +83,10 @@ func TestParseJudge(t *testing.T) {
 
 func TestCLIModelAlias(t *testing.T) {
 	cases := map[string]string{
-		"claude-sonnet-5": "sonnet",
-		"claude-opus-4-8": "opus",
+		"claude-sonnet-5":  "sonnet",
+		"claude-opus-4-8":  "opus",
 		"claude-haiku-4-5": "haiku",
-		"llama3.1:8b":     "",
+		"llama3.1:8b":      "",
 	}
 	for in, want := range cases {
 		if got := cliModelAlias(in); got != want {

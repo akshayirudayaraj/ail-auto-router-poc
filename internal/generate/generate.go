@@ -32,8 +32,8 @@ import (
 // TruthParams is the planted ground truth for the whole run, written to a
 // sidecar (data/_truth.json). Underscore prefix marks it as grader-only.
 type TruthParams struct {
-	Abilities   map[string]float64 `json:"abilities"`    // theta_m
-	BaseModel   string             `json:"base_model"`   // logging-policy default
+	Abilities   map[string]float64 `json:"abilities"`  // theta_m
+	BaseModel   string             `json:"base_model"` // logging-policy default
 	Epsilon     float64            `json:"epsilon"`
 	NumSessions int                `json:"num_sessions"`
 }
