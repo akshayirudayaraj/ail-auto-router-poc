@@ -81,9 +81,18 @@ func (c *Client) ollamaEmbed(ctx context.Context, text string) ([]float32, error
 }
 
 type ollamaChatReq struct {
-	Model    string    `json:"model"`
-	Messages []Message `json:"messages"`
-	Stream   bool      `json:"stream"`
+	Model    string        `json:"model"`
+	Messages []Message     `json:"messages"`
+	Stream   bool          `json:"stream"`
+	Options  ollamaOptions `json:"options"`
+}
+
+// ollamaOptions bounds local generation so a single hard prompt can't make the
+// model ramble for minutes (keeps the overnight run snappy and responses
+// log-realistic). num_predict caps output tokens.
+type ollamaOptions struct {
+	NumPredict  int     `json:"num_predict"`
+	Temperature float64 `json:"temperature"`
 }
 type ollamaChatResp struct {
 	Message Message `json:"message"`
@@ -91,7 +100,10 @@ type ollamaChatResp struct {
 
 // ollamaGenerate runs a local chat completion (non-streaming).
 func (c *Client) ollamaGenerate(ctx context.Context, model string, msgs []Message) (string, error) {
-	body, _ := json.Marshal(ollamaChatReq{Model: model, Messages: msgs, Stream: false})
+	body, _ := json.Marshal(ollamaChatReq{
+		Model: model, Messages: msgs, Stream: false,
+		Options: ollamaOptions{NumPredict: 512, Temperature: 0.2},
+	})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		c.cfg.OllamaURL+"/api/chat", bytes.NewReader(body))
 	if err != nil {
