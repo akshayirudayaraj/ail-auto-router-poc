@@ -12,6 +12,9 @@ git-ignored); here we keep small excerpts.
   judge-sourced). `embedding` is truncated here only in your head view; the real
   file carries the full 768-d vector.
 - `pairwise.sample.jsonl` — derived pairwise preferences (escalation + NN).
+- `gold.sample.jsonl` — dual-arm gold rows: both `outcome_local` and
+  `outcome_frontier` known, with per-arm cost. `executable:false` marks the seam
+  for real unit-test outcomes.
 
 See the schema definitions in `internal/schema` and the field-by-field
 production-logging requirements in the top-level README.
