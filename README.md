@@ -205,6 +205,21 @@ offline by this framework from the above.
 
 ---
 
+## Evaluation methods (Pillar 3)
+
+Each is an `EvalMethod` producing a structured `Report`; the harness encodes the
+four things that make router eval hard as explicit guardrails.
+
+| Method | What it measures | Guardrail it encodes |
+|---|---|---|
+| **dual-arm gold** | absolute cost/quality curve, convex hull, **AIQ**, under-/over-escalation (**cell-B**), AUC/ECE | both arms observed → no censoring; the only trustworthy absolute numbers |
+| **temporal backtest** | ranks routers on held-out future (AUC/ECE/acc) | split by **session+time** (no leakage); **eval label source must be strictly stronger than train** or it WARNs (label circularity) |
+| **off-policy IPS + DR** | counterfactual reward of deploying a router, from logs | **REFUSES** deterministic logs (needs stochastic propensities + overlap); reports ESS |
+| **guardrail suite** | difficulty-monotonicity + **topic-collapse** (keyword injection) | score must move with difficulty; decision must NOT flip on off-topic words |
+
+Plus a **policy layer**: calibrate a threshold to a target escalation rate (safe
+on logs) or a target quality (gold only), and a frontier **quota gate**.
+
 ## What is trustworthy
 
 - **Absolute** cost/quality numbers come only from the **dual-arm gold set**

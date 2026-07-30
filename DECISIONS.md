@@ -93,4 +93,36 @@ here with its rationale. Newest sections may be appended over the build.
 - Cost units: tokens × price weight, frontier priced 15× local (ratio is what
   matters, not scale).
 
+## D9 — Eval harness guardrails (the four hard problems, made explicit)
+- **Censoring:** observational logs serve one model per prompt, so the
+  backtest and off-policy methods only use LOCAL-served rows to ask "did local
+  fail?" and are documented as RANKING tools. Absolute cost/quality comes ONLY
+  from the dual-arm gold set (both arms observed).
+- **No oracle:** "adequate" is a proxy; the judge is fallible. The gold seam
+  `Executable` marks where real unit-test pass/fail would replace judged
+  outcomes.
+- **Feedback loop:** a deployed router reshapes traffic — so absolute numbers
+  are only claimed for the static gold set and (future) online A/B, never for
+  backtests.
+- **Label circularity:** the backtest ENFORCES eval-source > train-source
+  (executed > human > judge > implicit) and WARNs if they match (self-agreement,
+  not correctness).
+- **Off-policy** REFUSES deterministic logs (needs stochastic propensities +
+  overlap); the epsilon-greedy logging policy provides them. DR uses a fitted
+  IRT as the Q-model.
+- **AIQ** integrates the achievable-quality frontier over the GLOBAL cost range
+  (shared across routers) so it actually ranks them; a per-router-range
+  normalization (first attempt) collapsed the comparison and was fixed.
+- **cell-B** = under-escalation (stayed local, local failed, frontier would have
+  passed) — the costly miss; over-escalation (escalated, local would have
+  passed) is reported alongside as waste.
+
+## D10 — Python boundary is a demonstration seam
+- The two non-portable routers export a **linear JSON head** the Go stubs load
+  (`sigmoid(w·embedding+b)`). The encoder-MLP head is over the SAME nomic
+  embeddings the Go dataset carries (consistent train/inference). A true
+  fine-tuned encoder/SLM would be served via endpoint/ONNX in production — the
+  JSON head demonstrates the integration seam, documented as such. Scripts are
+  optional and gated on torch/sentence-transformers being installed.
+
 <!-- More decisions appended as the build proceeds. -->
