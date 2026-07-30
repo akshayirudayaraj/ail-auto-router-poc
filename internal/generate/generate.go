@@ -59,6 +59,32 @@ func New(cfg config.Config) *Generator {
 	return g
 }
 
+// Abilities exposes the planted per-model ability (theta) map for a config.
+// Used by the gold-set generator's synthetic fallback and by IRT recovery
+// tests. It is ground truth about the generative model, not extracted data.
+func Abilities(cfg config.Config) map[string]float64 { return assignAbilities(cfg) }
+
+// SamplePrompts returns n dense, code-heavy prompts spread across difficulty
+// tiers, for building the dual-arm gold benchmark. Seeded and deterministic.
+func SamplePrompts(n int, seed int64) []struct {
+	Prompt     string
+	Difficulty float64
+} {
+	r := rand.New(rand.NewSource(seed + 101))
+	out := make([]struct {
+		Prompt     string
+		Difficulty float64
+	}, 0, n)
+	for i := 0; i < n; i++ {
+		tk := taskBank[r.Intn(len(taskBank))]
+		out = append(out, struct {
+			Prompt     string
+			Difficulty float64
+		}{Prompt: tk.OpenPrompt, Difficulty: tk.BaseDifficulty})
+	}
+	return out
+}
+
 // assignAbilities plants a theta per model: frontier highest; among locals a
 // code-specialized model (name contains "coder") outranks a general one. The
 // reference model (index 0) is pinned to 0 for IRT identifiability parity.

@@ -66,8 +66,8 @@ func Default() Config {
 		AnthropicKey: "",
 		Concurrency:  4,
 
-		MaxFrontierCalls: 120,
-		MaxJudgeCalls:    120,
+		MaxFrontierCalls: 200,
+		MaxJudgeCalls:    200,
 		MaxEmbedCalls:    5000,
 
 		DataDir:  "data",
