@@ -12,7 +12,7 @@ This track adds an **agentic, execution-ground-truth** arm to the router framewo
 - The proxy exposes an Anthropic Messages API (`POST /v1/messages`, tool_use/tool_result, SSE streaming) and translates to Ollama `/api/chat`, so the local model drives the **same tool protocol** as frontier — the point is to measure fidelity, not just reasoning.
 - Both arms run with **no MCP servers and no hooks** (`--strict-mcp-config`) so the harness is lean and reproducible. The local arm additionally uses `--bare`: the full Claude Code system prompt is ~30k tokens, which costs **~8 min/turn** on `qwen2.5-coder:14b` locally (measured) — intractable — so `--bare` trims it to ~1k tokens/turn. This asymmetry, if anything, *handicaps* the local arm (less guidance); the tool protocol is identical. See DECISIONS D13.
 - **Execution oracle:** the agent's `git diff` is scored by running FAIL_TO_PASS + PASS_TO_PASS in a hermetic Docker image (`python:3.11-slim` + pytest, `--network none`).
-- Gold set provenance: `executable=True`, `synthetic=False`, N=11, local-arm-missing=8.
+- Gold set provenance: `executable=True`, `synthetic=False`, N=11, local-arm-missing=7.
 
 ## Per-(task, arm) results
 
@@ -23,7 +23,7 @@ Executed pass/fail is the oracle. `native/rescued` = local tool-call fidelity: h
 | `easy-01-reverse-words` | easy | PASS | FAIL ⏱ | 5 | 0 | 0/1 | 8265 | 0 | 1200s |
 | `easy-02-is-even` | easy | PASS | FAIL ⏱ | 6 | 0 | 0/0 | 8070 | 0 | 1200s |
 | `easy-03-fizzbuzz-range` | easy | PASS | FAIL ⏱ | 6 | 0 | 0/2 | 31485 | 0 | 1200s |
-| `easy-04-celsius` | easy | PASS | — | 6 | — | — | 9105 | — | — |
+| `easy-04-celsius` | easy | PASS | FAIL ⏱ | 6 | 0 | 0/1 | 9105 | 0 | 1200s |
 | `med-01-roman` | medium | PASS | — | 7 | — | — | 13245 | — | — |
 | `med-02-csv-quotes` | medium | PASS | — | 6 | — | — | 11145 | — | — |
 | `med-03-interval-merge` | medium | PASS | — | 6 | — | — | 9780 | — | — |
@@ -35,10 +35,10 @@ Executed pass/fail is the oracle. `native/rescued` = local tool-call fidelity: h
 ## Headline routing-relevant findings
 
 - **Frontier executed pass rate:** 11/11 tasks resolved (real tests, real harness).
-- **Local executed pass rate:** 0/3 tasks resolved (3 hit the 20-min wall-clock budget ⏱). **Two distinct failure modes compound here:** (a) tool-call fidelity (the model emits prose-JSON, rescued by the proxy) and (b) latency — a local 14B turn is seconds when the GPU is free but minutes under contention (a parallel process held the GPU during this run), so multi-turn agentic tasks blow the time budget. Both are real routing signals: the local rung is inadequate agentically here, for capability AND cost-of-latency reasons.
-- **Local tool-call fidelity (the binding constraint):** 0/3 tool calls were emitted as **native** tool calls (0%); the other 3 were **rescued** by the proxy from bare prose-JSON the model emitted as text. Without the rescue shim (i.e. in a stock harness), the local model makes **~0 valid tool calls** and therefore cannot act at all — a 75%-single-shot model scores ~0% agentically. This is exactly the harness-conditioned fidelity gap the study targets.
-- **cell-B (escalation-worthy set):** 3 tasks where LOCAL FAILED but FRONTIER PASSED — the costly misses a good router must catch. (both-pass=0, both-fail=0, local-only-pass=0, of 3 paired tasks.)
-- **Cost saved by perfect routing vs always-frontier:** 116505 of 164325 units (71%) — a perfect oracle keeps the tasks local already passes off the 15×-priced frontier rung; the rest escalate.
+- **Local executed pass rate:** 0/4 tasks resolved (4 hit the 20-min wall-clock budget ⏱). **Two distinct failure modes compound here:** (a) tool-call fidelity (the model emits prose-JSON, rescued by the proxy) and (b) latency — a local 14B turn is seconds when the GPU is free but minutes under contention (a parallel process held the GPU during this run), so multi-turn agentic tasks blow the time budget. Both are real routing signals: the local rung is inadequate agentically here, for capability AND cost-of-latency reasons.
+- **Local tool-call fidelity (the binding constraint):** 0/4 tool calls were emitted as **native** tool calls (0%); the other 4 were **rescued** by the proxy from bare prose-JSON the model emitted as text. Without the rescue shim (i.e. in a stock harness), the local model makes **~0 valid tool calls** and therefore cannot act at all — a 75%-single-shot model scores ~0% agentically. This is exactly the harness-conditioned fidelity gap the study targets.
+- **cell-B (escalation-worthy set):** 4 tasks where LOCAL FAILED but FRONTIER PASSED — the costly misses a good router must catch. (both-pass=0, both-fail=0, local-only-pass=0, of 4 paired tasks.)
+- **Cost saved by perfect routing vs always-frontier:** 107400 of 164325 units (65%) — a perfect oracle keeps the tasks local already passes off the 15×-priced frontier rung; the rest escalate.
 
 ## What we already know about local tool-call fidelity (measured)
 
