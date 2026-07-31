@@ -1,0 +1,48 @@
+{
+  "task_id": "med-03-interval-merge",
+  "tier": "medium",
+  "arm": "frontier",
+  "model": "sonnet",
+  "ollama_model": null,
+  "config_hash": "6ff8fb32",
+  "resolved": true,
+  "fail_to_pass_ok": true,
+  "pass_to_pass_ok": true,
+  "wall_clock_s": 15.5,
+  "timed_out": false,
+  "hit_turn_cap": false,
+  "empty_patch": false,
+  "patch_len": 438,
+  "cost_units": 2360715.0,
+  "assistant_turns": 8,
+  "num_turns": 6,
+  "tool_calls_attempted": 5,
+  "tool_calls_errored": 0,
+  "any_valid_tool_call": true,
+  "input_tokens": 12,
+  "output_tokens": 640,
+  "cache_read_tokens": 146068,
+  "cache_creation_tokens": 10661,
+  "total_tokens": 157381,
+  "native_tool_calls": 0,
+  "rescued_tool_calls": 0,
+  "proxy_requests": 0,
+  "result_subtype": "success",
+  "reported_cost_usd": 0.1174224,
+  "is_error": false,
+  "had_result_event": true,
+  "per_node": {
+    "tests/test_merge.py::test_touching_merge": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_merge.py::test_overlap": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_merge.py::test_disjoint_stays": {
+      "passed": true,
+      "timed_out": false
+    }
+  }
+}

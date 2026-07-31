@@ -1,0 +1,48 @@
+{
+  "task_id": "hard-02-toposort",
+  "tier": "hard",
+  "arm": "frontier",
+  "model": "sonnet",
+  "ollama_model": null,
+  "config_hash": "6ff8fb32",
+  "resolved": true,
+  "fail_to_pass_ok": true,
+  "pass_to_pass_ok": true,
+  "wall_clock_s": 24.3,
+  "timed_out": false,
+  "hit_turn_cap": false,
+  "empty_patch": false,
+  "patch_len": 758,
+  "cost_units": 2889510.0,
+  "assistant_turns": 10,
+  "num_turns": 7,
+  "tool_calls_attempted": 6,
+  "tool_calls_errored": 0,
+  "any_valid_tool_call": true,
+  "input_tokens": 14,
+  "output_tokens": 1341,
+  "cache_read_tokens": 178693,
+  "cache_creation_tokens": 12586,
+  "total_tokens": 192634,
+  "native_tool_calls": 0,
+  "rescued_tool_calls": 0,
+  "proxy_requests": 0,
+  "result_subtype": "success",
+  "reported_cost_usd": 0.1492809,
+  "is_error": false,
+  "had_result_event": true,
+  "per_node": {
+    "tests/test_topo.py::test_includes_dep_only_nodes": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_topo.py::test_cycle_detected": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_topo.py::test_diamond": {
+      "passed": true,
+      "timed_out": false
+    }
+  }
+}

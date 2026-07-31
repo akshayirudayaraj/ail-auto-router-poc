@@ -1,0 +1,20 @@
+diff --git a/csvmini/parse.py b/csvmini/parse.py
+index dea1f57..6a9ebac 100644
+--- a/csvmini/parse.py
++++ b/csvmini/parse.py
+@@ -1,2 +1,14 @@
+ def parse_line(line):
+-    return line.split(',')
++    fields = []
++    field = []
++    in_quotes = False
++    for ch in line:
++        if ch == '"':
++            in_quotes = not in_quotes
++        elif ch == ',' and not in_quotes:
++            fields.append(''.join(field))
++            field = []
++        else:
++            field.append(ch)
++    fields.append(''.join(field))
++    return fields

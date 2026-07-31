@@ -1,0 +1,60 @@
+diff --git a/calc/eval.py b/calc/eval.py
+index 33503c7..561c790 100644
+--- a/calc/eval.py
++++ b/calc/eval.py
+@@ -1,22 +1,41 @@
+ def evaluate(expr):
+     expr = expr.replace(' ', '')
+-    # NOTE: strictly left-to-right, no precedence, no parens.
+-    num = ''
+-    result = None
+-    op = '+'
+-    for ch in expr:
+-        if ch.isdigit():
+-            num += ch
+-            continue
+-        result = _apply(result, op, int(num))
+-        num = ''
+-        op = ch
+-    return _apply(result, op, int(num))
++    value, pos = _parse_expr(expr, 0)
++    return value
++
++
++def _parse_expr(expr, pos):
++    value, pos = _parse_term(expr, pos)
++    while pos < len(expr) and expr[pos] in '+-':
++        op = expr[pos]
++        pos += 1
++        rhs, pos = _parse_term(expr, pos)
++        value = _apply(value, op, rhs)
++    return value, pos
++
++
++def _parse_term(expr, pos):
++    value, pos = _parse_factor(expr, pos)
++    while pos < len(expr) and expr[pos] in '*/':
++        op = expr[pos]
++        pos += 1
++        rhs, pos = _parse_factor(expr, pos)
++        value = _apply(value, op, rhs)
++    return value, pos
++
++
++def _parse_factor(expr, pos):
++    if expr[pos] == '(':
++        value, pos = _parse_expr(expr, pos + 1)
++        pos += 1  # skip ')'
++        return value, pos
++    start = pos
++    while pos < len(expr) and expr[pos].isdigit():
++        pos += 1
++    return int(expr[start:pos]), pos
+ 
+ 
+ def _apply(result, op, val):
+-    if result is None:
+-        return val
+     if op == '+':
+         return result + val
+     if op == '-':

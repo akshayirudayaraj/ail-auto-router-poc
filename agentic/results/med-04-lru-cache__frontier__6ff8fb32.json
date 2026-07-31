@@ -1,0 +1,44 @@
+{
+  "task_id": "med-04-lru-cache",
+  "tier": "medium",
+  "arm": "frontier",
+  "model": "sonnet",
+  "ollama_model": null,
+  "config_hash": "6ff8fb32",
+  "resolved": true,
+  "fail_to_pass_ok": true,
+  "pass_to_pass_ok": true,
+  "wall_clock_s": 26.9,
+  "timed_out": false,
+  "hit_turn_cap": false,
+  "empty_patch": false,
+  "patch_len": 326,
+  "cost_units": 3731190.0,
+  "assistant_turns": 13,
+  "num_turns": 9,
+  "tool_calls_attempted": 8,
+  "tool_calls_errored": 0,
+  "any_valid_tool_call": true,
+  "input_tokens": 18,
+  "output_tokens": 1304,
+  "cache_read_tokens": 234633,
+  "cache_creation_tokens": 12791,
+  "total_tokens": 248746,
+  "native_tool_calls": 0,
+  "rescued_tool_calls": 0,
+  "proxy_requests": 0,
+  "result_subtype": "success",
+  "reported_cost_usd": 0.16674990000000003,
+  "is_error": false,
+  "had_result_event": true,
+  "per_node": {
+    "tests/test_cache.py::test_get_refreshes_recency": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_cache.py::test_basic_evict": {
+      "passed": true,
+      "timed_out": false
+    }
+  }
+}

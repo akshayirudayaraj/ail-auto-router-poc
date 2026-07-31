@@ -1,0 +1,13 @@
+diff --git a/intervals/merge.py b/intervals/merge.py
+index 6a62750..b9881de 100644
+--- a/intervals/merge.py
++++ b/intervals/merge.py
+@@ -4,7 +4,7 @@ def merge(intervals):
+     intervals = sorted(intervals)
+     out = [intervals[0][:]]
+     for start, end in intervals[1:]:
+-        if start < out[-1][1]:
++        if start <= out[-1][1]:
+             out[-1][1] = max(out[-1][1], end)
+         else:
+             out.append([start, end])

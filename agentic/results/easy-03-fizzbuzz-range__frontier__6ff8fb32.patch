@@ -1,0 +1,12 @@
+diff --git a/fb/game.py b/fb/game.py
+index 877992b..b8507fd 100644
+--- a/fb/game.py
++++ b/fb/game.py
+@@ -1,6 +1,6 @@
+ def fizzbuzz(n):
+     out = []
+-    for i in range(1, n):
++    for i in range(1, n + 1):
+         if i % 15 == 0:
+             out.append('FizzBuzz')
+         elif i % 3 == 0:

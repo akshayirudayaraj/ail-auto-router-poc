@@ -1,0 +1,8 @@
+diff --git a/numkit/parity.py b/numkit/parity.py
+index bce522a..a28c8ef 100644
+--- a/numkit/parity.py
++++ b/numkit/parity.py
+@@ -1,2 +1,2 @@
+ def is_even(n):
+-    return n % 2 == 1
++    return n % 2 == 0

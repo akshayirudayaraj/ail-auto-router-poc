@@ -21,7 +21,6 @@ python/__pycache__/
 .DS_Store
 
 # agentic track runtime artifacts
-agentic/results/
 agentic/checkouts/
 agentic/tasks/*/checkout/
 *.pyc

@@ -1,0 +1,15 @@
+diff --git a/lcs/core.py b/lcs/core.py
+index f0d0879..596334a 100644
+--- a/lcs/core.py
++++ b/lcs/core.py
+@@ -14,8 +14,10 @@ def lcs(a, b):
+         if a[i - 1] == b[j - 1]:
+             out.append(a[i - 1])
+             i -= 1
++            j -= 1
+         elif dp[i - 1][j] >= dp[i][j - 1]:
+             i -= 1
+         else:
+             j -= 1
++    out.reverse()
+     return out

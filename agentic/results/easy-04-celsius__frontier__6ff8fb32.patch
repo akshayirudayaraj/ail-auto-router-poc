@@ -1,0 +1,8 @@
+diff --git a/temp/convert.py b/temp/convert.py
+index 7716e59..1a5d315 100644
+--- a/temp/convert.py
++++ b/temp/convert.py
+@@ -1,2 +1,2 @@
+ def c_to_f(c):
+-    return c * 9 / 5 - 32
++    return c * 9 / 5 + 32

@@ -1,0 +1,48 @@
+{
+  "task_id": "med-01-roman",
+  "tier": "medium",
+  "arm": "frontier",
+  "model": "sonnet",
+  "ollama_model": null,
+  "config_hash": "6ff8fb32",
+  "resolved": true,
+  "fail_to_pass_ok": true,
+  "pass_to_pass_ok": true,
+  "wall_clock_s": 24.2,
+  "timed_out": false,
+  "hit_turn_cap": false,
+  "empty_patch": false,
+  "patch_len": 419,
+  "cost_units": 2861325.0,
+  "assistant_turns": 9,
+  "num_turns": 7,
+  "tool_calls_attempted": 6,
+  "tool_calls_errored": 0,
+  "any_valid_tool_call": true,
+  "input_tokens": 14,
+  "output_tokens": 869,
+  "cache_read_tokens": 177866,
+  "cache_creation_tokens": 12006,
+  "total_tokens": 190755,
+  "native_tool_calls": 0,
+  "rescued_tool_calls": 0,
+  "proxy_requests": 0,
+  "result_subtype": "success",
+  "reported_cost_usd": 0.1384728,
+  "is_error": false,
+  "had_result_event": true,
+  "per_node": {
+    "tests/test_conv.py::test_subtractive": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_conv.py::test_composite": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_conv.py::test_simple_still_ok": {
+      "passed": true,
+      "timed_out": false
+    }
+  }
+}
