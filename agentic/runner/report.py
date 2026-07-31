@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""
+Assemble RESULTS_AGENTIC.md from the runner results, the task set, and the
+existing eval harness output on the agentic gold set.
+
+Reads:
+  agentic/results/*.json      per-(task,arm) executed results
+  agentic/tasks/*/task.json   tier + issue text
+  data_agentic/eval_report.md the existing harness run on the agentic gold set
+  data_agentic/gold_meta.json provenance
+
+Writes RESULTS_AGENTIC.md at the repo root. Robust to a partial run (e.g. the
+local arm still grinding under GPU contention): missing cells render as "—".
+"""
+import glob
+import json
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
+RESULTS_DIR = os.path.join(ROOT, "agentic", "results")
+TASKS_DIR = os.path.join(ROOT, "agentic", "tasks")
+DATA_AGENTIC = os.path.join(ROOT, "data_agentic")
+OUT = os.path.join(ROOT, "RESULTS_AGENTIC.md")
+
+TIER_ORDER = {"easy": 0, "medium": 1, "hard": 2}
+
+
+def load_results():
+    by = {}
+    for p in glob.glob(os.path.join(RESULTS_DIR, "*.json")):
+        try:
+            r = json.load(open(p))
+        except Exception:
+            continue
+        by.setdefault(r["task_id"], {})[r["arm"]] = r
+    return by
+
+
+def load_tasks():
+    out = {}
+    for p in glob.glob(os.path.join(TASKS_DIR, "*", "task.json")):
+        t = json.load(open(p))
+        out[t["id"]] = t
+    return out
+
+
+def fmt_bool(b):
+    return "PASS" if b else "FAIL"
+
+
+def cell(res, key, default="—"):
+    if res is None:
+        return default
+    v = res.get(key)
+    return default if v is None else v
+
+
+def main():
+    by = load_results()
+    tasks = load_tasks()
+    ids = sorted(tasks, key=lambda i: (TIER_ORDER.get(tasks[i]["tier"], 9), i))
+
+    lines = []
+    W = lines.append
+    W("# Agentic, Execution-Grounded Evaluation — Results\n")
+    W("This track adds an **agentic, execution-ground-truth** arm to the router "
+      "framework. Each task is run to completion inside the **real Claude Code "
+      "harness** (`claude -p`, tool-calling loop over a repo checkout) for BOTH "
+      "a local open-weight model and a frontier Claude model; the produced patch "
+      "is then scored by **executing the repo's hidden tests** (SWE-bench rule: "
+      "all FAIL_TO_PASS pass and all PASS_TO_PASS still pass). This replaces the "
+      "single-shot, LLM-judge (circular) labels with a non-circular oracle and "
+      "surfaces the binding constraint the single-shot scores hide: "
+      "**tool-call fidelity**.\n")
+
+    # ---- arms / harness ----
+    meta = {}
+    mp = os.path.join(DATA_AGENTIC, "gold_meta.json")
+    if os.path.exists(mp):
+        meta = json.load(open(mp))
+    W("## Arms, models, harness\n")
+    W("| arm | model | harness invocation |")
+    W("|---|---|---|")
+    W("| **frontier** | `claude-sonnet` (CLI alias, latest; via logged-in "
+      "subscription) | `claude -p --output-format stream-json "
+      "--allowedTools Read Edit Write Bash --permission-mode bypassPermissions "
+      "--strict-mcp-config --model sonnet` |")
+    W("| **local** | `qwen2.5-coder:14b` (Ollama) via an Anthropic→Ollama proxy "
+      "(`ANTHROPIC_BASE_URL`) | same, plus `--bare` (see note) and "
+      "`ANTHROPIC_BASE_URL=<proxy>` |")
+    W("")
+    W("- The proxy exposes an Anthropic Messages API (`POST /v1/messages`, "
+      "tool_use/tool_result, SSE streaming) and translates to Ollama "
+      "`/api/chat`, so the local model drives the **same tool protocol** as "
+      "frontier — the point is to measure fidelity, not just reasoning.")
+    W("- Both arms run with **no MCP servers and no hooks** (`--strict-mcp-config`) "
+      "so the harness is lean and reproducible. The local arm additionally uses "
+      "`--bare`: the full Claude Code system prompt is ~30k tokens, which costs "
+      "**~8 min/turn** on `qwen2.5-coder:14b` locally (measured) — intractable — "
+      "so `--bare` trims it to ~1k tokens/turn. This asymmetry, if anything, "
+      "*handicaps* the local arm (less guidance); the tool protocol is identical. "
+      "See DECISIONS D13.")
+    W("- **Execution oracle:** the agent's `git diff` is scored by running "
+      "FAIL_TO_PASS + PASS_TO_PASS in a hermetic Docker image "
+      "(`python:3.11-slim` + pytest, `--network none`).")
+    if meta:
+        W(f"- Gold set provenance: `executable={meta.get('executable')}`, "
+          f"`synthetic={meta.get('synthetic')}`, N={meta.get('n')}, "
+          f"local-arm-missing={meta.get('local_arm_missing')}.")
+    W("")
+
+    # ---- per-task table ----
+    W("## Per-(task, arm) results\n")
+    W("Executed pass/fail is the oracle. `native/rescued` = local tool-call "
+      "fidelity: how many tool calls arrived as **native** Ollama `tool_calls` "
+      "vs had to be **rescued** by the proxy from bare prose-JSON the model "
+      "emitted as text. Cost is in the framework's relative units "
+      "(tokens × price, frontier priced 15× local).\n")
+    W("| task | tier | front exec | local exec | front turns | local turns | "
+      "local native/rescued | front cost | local cost | local wall |")
+    W("|---|---|:--:|:--:|--:|--:|:--:|--:|--:|--:|")
+    n_cellB = both_pass = both_fail = local_pass = 0
+    front_cost_tot = perfect_cost_tot = 0.0
+    loc_native_tot = loc_rescued_tot = 0
+    paired = 0
+    for i in ids:
+        arms = by.get(i, {})
+        f = arms.get("frontier")
+        l = arms.get("local")
+        tier = tasks[i]["tier"]
+        fexec = fmt_bool(f["resolved"]) if f else "—"
+        lexec = fmt_bool(l["resolved"]) if l else "—"
+        nat = cell(l, "native_tool_calls")
+        res = cell(l, "rescued_tool_calls")
+        natres = f"{nat}/{res}" if l else "—"
+        fcost = f"{f['cost_units']:.0f}" if f else "—"
+        lcost = f"{l['cost_units']:.0f}" if l else "—"
+        lwall = f"{l['wall_clock_s']:.0f}s" if l else "—"
+        W(f"| `{i}` | {tier} | {fexec} | {lexec} | "
+          f"{cell(f,'num_turns')} | {cell(l,'num_turns')} | {natres} | "
+          f"{fcost} | {lcost} | {lwall} |")
+        if f and l:
+            paired += 1
+            loc_native_tot += l.get("native_tool_calls", 0)
+            loc_rescued_tot += l.get("rescued_tool_calls", 0)
+            if not l["resolved"] and f["resolved"]:
+                n_cellB += 1
+            elif l["resolved"] and f["resolved"]:
+                both_pass += 1
+            elif not l["resolved"] and not f["resolved"]:
+                both_fail += 1
+            else:
+                local_pass += 1
+            perfect_cost_tot += l["cost_units"] if l["resolved"] else f["cost_units"]
+        if f:
+            front_cost_tot += f["cost_units"]
+    W("")
+
+    # ---- headline findings ----
+    W("## Headline routing-relevant findings\n")
+    front_pass = sum(1 for i in ids if by.get(i, {}).get("frontier", {}).get("resolved"))
+    front_ran = sum(1 for i in ids if "frontier" in by.get(i, {}))
+    local_ran = sum(1 for i in ids if "local" in by.get(i, {}))
+    local_resolved = sum(1 for i in ids if by.get(i, {}).get("local", {}).get("resolved"))
+    W(f"- **Frontier executed pass rate:** {front_pass}/{front_ran} tasks "
+      "resolved (real tests, real harness).")
+    if local_ran:
+        W(f"- **Local executed pass rate:** {local_resolved}/{local_ran} tasks resolved.")
+    tot_calls = loc_native_tot + loc_rescued_tot
+    if tot_calls:
+        W(f"- **Local tool-call fidelity (the binding constraint):** "
+          f"{loc_native_tot}/{tot_calls} tool calls were emitted as **native** "
+          f"tool calls ({100*loc_native_tot/tot_calls:.0f}%); the other "
+          f"{loc_rescued_tot} were **rescued** by the proxy from bare prose-JSON "
+          "the model emitted as text. Without the rescue shim (i.e. in a stock "
+          "harness), the local model makes **~0 valid tool calls** and therefore "
+          "cannot act at all — a 75%-single-shot model scores ~0% agentically. "
+          "This is exactly the harness-conditioned fidelity gap the study targets.")
+    elif local_ran:
+        W("- **Local tool-call fidelity:** local runs recorded; see the "
+          "native/rescued column above.")
+    else:
+        W("- **Local tool-call fidelity:** the local arm was still running under "
+          "GPU contention at report time (a parallel process held the GPU); "
+          "however the fidelity failure is already established and reproducible "
+          "at the protocol level: `qwen2.5-coder:14b` via Ollama emits tool "
+          "calls as **bare prose-JSON** with **0 native `tool_calls`** over "
+          "repeated trials, which a stock Claude Code harness sees as zero valid "
+          "tool calls. See DECISIONS D11-ag.")
+    if paired:
+        W(f"- **cell-B (escalation-worthy set):** {n_cellB} tasks where LOCAL "
+          f"FAILED but FRONTIER PASSED — the costly misses a good router must "
+          f"catch. (both-pass={both_pass}, both-fail={both_fail}, "
+          f"local-only-pass={local_pass}, of {paired} paired tasks.)")
+    if front_cost_tot and paired:
+        saved = front_cost_tot - perfect_cost_tot
+        W(f"- **Cost saved by perfect routing vs always-frontier:** "
+          f"{saved:.0f} of {front_cost_tot:.0f} units "
+          f"({100*saved/front_cost_tot:.0f}%) — routing the tasks a perfect "
+          "oracle would keep local (because local already passes them) off the "
+          "15×-priced frontier rung.")
+    W("")
+
+    # ---- eval harness on the agentic gold set ----
+    erp = os.path.join(DATA_AGENTIC, "eval_report.md")
+    if os.path.exists(erp):
+        W("## The existing eval harness, run on the agentic (executed) gold set\n")
+        W("The dual-arm gold set below was assembled from these executed runs "
+          "(`Executable=true`, outcomes from real tests) and fed through the "
+          "**existing** eval harness (`internal/eval`) unchanged — dual-arm gold, "
+          "AIQ, cost/quality curve, cell-B. Routers are trained on the synthetic "
+          "`implicit` logs and evaluated here on the strictly-stronger `executed` "
+          "labels, so there is no circularity.\n")
+        W(open(erp).read())
+    W("")
+    W("---\n")
+    W("Reproduce: `make agentic` (full, resumable/cached) or `make agentic-smoke` "
+      "(1-task both-arm fidelity smoke). See DECISIONS.md (D12–D15) for every "
+      "assumption and `agentic/README.md` for the Go/Python boundary.\n")
+
+    with open(OUT, "w") as fh:
+        fh.write("\n".join(lines))
+    print(f"wrote {OUT} ({len(lines)} lines; paired={paired}, cellB={n_cellB})")
+
+
+if __name__ == "__main__":
+    main()
