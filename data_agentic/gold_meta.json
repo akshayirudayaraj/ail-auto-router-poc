@@ -4,5 +4,5 @@
   "local_model": "qwen2.5-coder:14b (via Anthropic-\u003eOllama proxy)",
   "frontier_model": "claude-sonnet (CLI alias; via subscription)",
   "n": 11,
-  "local_arm_missing": 2
+  "local_arm_missing": 1
 }

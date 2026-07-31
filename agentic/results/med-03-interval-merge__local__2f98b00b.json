@@ -1,0 +1,48 @@
+{
+  "task_id": "med-03-interval-merge",
+  "tier": "medium",
+  "arm": "local",
+  "model": "claude-sonnet-4",
+  "ollama_model": "qwen2.5-coder:14b",
+  "config_hash": "2f98b00b",
+  "resolved": false,
+  "fail_to_pass_ok": false,
+  "pass_to_pass_ok": true,
+  "wall_clock_s": 1200.0,
+  "timed_out": true,
+  "hit_turn_cap": false,
+  "empty_patch": true,
+  "patch_len": 0,
+  "cost_units": 0.0,
+  "assistant_turns": 0,
+  "num_turns": 0,
+  "tool_calls_attempted": 0,
+  "tool_calls_errored": 0,
+  "any_valid_tool_call": false,
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "cache_read_tokens": 0,
+  "cache_creation_tokens": 0,
+  "total_tokens": 0,
+  "native_tool_calls": 0,
+  "rescued_tool_calls": 2,
+  "proxy_requests": 5,
+  "result_subtype": null,
+  "reported_cost_usd": null,
+  "is_error": false,
+  "had_result_event": false,
+  "per_node": {
+    "tests/test_merge.py::test_touching_merge": {
+      "passed": false,
+      "timed_out": false
+    },
+    "tests/test_merge.py::test_overlap": {
+      "passed": true,
+      "timed_out": false
+    },
+    "tests/test_merge.py::test_disjoint_stays": {
+      "passed": true,
+      "timed_out": false
+    }
+  }
+}
