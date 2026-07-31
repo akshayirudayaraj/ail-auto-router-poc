@@ -1,0 +1,12 @@
+{
+  "id": "med-04-lru-cache",
+  "tier": "medium",
+  "issue": "`LRUCache(capacity)` should evict the LEAST-recently-used key on overflow, and a `get` must count as a use (refreshing recency). Currently `get` does not refresh recency, so the wrong key is evicted. See tests for the exact expected eviction behavior.",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_cache.py::test_get_refreshes_recency"
+  ],
+  "pass_to_pass": [
+    "tests/test_cache.py::test_basic_evict"
+  ]
+}

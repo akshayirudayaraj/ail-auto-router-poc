@@ -1,0 +1,13 @@
+{
+  "id": "easy-01-reverse-words",
+  "tier": "easy",
+  "issue": "`reverse_words` should reverse the ORDER of words in a sentence. `reverse_words('the quick brown fox')` must return 'fox brown quick the', but it currently returns the words unchanged.",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_words.py::test_reverses_order"
+  ],
+  "pass_to_pass": [
+    "tests/test_words.py::test_single_word",
+    "tests/test_words.py::test_empty"
+  ]
+}

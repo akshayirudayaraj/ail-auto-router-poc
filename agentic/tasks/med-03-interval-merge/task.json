@@ -1,0 +1,13 @@
+{
+  "id": "med-03-interval-merge",
+  "tier": "medium",
+  "issue": "`merge(intervals)` merges overlapping [start,end] intervals. It treats intervals that merely TOUCH (e.g. [1,2] and [2,3]) as separate; they should merge into [1,3]. Also the output must be sorted by start. merge([[1,3],[2,6],[8,10],[15,18]]) == [[1,6],[8,10],[15,18]] and merge([[1,4],[4,5]]) == [[1,5]].",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_merge.py::test_touching_merge"
+  ],
+  "pass_to_pass": [
+    "tests/test_merge.py::test_overlap",
+    "tests/test_merge.py::test_disjoint_stays"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "easy-02-is-even",
+  "tier": "easy",
+  "issue": "`is_even(n)` returns whether n is even. It currently returns True for ODD numbers. `is_even(4)` should be True and `is_even(3)` should be False.",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_parity.py::test_even_true",
+    "tests/test_parity.py::test_odd_false"
+  ],
+  "pass_to_pass": []
+}

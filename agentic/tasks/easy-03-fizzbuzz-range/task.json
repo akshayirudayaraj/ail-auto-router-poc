@@ -1,0 +1,12 @@
+{
+  "id": "easy-03-fizzbuzz-range",
+  "tier": "easy",
+  "issue": "`fizzbuzz(n)` should return the FizzBuzz strings for 1..n inclusive. For n=5 it must return ['1','2','Fizz','4','Buzz'] but it currently omits the final element (off-by-one in the range).",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_game.py::test_five",
+    "tests/test_game.py::test_fifteen_last",
+    "tests/test_game.py::test_len"
+  ],
+  "pass_to_pass": []
+}

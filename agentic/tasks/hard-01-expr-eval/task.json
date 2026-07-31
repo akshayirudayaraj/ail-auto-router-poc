@@ -1,0 +1,14 @@
+{
+  "id": "hard-01-expr-eval",
+  "tier": "hard",
+  "issue": "`evaluate(expr)` is a calculator for +,-,*,/ over integers with parentheses. It ignores operator precedence (it evaluates strictly left-to-right) so evaluate('2+3*4') returns 20 instead of 14, and it does not handle parentheses: evaluate('2*(3+4)') should be 14. Rewrite the evaluator to respect precedence and parentheses. Division is integer floor division; assume well-formed input.",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_eval.py::test_precedence",
+    "tests/test_eval.py::test_parens",
+    "tests/test_eval.py::test_mixed"
+  ],
+  "pass_to_pass": [
+    "tests/test_eval.py::test_single"
+  ]
+}

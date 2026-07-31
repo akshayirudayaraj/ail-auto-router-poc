@@ -1,0 +1,13 @@
+{
+  "id": "hard-02-toposort",
+  "tier": "hard",
+  "issue": "`topo_sort(graph)` returns a topological ordering of a DAG given as {node: [deps...]} where an edge dep->node means dep must come first. Two bugs: (1) it does not detect cycles \u2014 on a cyclic graph it should raise ValueError('cycle'); (2) nodes that appear only as dependencies (never as a key) are dropped from the output. Every node must appear exactly once, and the order must respect dependencies.",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_topo.py::test_includes_dep_only_nodes",
+    "tests/test_topo.py::test_cycle_detected"
+  ],
+  "pass_to_pass": [
+    "tests/test_topo.py::test_diamond"
+  ]
+}

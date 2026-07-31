@@ -1,0 +1,13 @@
+{
+  "id": "hard-03-lcs-diff",
+  "tier": "hard",
+  "issue": "`lcs(a, b)` should return the LONGEST COMMON SUBSEQUENCE of two sequences as a list. It builds the DP length table correctly but the backtracking is wrong: it returns a reversed and/or truncated result. lcs('ABCBDAB', 'BDCAB') should be a length-4 common subsequence such as list('BCAB') or list('BDAB'). Fix the backtracking so the returned sequence is a real common subsequence of maximal length, in order.",
+  "test_cmd": "python -m pytest -q tests/",
+  "fail_to_pass": [
+    "tests/test_core.py::test_length_and_validity",
+    "tests/test_core.py::test_identical"
+  ],
+  "pass_to_pass": [
+    "tests/test_core.py::test_disjoint"
+  ]
+}
