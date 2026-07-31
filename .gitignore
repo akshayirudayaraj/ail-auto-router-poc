@@ -19,3 +19,10 @@ python/__pycache__/
 
 # OS
 .DS_Store
+
+# agentic track runtime artifacts
+agentic/results/
+agentic/checkouts/
+agentic/tasks/*/checkout/
+*.pyc
+__pycache__/

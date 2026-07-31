@@ -1,0 +1,3 @@
+# Non-portable agentic track deps (proxy + runner). See agentic/README.md.
+fastapi>=0.110
+uvicorn>=0.27
