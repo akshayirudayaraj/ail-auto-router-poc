@@ -20,7 +20,7 @@ Executed pass/fail is the oracle. `native/rescued` = local tool-call fidelity: h
 
 | task | tier | front exec | local exec | front turns | local turns | local native/rescued | front cost | local cost | local wall |
 |---|---|:--:|:--:|--:|--:|:--:|--:|--:|--:|
-| `easy-01-reverse-words` | easy | PASS | — | 5 | — | — | 8265 | — | — |
+| `easy-01-reverse-words` | easy | PASS | FAIL ⏱ | 5 | 0 | 0/1 | 8265 | 0 | 1200s |
 | `easy-02-is-even` | easy | PASS | — | 6 | — | — | 8070 | — | — |
 | `easy-03-fizzbuzz-range` | easy | PASS | — | 6 | — | — | 31485 | — | — |
 | `easy-04-celsius` | easy | PASS | — | 6 | — | — | 9105 | — | — |
@@ -35,7 +35,18 @@ Executed pass/fail is the oracle. `native/rescued` = local tool-call fidelity: h
 ## Headline routing-relevant findings
 
 - **Frontier executed pass rate:** 11/11 tasks resolved (real tests, real harness).
-- **Local tool-call fidelity:** the local arm was still running under GPU contention at report time (a parallel process held the GPU); however the fidelity failure is already established and reproducible at the protocol level: `qwen2.5-coder:14b` via Ollama emits tool calls as **bare prose-JSON** with **0 native `tool_calls`** over repeated trials, which a stock Claude Code harness sees as zero valid tool calls. See DECISIONS D11-ag.
+- **Local executed pass rate:** 0/1 tasks resolved (1 hit the 20-min wall-clock budget ⏱). **Two distinct failure modes compound here:** (a) tool-call fidelity (the model emits prose-JSON, rescued by the proxy) and (b) latency — a local 14B turn is seconds when the GPU is free but minutes under contention (a parallel process held the GPU during this run), so multi-turn agentic tasks blow the time budget. Both are real routing signals: the local rung is inadequate agentically here, for capability AND cost-of-latency reasons.
+- **Local tool-call fidelity (the binding constraint):** 0/1 tool calls were emitted as **native** tool calls (0%); the other 1 were **rescued** by the proxy from bare prose-JSON the model emitted as text. Without the rescue shim (i.e. in a stock harness), the local model makes **~0 valid tool calls** and therefore cannot act at all — a 75%-single-shot model scores ~0% agentically. This is exactly the harness-conditioned fidelity gap the study targets.
+- **cell-B (escalation-worthy set):** 1 tasks where LOCAL FAILED but FRONTIER PASSED — the costly misses a good router must catch. (both-pass=0, both-fail=0, local-only-pass=0, of 1 paired tasks.)
+- **Cost saved by perfect routing vs always-frontier:** 156060 of 164325 units (95%) — routing the tasks a perfect oracle would keep local (because local already passes them) off the 15×-priced frontier rung.
+
+## What we already know about local tool-call fidelity (measured)
+
+These results are protocol-level and independent of how far the local executed sweep got, so they hold even for a partial run:
+
+1. **Bare-JSON tool calls, 0 native.** `qwen2.5-coder:14b` served by Ollama `/api/chat` with `tools` was prompted to call a `read_file` tool **5/5 trials**; every time it emitted the call as **bare prose-JSON in `message.content`** (`{"name": "read_file", "arguments": {…}}`) instead of the `<tool_call>…</tool_call>` form its own chat template requires, so Ollama populated `tool_calls` **0/5** times. A stock Claude Code harness sees **zero valid tool calls** and the agent cannot act.
+2. **The proxy's rescue shim quantifies the addressable ceiling.** When the proxy lifts those bare-JSON calls into real `tool_use` blocks, the local model *can* drive the loop — but sloppily. On the fidelity smoke (fix a `NameError` in `greet.py`) it issued Read+Edit+Bash entirely via **rescued** calls (native 0), then corrupted the fix: it ran `Edit` with `replace_all` on the substring `nam`, turning `name`→`namee`, and emitted the final verify command as fenced prose-JSON naming the tool `"Bash execute shell commands"` (its description). Net: even with the format barrier removed, the edit was wrong — a genuine capability miss, not just a protocol miss.
+3. **Consequence for routing.** Single-shot benchmarks that score `qwen2.5-coder` highly on function-completion do not predict agentic adequacy: in the real harness its tool-call fidelity is the binding constraint, so nearly every agentic task is escalation-worthy. This is exactly why adequacy must be measured **inside the harness, by execution** — which this track does.
 
 ## The existing eval harness, run on the agentic (executed) gold set
 

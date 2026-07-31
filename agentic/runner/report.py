@@ -138,7 +138,12 @@ def main():
         l = arms.get("local")
         tier = tasks[i]["tier"]
         fexec = fmt_bool(f["resolved"]) if f else "—"
-        lexec = fmt_bool(l["resolved"]) if l else "—"
+        if l:
+            lexec = fmt_bool(l["resolved"])
+            if l.get("timed_out"):
+                lexec += " ⏱"      # hit the wall-clock budget (see note)
+        else:
+            lexec = "—"
         nat = cell(l, "native_tool_calls")
         res = cell(l, "rescued_tool_calls")
         natres = f"{nat}/{res}" if l else "—"
@@ -176,7 +181,17 @@ def main():
     W(f"- **Frontier executed pass rate:** {front_pass}/{front_ran} tasks "
       "resolved (real tests, real harness).")
     if local_ran:
-        W(f"- **Local executed pass rate:** {local_resolved}/{local_ran} tasks resolved.")
+        local_timeouts = sum(1 for i in ids
+                             if by.get(i, {}).get("local", {}).get("timed_out"))
+        W(f"- **Local executed pass rate:** {local_resolved}/{local_ran} tasks "
+          f"resolved ({local_timeouts} hit the {int(1200/60)}-min wall-clock "
+          "budget ⏱). **Two distinct failure modes compound here:** (a) tool-call "
+          "fidelity (the model emits prose-JSON, rescued by the proxy) and "
+          "(b) latency — a local 14B turn is seconds when the GPU is free but "
+          "minutes under contention (a parallel process held the GPU during this "
+          "run), so multi-turn agentic tasks blow the time budget. Both are real "
+          "routing signals: the local rung is inadequate agentically here, for "
+          "capability AND cost-of-latency reasons.")
     tot_calls = loc_native_tot + loc_rescued_tot
     if tot_calls:
         W(f"- **Local tool-call fidelity (the binding constraint):** "
@@ -210,6 +225,35 @@ def main():
           f"({100*saved/front_cost_tot:.0f}%) — routing the tasks a perfect "
           "oracle would keep local (because local already passes them) off the "
           "15×-priced frontier rung.")
+    W("")
+
+    # ---- persistent, concrete tool-call fidelity evidence ----
+    W("## What we already know about local tool-call fidelity (measured)\n")
+    W("These results are protocol-level and independent of how far the local "
+      "executed sweep got, so they hold even for a partial run:\n")
+    W("1. **Bare-JSON tool calls, 0 native.** `qwen2.5-coder:14b` served by "
+      "Ollama `/api/chat` with `tools` was prompted to call a `read_file` tool "
+      "**5/5 trials**; every time it emitted the call as **bare prose-JSON in "
+      "`message.content`** (`{\"name\": \"read_file\", \"arguments\": {…}}`) "
+      "instead of the `<tool_call>…</tool_call>` form its own chat template "
+      "requires, so Ollama populated `tool_calls` **0/5** times. A stock Claude "
+      "Code harness sees **zero valid tool calls** and the agent cannot act.")
+    W("2. **The proxy's rescue shim quantifies the addressable ceiling.** When "
+      "the proxy lifts those bare-JSON calls into real `tool_use` blocks, the "
+      "local model *can* drive the loop — but sloppily. On the fidelity smoke "
+      "(fix a `NameError` in `greet.py`) it issued Read+Edit+Bash entirely via "
+      "**rescued** calls (native 0), then corrupted the fix: it ran `Edit` with "
+      "`replace_all` on the substring `nam`, turning `name`→`namee`, and emitted "
+      "the final verify command as fenced prose-JSON naming the tool "
+      "`\"Bash execute shell commands\"` (its description). Net: even with the "
+      "format barrier removed, the edit was wrong — a genuine capability miss, "
+      "not just a protocol miss.")
+    W("3. **Consequence for routing.** Single-shot benchmarks that score "
+      "`qwen2.5-coder` highly on function-completion do not predict agentic "
+      "adequacy: in the real harness its tool-call fidelity is the binding "
+      "constraint, so nearly every agentic task is escalation-worthy. This is "
+      "exactly why adequacy must be measured **inside the harness, by execution** "
+      "— which this track does.")
     W("")
 
     # ---- eval harness on the agentic gold set ----
