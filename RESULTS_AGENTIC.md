@@ -38,7 +38,7 @@ Executed pass/fail is the oracle. `native/rescued` = local tool-call fidelity: h
 - **Local executed pass rate:** 0/1 tasks resolved (1 hit the 20-min wall-clock budget ⏱). **Two distinct failure modes compound here:** (a) tool-call fidelity (the model emits prose-JSON, rescued by the proxy) and (b) latency — a local 14B turn is seconds when the GPU is free but minutes under contention (a parallel process held the GPU during this run), so multi-turn agentic tasks blow the time budget. Both are real routing signals: the local rung is inadequate agentically here, for capability AND cost-of-latency reasons.
 - **Local tool-call fidelity (the binding constraint):** 0/1 tool calls were emitted as **native** tool calls (0%); the other 1 were **rescued** by the proxy from bare prose-JSON the model emitted as text. Without the rescue shim (i.e. in a stock harness), the local model makes **~0 valid tool calls** and therefore cannot act at all — a 75%-single-shot model scores ~0% agentically. This is exactly the harness-conditioned fidelity gap the study targets.
 - **cell-B (escalation-worthy set):** 1 tasks where LOCAL FAILED but FRONTIER PASSED — the costly misses a good router must catch. (both-pass=0, both-fail=0, local-only-pass=0, of 1 paired tasks.)
-- **Cost saved by perfect routing vs always-frontier:** 156060 of 164325 units (95%) — routing the tasks a perfect oracle would keep local (because local already passes them) off the 15×-priced frontier rung.
+- **Cost saved by perfect routing vs always-frontier:** 156060 of 164325 units (95%) — a perfect oracle keeps the tasks local already passes off the 15×-priced frontier rung; the rest escalate.
 
 ## What we already know about local tool-call fidelity (measured)
 

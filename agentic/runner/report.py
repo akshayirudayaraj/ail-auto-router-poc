@@ -220,11 +220,21 @@ def main():
           f"local-only-pass={local_pass}, of {paired} paired tasks.)")
     if front_cost_tot and paired:
         saved = front_cost_tot - perfect_cost_tot
-        W(f"- **Cost saved by perfect routing vs always-frontier:** "
-          f"{saved:.0f} of {front_cost_tot:.0f} units "
-          f"({100*saved/front_cost_tot:.0f}%) — routing the tasks a perfect "
-          "oracle would keep local (because local already passes them) off the "
-          "15×-priced frontier rung.")
+        pct = 100 * saved / front_cost_tot
+        if saved > 0:
+            W(f"- **Cost saved by perfect routing vs always-frontier:** "
+              f"{saved:.0f} of {front_cost_tot:.0f} units ({pct:.0f}%) — a "
+              "perfect oracle keeps the tasks local already passes off the "
+              "15×-priced frontier rung; the rest escalate.")
+        else:
+            W(f"- **Cost saved by perfect routing vs always-frontier:** "
+              f"~0% over the {paired} paired tasks so far — because local passes "
+              "**none** of them (0 tool-call fidelity and/or latency timeouts), a "
+              "perfect router equals always-frontier here. The cost-saving lever "
+              "only opens once the local rung can actually pass tasks; this run "
+              "shows the local rung is agentically non-viable in this harness, so "
+              "there is nothing safe to route down. That *is* the routing verdict: "
+              "escalate everything until local's fidelity/latency are fixed.")
     W("")
 
     # ---- persistent, concrete tool-call fidelity evidence ----
