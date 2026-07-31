@@ -26,12 +26,16 @@ import (
 )
 
 // Cost convention mirrors internal/gold: relative units = tokens * price with
-// the frontier rung priced 15x local. The runner already multiplies tokens by
-// the per-arm price into CostUnits, so we read that directly.
+// the frontier rung priced 15x local. We count BILLABLE (input+output) tokens
+// and exclude prompt-cache re-reads — otherwise frontier's heavily-cached
+// system prompt would dominate the units and distort the cost/quality curve.
+// This matches gold.go's fresh-token convention.
 const (
 	priceLocal    = 1.0
 	priceFrontier = 15.0
 )
+
+func billable(r Result) int { return r.InputTokens + r.OutputTokens }
 
 // Result is the subset of a runner result JSON the Go side consumes.
 type Result struct {
@@ -51,6 +55,8 @@ type Result struct {
 	ToolCallsAttempted int     `json:"tool_calls_attempted"`
 	ToolCallsErrored   int     `json:"tool_calls_errored"`
 	AnyValidToolCall   bool    `json:"any_valid_tool_call"`
+	InputTokens        int     `json:"input_tokens"`
+	OutputTokens       int     `json:"output_tokens"`
 	TotalTokens        int     `json:"total_tokens"`
 	NativeToolCalls    int     `json:"native_tool_calls"`
 	RescuedToolCalls   int     `json:"rescued_tool_calls"`
@@ -166,17 +172,11 @@ func BuildGold(ctx context.Context, cfg config.Config, results []Result,
 		costLocal := 0.0
 		if hasL {
 			outLocal = b2i(local.Resolved)
-			costLocal = local.CostUnits
-			if costLocal == 0 {
-				costLocal = float64(local.TotalTokens) * priceLocal
-			}
+			costLocal = float64(billable(local)) * priceLocal
 		} else {
 			localOnly++
 		}
-		costFront := front.CostUnits
-		if costFront == 0 {
-			costFront = float64(front.TotalTokens) * priceFrontier
-		}
+		costFront := float64(billable(front)) * priceFrontier
 		rows = append(rows, schema.GoldRow{
 			PromptID:        id,
 			PromptText:      t.Issue,

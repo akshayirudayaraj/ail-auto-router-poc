@@ -1,0 +1,80 @@
+{
+  "method": "off-policy-ips-dr",
+  "notes": [
+    "Logging-policy observed reward = 0.551 (on-policy baseline). uplift_dr = V_DR - baseline.",
+    "V_IPS is unbiased but high-variance (watch ESS); V_DR uses the IRT Q-model to cut variance.",
+    "Rewards are the implicit outcome labels, so estimates inherit that label's noise (documented)."
+  ],
+  "rows": [
+    {
+      "router": "always-local",
+      "metrics": {
+        "ess": 107.00000000000068,
+        "uplift_dr": -0.06735189479620274,
+        "v_dr": 0.4833727428849567,
+        "v_ips": 0.4264214046822741
+      }
+    },
+    {
+      "router": "always-frontier",
+      "metrics": {
+        "ess": 11.879858657243815,
+        "uplift_dr": 0.23103522473229088,
+        "v_dr": 0.7817598624134503,
+        "v_ips": 0.8478260869565217
+      }
+    },
+    {
+      "router": "routellm-logistic",
+      "metrics": {
+        "ess": 17.341446609276073,
+        "uplift_dr": 0.2108185071516725,
+        "v_dr": 0.7615431448328319,
+        "v_ips": 0.7904124860646603
+      }
+    },
+    {
+      "router": "irt-1pl",
+      "metrics": {
+        "ess": 17.761254415424748,
+        "uplift_dr": 0.19046335777656798,
+        "v_dr": 0.7411879954577274,
+        "v_ips": 0.787625418060201
+      }
+    },
+    {
+      "router": "knn",
+      "metrics": {
+        "ess": 29.498556175865296,
+        "uplift_dr": -0.061237480359937646,
+        "v_dr": 0.4894871573212218,
+        "v_ips": 0.5295429208472688
+      }
+    },
+    {
+      "router": "encoder-mlp(stub)",
+      "metrics": {
+        "ess": 106.00000000000065,
+        "uplift_dr": -0.065688923495069,
+        "v_dr": 0.4850357141860904,
+        "v_ips": 0.4264214046822741
+      }
+    },
+    {
+      "router": "slm-head(stub)",
+      "metrics": {
+        "ess": 106.00000000000065,
+        "uplift_dr": -0.065688923495069,
+        "v_dr": 0.4850357141860904,
+        "v_ips": 0.4264214046822741
+      }
+    }
+  ],
+  "detail": {
+    "log_rows": 138,
+    "logging_reward": 0.5507246376811594,
+    "propensity_cov": 1,
+    "q_model": "irt-1pl",
+    "stochastic_rows": 124
+  }
+}

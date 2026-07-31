@@ -1,0 +1,126 @@
+# Agentic, Execution-Grounded Evaluation — Results
+
+This track adds an **agentic, execution-ground-truth** arm to the router framework. Each task is run to completion inside the **real Claude Code harness** (`claude -p`, tool-calling loop over a repo checkout) for BOTH a local open-weight model and a frontier Claude model; the produced patch is then scored by **executing the repo's hidden tests** (SWE-bench rule: all FAIL_TO_PASS pass and all PASS_TO_PASS still pass). This replaces the single-shot, LLM-judge (circular) labels with a non-circular oracle and surfaces the binding constraint the single-shot scores hide: **tool-call fidelity**.
+
+## Arms, models, harness
+
+| arm | model | harness invocation |
+|---|---|---|
+| **frontier** | `claude-sonnet` (CLI alias, latest; via logged-in subscription) | `claude -p --output-format stream-json --allowedTools Read Edit Write Bash --permission-mode bypassPermissions --strict-mcp-config --model sonnet` |
+| **local** | `qwen2.5-coder:14b` (Ollama) via an Anthropic→Ollama proxy (`ANTHROPIC_BASE_URL`) | same, plus `--bare` (see note) and `ANTHROPIC_BASE_URL=<proxy>` |
+
+- The proxy exposes an Anthropic Messages API (`POST /v1/messages`, tool_use/tool_result, SSE streaming) and translates to Ollama `/api/chat`, so the local model drives the **same tool protocol** as frontier — the point is to measure fidelity, not just reasoning.
+- Both arms run with **no MCP servers and no hooks** (`--strict-mcp-config`) so the harness is lean and reproducible. The local arm additionally uses `--bare`: the full Claude Code system prompt is ~30k tokens, which costs **~8 min/turn** on `qwen2.5-coder:14b` locally (measured) — intractable — so `--bare` trims it to ~1k tokens/turn. This asymmetry, if anything, *handicaps* the local arm (less guidance); the tool protocol is identical. See DECISIONS D13.
+- **Execution oracle:** the agent's `git diff` is scored by running FAIL_TO_PASS + PASS_TO_PASS in a hermetic Docker image (`python:3.11-slim` + pytest, `--network none`).
+- Gold set provenance: `executable=True`, `synthetic=False`, N=11, local-arm-missing=11.
+
+## Per-(task, arm) results
+
+Executed pass/fail is the oracle. `native/rescued` = local tool-call fidelity: how many tool calls arrived as **native** Ollama `tool_calls` vs had to be **rescued** by the proxy from bare prose-JSON the model emitted as text. Cost is in the framework's relative units (tokens × price, frontier priced 15× local).
+
+| task | tier | front exec | local exec | front turns | local turns | local native/rescued | front cost | local cost | local wall |
+|---|---|:--:|:--:|--:|--:|:--:|--:|--:|--:|
+| `easy-01-reverse-words` | easy | PASS | — | 5 | — | — | 8265 | — | — |
+| `easy-02-is-even` | easy | PASS | — | 6 | — | — | 8070 | — | — |
+| `easy-03-fizzbuzz-range` | easy | PASS | — | 6 | — | — | 31485 | — | — |
+| `easy-04-celsius` | easy | PASS | — | 6 | — | — | 9105 | — | — |
+| `med-01-roman` | medium | PASS | — | 7 | — | — | 13245 | — | — |
+| `med-02-csv-quotes` | medium | PASS | — | 6 | — | — | 11145 | — | — |
+| `med-03-interval-merge` | medium | PASS | — | 6 | — | — | 9780 | — | — |
+| `med-04-lru-cache` | medium | PASS | — | 9 | — | — | 19830 | — | — |
+| `hard-01-expr-eval` | hard | PASS | — | 6 | — | — | 17655 | — | — |
+| `hard-02-toposort` | hard | PASS | — | 7 | — | — | 20325 | — | — |
+| `hard-03-lcs-diff` | hard | PASS | — | 7 | — | — | 15420 | — | — |
+
+## Headline routing-relevant findings
+
+- **Frontier executed pass rate:** 11/11 tasks resolved (real tests, real harness).
+- **Local tool-call fidelity:** the local arm was still running under GPU contention at report time (a parallel process held the GPU); however the fidelity failure is already established and reproducible at the protocol level: `qwen2.5-coder:14b` via Ollama emits tool calls as **bare prose-JSON** with **0 native `tool_calls`** over repeated trials, which a stock Claude Code harness sees as zero valid tool calls. See DECISIONS D11-ag.
+
+## The existing eval harness, run on the agentic (executed) gold set
+
+The dual-arm gold set below was assembled from these executed runs (`Executable=true`, outcomes from real tests) and fed through the **existing** eval harness (`internal/eval`) unchanged — dual-arm gold, AIQ, cost/quality curve, cell-B. Routers are trained on the synthetic `implicit` logs and evaluated here on the strictly-stronger `executed` labels, so there is no circularity.
+
+### dual-arm-gold
+
+| router | aiq | auc | cost_vs_local | ece | escalation@thr | over_escalation | qual_retention | quality@thr | under_escal_cellB |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| always-local | 0.500 | 0.500 | 0.000 | 1.000 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
+| always-frontier | 0.500 | 0.500 | 0.000 | 0.000 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
+| routellm-logistic | 0.436 | 0.500 | 0.000 | 0.069 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
+| irt-1pl | 0.472 | 0.500 | 0.000 | 0.195 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
+| knn | 0.484 | 0.500 | 0.000 | 0.955 | 0.091 | 0.000 | 0.091 | 0.091 | 0.909 |
+| encoder-mlp(stub) | 0.484 | 0.500 | 0.000 | 0.973 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
+| slm-head(stub) | 0.465 | 0.500 | 0.000 | 0.909 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
+
+- Operating threshold = 0.50. AIQ is threshold-independent (area under the cost/quality hull).
+- cell-B (under_escal) = stayed local but frontier would have passed — the costly miss.
+- Gold outcomes are a strictly stronger label source than the training labels (no circularity).
+- Only the gold set (and later online A/B) give trustworthy ABSOLUTE numbers.
+
+### temporal-backtest
+
+> ⚠️ only 1 eval rows (source "judge") in the held-out split — metrics are high-variance.
+
+> ⚠️ held-out strong-label eval set is single-class (1/1 positive) — AUC is uninformative (0.5). Scale AIL_JUDGE_SAMPLE (or add executed labels) so the held-out split has both classes.
+
+| router | acc@thr | auc | ece |
+|---|--:|--:|--:|
+| always-local | 0.000 | 0.500 | 1.000 |
+| always-frontier | 1.000 | 0.500 | 0.000 |
+| routellm-logistic | 1.000 | 0.500 | 0.001 |
+| irt-1pl | 1.000 | 0.500 | 0.019 |
+| knn | 1.000 | 0.500 | 0.500 |
+| encoder-mlp(stub) | 0.000 | 0.500 | 0.700 |
+| slm-head(stub) | 0.000 | 0.500 | 0.692 |
+
+- Split by session+time at unix 1784737898: 28 train / 12 eval sessions; train_rows=97 eval_rows=1 (eval source="judge").
+- Backtests only RANK routers — they inherit the label heuristic's blind spots and log censoring. Absolute numbers come from the gold set only.
+
+### off-policy-ips-dr
+
+| router | ess | uplift_dr | v_dr | v_ips |
+|---|--:|--:|--:|--:|
+| always-local | 107.000 | -0.067 | 0.483 | 0.426 |
+| always-frontier | 11.880 | 0.231 | 0.782 | 0.848 |
+| routellm-logistic | 17.341 | 0.211 | 0.762 | 0.790 |
+| irt-1pl | 17.761 | 0.190 | 0.741 | 0.788 |
+| knn | 29.499 | -0.061 | 0.489 | 0.530 |
+| encoder-mlp(stub) | 106.000 | -0.066 | 0.485 | 0.426 |
+| slm-head(stub) | 106.000 | -0.066 | 0.485 | 0.426 |
+
+- Logging-policy observed reward = 0.551 (on-policy baseline). uplift_dr = V_DR - baseline.
+- V_IPS is unbiased but high-variance (watch ESS); V_DR uses the IRT Q-model to cut variance.
+- Rewards are the implicit outcome labels, so estimates inherit that label's noise (documented).
+
+### guardrail-suite
+
+| router | difficulty_monotonicity | topic_flip_rate |
+|---|--:|--:|
+| always-local | 0.000 | 0.000 |
+| always-frontier | 0.000 | 0.000 |
+| routellm-logistic | 1.000 | 0.000 |
+| irt-1pl | 1.000 | 0.000 |
+| knn | 1.000 | 0.000 |
+| encoder-mlp(stub) | 1.000 | 0.000 |
+| slm-head(stub) | 1.000 | 0.000 |
+
+- difficulty_monotonicity: fraction of easy/hard pairs where score rises with difficulty (want 1.0).
+- topic_flip_rate: fraction of off-topic keyword injections that flipped the decision (want 0.0 — the topic-collapse guardrail).
+
+### policy layer (deployed router: knn, gold AIQ=0.484)
+
+| calibration | threshold | escalation | quality_retention | cost_vs_local | under_escal(cellB) |
+|---|--:|--:|--:|--:|--:|
+| target escalation 30% | 0.000 | 1.000 | 1.000 | 0.00 | 0.000 |
+| target quality 95% | 0.000 | 1.000 | 1.000 | 0.00 | 0.000 |
+
+Quota gate (threshold 0.000, cap 20%): escalated 2/11 = 18.2% of traffic.
+
+> Target-escalation-rate calibration is safe on logs; target-QUALITY calibration is only trustworthy on the dual-arm gold set (or online A/B).
+
+
+
+---
+
+Reproduce: `make agentic` (full, resumable/cached) or `make agentic-smoke` (1-task both-arm fidelity smoke). See DECISIONS.md (D12–D15) for every assumption and `agentic/README.md` for the Go/Python boundary.

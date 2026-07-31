@@ -68,6 +68,30 @@ Four views:
 The console reads the same files the CLI stages write and calls the same
 `router`/`eval`/`extract` code — it is a view, not a reimplementation.
 
+## Agentic, execution-grounded track
+
+The base pipeline labels each task with a single-shot LLM-judge verdict — which
+is **not agentic** (real Claude Code drives a multi-turn tool loop over a repo)
+and **circular** (the judge that trains also grades). The `agentic/` track fixes
+both: it runs each task to completion **inside the real Claude Code harness**
+(`claude -p`, tool-calling loop over a repo checkout) for a **local** open-weight
+model and a **frontier** Claude model, then labels the outcome by **executing
+the repo's hidden tests** (a non-circular oracle) — filling the
+`GoldRow.Executable` seam. It measures the constraint single-shot scores hide:
+**tool-call fidelity**.
+
+```bash
+make agentic-smoke   # 1 task, BOTH arms, tool-call fidelity smoke
+make agentic         # full pipeline (resumable/cached) -> RESULTS_AGENTIC.md
+```
+
+The local arm reaches the harness through an **Anthropic→Ollama proxy**
+(`agentic/proxy/`) so it drives the exact same `tool_use`/`tool_result` protocol
+as frontier. See `agentic/README.md`, `RESULTS_AGENTIC.md`, and DECISIONS
+D11-ag/D12–D15. This track keeps the Go/Python boundary: the schema, gold
+assembly (`internal/agentic`, `cmd/agentic`) and eval harness stay portable Go;
+the harness-driving glue and Docker execution live under `agentic/` (Python).
+
 ## Architecture
 
 ```

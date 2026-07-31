@@ -123,12 +123,12 @@ func printSummary(lg *log.Logger, results []agentic.Result) {
 			}
 			// perfect router: use local when local passes, else frontier
 			if l.Resolved {
-				perfectCost += l.CostUnits
+				perfectCost += float64(l.InputTokens+l.OutputTokens) * 1.0
 			} else {
-				perfectCost += f.CostUnits
+				perfectCost += float64(f.InputTokens+f.OutputTokens) * 15.0
 			}
 		}
-		frontierCost += f.CostUnits
+		frontierCost += float64(f.InputTokens+f.OutputTokens) * 15.0
 	}
 	lg.Printf("---- agentic routing signal (paired tasks=%d) ----", paired)
 	lg.Printf("cell-B (local FAIL, frontier PASS) = %d  [the escalation-worthy set]", cellB)

@@ -1,0 +1,78 @@
+{
+  "method": "temporal-backtest",
+  "warnings": [
+    "only 1 eval rows (source \"judge\") in the held-out split — metrics are high-variance.",
+    "held-out strong-label eval set is single-class (1/1 positive) — AUC is uninformative (0.5). Scale AIL_JUDGE_SAMPLE (or add executed labels) so the held-out split has both classes."
+  ],
+  "notes": [
+    "Split by session+time at unix 1784737898: 28 train / 12 eval sessions; train_rows=97 eval_rows=1 (eval source=\"judge\").",
+    "Backtests only RANK routers — they inherit the label heuristic's blind spots and log censoring. Absolute numbers come from the gold set only."
+  ],
+  "rows": [
+    {
+      "router": "always-local",
+      "metrics": {
+        "acc@thr": 0,
+        "auc": 0.5,
+        "ece": 1
+      }
+    },
+    {
+      "router": "always-frontier",
+      "metrics": {
+        "acc@thr": 1,
+        "auc": 0.5,
+        "ece": 0
+      }
+    },
+    {
+      "router": "routellm-logistic",
+      "metrics": {
+        "acc@thr": 1,
+        "auc": 0.5,
+        "ece": 0.0006889552265086918
+      }
+    },
+    {
+      "router": "irt-1pl",
+      "metrics": {
+        "acc@thr": 1,
+        "auc": 0.5,
+        "ece": 0.01896537935855258
+      }
+    },
+    {
+      "router": "knn",
+      "metrics": {
+        "acc@thr": 1,
+        "auc": 0.5,
+        "ece": 0.5
+      }
+    },
+    {
+      "router": "encoder-mlp(stub)",
+      "metrics": {
+        "acc@thr": 0,
+        "auc": 0.5,
+        "ece": 0.7
+      }
+    },
+    {
+      "router": "slm-head(stub)",
+      "metrics": {
+        "acc@thr": 0,
+        "auc": 0.5,
+        "ece": 0.692
+      }
+    }
+  ],
+  "detail": {
+    "eval_rows": 1,
+    "eval_sessions": 12,
+    "eval_source": "judge",
+    "split_ts": 1784737898,
+    "train_rows": 97,
+    "train_sessions": 28,
+    "train_source": "implicit"
+  }
+}

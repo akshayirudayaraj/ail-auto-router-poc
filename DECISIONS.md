@@ -145,3 +145,69 @@ here with its rationale. Newest sections may be appended over the build.
   "no oracle" hazard the harness is meant to surface, not hide.
 
 <!-- More decisions appended as the build proceeds. -->
+
+## D11-ag — Tool-call fidelity is the binding constraint (measured)
+- `qwen2.5-coder:14b` served by Ollama's `/api/chat` with `tools` emits its tool
+  calls as **bare prose-JSON in `message.content`** (e.g. `{"name":"Read",
+  "arguments":{...}}`) instead of the `<tool_call>…</tool_call>` form its own
+  chat template asks for — so Ollama never populates `message.tool_calls`
+  (**0/5 native** over repeated trials, reproduced in-harness). A stock Claude
+  Code harness therefore sees **zero valid tool calls** and the agent cannot
+  act, exactly the fidelity gap the study predicts. The proxy records native vs
+  rescued per response so this is a first-class metric, not an anecdote.
+
+## D12 — Agentic track: Go/Python boundary preserved
+- New portable-Go pieces: `GoldRow.Executable` (already seamed), the executed
+  gold assembly + scoring integration (`internal/agentic`, `cmd/agentic`). These
+  produce a gold set the **existing** eval harness consumes unchanged.
+- Non-portable orchestration is quarantined under `agentic/` (Python + Docker):
+  the `claude` CLI driver, the Anthropic→Ollama proxy, and Docker pytest
+  execution. Justified: driving a subprocess harness and containerized test
+  execution are not things the stdlib-Go gateway should carry.
+
+## D13 — Harness config: symmetric where it matters, asymmetric where forced
+- Both arms run the REAL `claude -p` harness with the SAME tools
+  (Read/Edit/Write/Bash), same task prompt, same `--max-turns`, same
+  `bypassPermissions`, and **no MCP/hooks** (`--strict-mcp-config`) for a lean,
+  reproducible run. (Without it the inherited MCP servers balloon the context
+  past 30k tokens and hang local startup.)
+- The local arm additionally uses **`--bare`**. Two reasons: (1) the full CC
+  system prompt is ~30k tokens → **~8 min/turn** on `qwen2.5-coder:14b`
+  (measured 501 s for one 30k-token turn) → intractable; `--bare` trims it to
+  ~1k tokens/turn. (2) `--bare` skips keychain reads, which the local arm (dummy
+  env auth via the proxy) doesn't need — but which the frontier arm REQUIRES, so
+  `--bare` cannot be used on frontier. This asymmetry (frontier gets the richer
+  system prompt) if anything **handicaps** local; the **tool protocol is
+  identical**, so tool-call fidelity — the primary metric — is measured on equal
+  footing.
+- Local KV context is capped at `num_ctx=8192` with `keep_alive=60m` (model
+  stays resident so each task's first turn doesn't pay a ~5 min cold load).
+
+## D14 — Tasks: curated executable set (Docker available; SWE-bench-shaped)
+- Docker IS available, so execution runs in containers (hermetic
+  `python:3.11-slim` + pytest, `--network none`). Rather than a subset of
+  upstream SWE-bench Verified, the set is **11 curated, self-contained Python
+  bug-fix tasks** built the same way (issue + repo at a base commit +
+  FAIL_TO_PASS/PASS_TO_PASS), spanning easy→hard. Rationale: (a) the routing
+  signal needs a **controlled difficulty spread** (some tasks local can do, some
+  it can't) which a random SWE-bench subset does not guarantee; (b) upstream
+  images are large and running a slow local 14B agent over big real repos
+  (django/sympy) for 12–20 tasks × 2 arms is not overnight-tractable; (c) each
+  task is **auto-validated** fail-before / pass-after, so the executed labels are
+  trustworthy. The runner and executor are SWE-bench-shaped: to point at real
+  SWE-bench Verified, materialize a task dir with the same `task.json`
+  (issue/FAIL_TO_PASS/PASS_TO_PASS/test_cmd) and repo checkout — no runner change.
+
+## D15 — Cost, caching, spend discipline (agentic)
+- Gold cost units follow the repo convention: `tokens × price`, frontier priced
+  **15× local**. The runner also records the real frontier `total_cost_usd` from
+  the CLI (subscription-equivalent) for the writeup; local has no $ cost so its
+  cost is token-based only.
+- Every `(task, arm, config-hash)` result is cached to `agentic/results/`, so an
+  interrupted overnight run resumes without re-running or re-paying. The frontier
+  arm is hard-capped by `MAX_FRONTIER_USD` (default $6); running totals logged.
+- Environmental note: this machine had a **parallel process holding the GPU**
+  (a separate `qwen3:14b` at 100% GPU) during the run, which serializes/slows
+  the local arm. The frontier arm (API) is unaffected; the local arm is
+  resumable and completes as GPU windows open. Partial-but-real results are the
+  deliverable when a full local sweep is blocked (see the brief's Part 5).

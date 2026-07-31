@@ -44,7 +44,10 @@ NUM_PREDICT = int(os.environ.get("PROXY_NUM_PREDICT", "2048"))
 TEMPERATURE = float(os.environ.get("PROXY_TEMPERATURE", "0.2"))
 RESCUE = os.environ.get("PROXY_RESCUE", "1") == "1"
 PROXY_LOG = os.environ.get("PROXY_LOG", "")
-OLLAMA_TIMEOUT = int(os.environ.get("PROXY_OLLAMA_TIMEOUT", "600"))
+OLLAMA_TIMEOUT = int(os.environ.get("PROXY_OLLAMA_TIMEOUT", "900"))
+# Keep the model resident across tasks so each task's first turn does not pay a
+# multi-minute cold model load. -1 = keep forever until the proxy stops.
+KEEP_ALIVE = os.environ.get("PROXY_KEEP_ALIVE", "60m")
 
 app = FastAPI()
 
@@ -156,6 +159,7 @@ def call_ollama(messages: list[dict], tools: list[dict], max_tokens: int) -> dic
         "model": OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
+        "keep_alive": KEEP_ALIVE,
         "options": {
             "num_ctx": NUM_CTX,
             "num_predict": min(max_tokens, NUM_PREDICT) if max_tokens else NUM_PREDICT,
@@ -220,6 +224,33 @@ def rescue_tool_calls(content: str, tool_names: set[str]) -> tuple[str, list[dic
     return remaining, rescued
 
 
+def _match_tool(name: Any, tool_names: set[str]) -> str | None:
+    """Leniently map an emitted name to a real tool.
+
+    qwen frequently emits the tool DESCRIPTION as the name
+    ("Bash execute shell commands") or varies case. We remove the pure-format
+    barrier so the executed outcome reflects reasoning/editing ability, not
+    string-matching luck. Native-vs-rescued is still logged so raw fidelity is
+    preserved.
+    """
+    if not isinstance(name, str):
+        return None
+    if name in tool_names:
+        return name
+    low = name.lower()
+    # exact case-insensitive
+    for t in tool_names:
+        if t.lower() == low:
+            return t
+    # tool name is the first token, or a prefix/substring of the emitted name
+    first = low.split()[0] if low.split() else low
+    for t in tool_names:
+        tl = t.lower()
+        if first == tl or low.startswith(tl) or tl in low.split():
+            return t
+    return None
+
+
 def _try_tool_obj(frag: str, tool_names: set[str]) -> dict | None:
     try:
         obj = json.loads(frag)
@@ -227,10 +258,10 @@ def _try_tool_obj(frag: str, tool_names: set[str]) -> dict | None:
         return None
     if not isinstance(obj, dict):
         return None
-    name = obj.get("name")
     args = obj.get("arguments", obj.get("parameters"))
-    if name in tool_names and isinstance(args, dict):
-        return {"function": {"name": name, "arguments": args}}
+    matched = _match_tool(obj.get("name"), tool_names)
+    if matched and isinstance(args, dict):
+        return {"function": {"name": matched, "arguments": args}}
     return None
 
 

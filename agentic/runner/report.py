@@ -49,6 +49,14 @@ def fmt_bool(b):
     return "PASS" if b else "FAIL"
 
 
+def billable(r):
+    """Fresh (input+output) tokens, excluding prompt-cache re-reads — matches
+    the gold cost convention in internal/agentic."""
+    if not r:
+        return 0
+    return int(r.get("input_tokens", 0)) + int(r.get("output_tokens", 0))
+
+
 def cell(res, key, default="—"):
     if res is None:
         return default
@@ -134,8 +142,10 @@ def main():
         nat = cell(l, "native_tool_calls")
         res = cell(l, "rescued_tool_calls")
         natres = f"{nat}/{res}" if l else "—"
-        fcost = f"{f['cost_units']:.0f}" if f else "—"
-        lcost = f"{l['cost_units']:.0f}" if l else "—"
+        f_cost = billable(f) * 15.0 if f else 0.0
+        l_cost = billable(l) * 1.0 if l else 0.0
+        fcost = f"{f_cost:.0f}" if f else "—"
+        lcost = f"{l_cost:.0f}" if l else "—"
         lwall = f"{l['wall_clock_s']:.0f}s" if l else "—"
         W(f"| `{i}` | {tier} | {fexec} | {lexec} | "
           f"{cell(f,'num_turns')} | {cell(l,'num_turns')} | {natres} | "
@@ -152,9 +162,9 @@ def main():
                 both_fail += 1
             else:
                 local_pass += 1
-            perfect_cost_tot += l["cost_units"] if l["resolved"] else f["cost_units"]
+            perfect_cost_tot += (billable(l) * 1.0) if l["resolved"] else (billable(f) * 15.0)
         if f:
-            front_cost_tot += f["cost_units"]
+            front_cost_tot += billable(f) * 15.0
     W("")
 
     # ---- headline findings ----

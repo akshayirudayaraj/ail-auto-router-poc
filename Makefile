@@ -108,8 +108,9 @@ agentic-gold: build
 	$(BIN)/agentic -data-dir $(DATA_AGENTIC)
 
 ## agentic-eval: run the EXISTING eval harness on the agentic gold set
+## (run from the data dir so its RESULTS.md lands there, not clobbering root)
 agentic-eval: build
-	AIL_DATA_DIR=$(DATA_AGENTIC) $(BIN)/eval
+	cd $(DATA_AGENTIC) && AIL_DATA_DIR=. ../$(BIN)/eval
 
 ## agentic: full pipeline — training data, both arms (resumable/cached),
 ## assemble executed gold, run the existing harness, write RESULTS_AGENTIC.md.
@@ -123,7 +124,7 @@ agentic: build agentic-image
 	python3 agentic/runner/run_agentic.py --arms frontier,local
 	@# 3) assemble executed gold + copy training data, run the existing harness
 	$(BIN)/agentic -data-dir $(DATA_AGENTIC) -train-src $(DATA)
-	AIL_DATA_DIR=$(DATA_AGENTIC) $(BIN)/eval
+	cd $(DATA_AGENTIC) && AIL_DATA_DIR=. ../$(BIN)/eval
 	@# 4) write RESULTS_AGENTIC.md
 	python3 agentic/runner/report.py
 	@echo ""

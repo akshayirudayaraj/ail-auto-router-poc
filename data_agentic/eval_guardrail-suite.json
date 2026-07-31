@@ -1,0 +1,58 @@
+{
+  "method": "guardrail-suite",
+  "notes": [
+    "difficulty_monotonicity: fraction of easy/hard pairs where score rises with difficulty (want 1.0).",
+    "topic_flip_rate: fraction of off-topic keyword injections that flipped the decision (want 0.0 — the topic-collapse guardrail)."
+  ],
+  "rows": [
+    {
+      "router": "always-local",
+      "metrics": {
+        "difficulty_monotonicity": 0,
+        "topic_flip_rate": 0
+      }
+    },
+    {
+      "router": "always-frontier",
+      "metrics": {
+        "difficulty_monotonicity": 0,
+        "topic_flip_rate": 0
+      }
+    },
+    {
+      "router": "routellm-logistic",
+      "metrics": {
+        "difficulty_monotonicity": 1,
+        "topic_flip_rate": 0
+      }
+    },
+    {
+      "router": "irt-1pl",
+      "metrics": {
+        "difficulty_monotonicity": 1,
+        "topic_flip_rate": 0
+      }
+    },
+    {
+      "router": "knn",
+      "metrics": {
+        "difficulty_monotonicity": 1,
+        "topic_flip_rate": 0
+      }
+    },
+    {
+      "router": "encoder-mlp(stub)",
+      "metrics": {
+        "difficulty_monotonicity": 1,
+        "topic_flip_rate": 0
+      }
+    },
+    {
+      "router": "slm-head(stub)",
+      "metrics": {
+        "difficulty_monotonicity": 1,
+        "topic_flip_rate": 0
+      }
+    }
+  ]
+}
