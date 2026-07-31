@@ -12,7 +12,7 @@ This track adds an **agentic, execution-ground-truth** arm to the router framewo
 - The proxy exposes an Anthropic Messages API (`POST /v1/messages`, tool_use/tool_result, SSE streaming) and translates to Ollama `/api/chat`, so the local model drives the **same tool protocol** as frontier — the point is to measure fidelity, not just reasoning.
 - Both arms run with **no MCP servers and no hooks** (`--strict-mcp-config`) so the harness is lean and reproducible. The local arm additionally uses `--bare`: the full Claude Code system prompt is ~30k tokens, which costs **~8 min/turn** on `qwen2.5-coder:14b` locally (measured) — intractable — so `--bare` trims it to ~1k tokens/turn. This asymmetry, if anything, *handicaps* the local arm (less guidance); the tool protocol is identical. See DECISIONS D13.
 - **Execution oracle:** the agent's `git diff` is scored by running FAIL_TO_PASS + PASS_TO_PASS in a hermetic Docker image (`python:3.11-slim` + pytest, `--network none`).
-- Gold set provenance: `executable=True`, `synthetic=False`, N=11, local-arm-missing=11.
+- Gold set provenance: `executable=True`, `synthetic=False`, N=11, local-arm-missing=10.
 
 ## Per-(task, arm) results
 
