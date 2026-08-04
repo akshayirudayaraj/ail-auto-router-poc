@@ -76,13 +76,13 @@ Gold set meta:
 
 | router | aiq | auc | cost_vs_local | ece | escalation@thr | over_escalation | qual_retention | quality@thr | under_escal_cellB |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| always-local | 0.412 | 0.500 | 1.000 | 0.625 | 0.000 | 0.000 | 0.833 | 0.375 | 0.350 |
-| always-frontier | 0.412 | 0.500 | 6.841 | 0.375 | 1.000 | 0.375 | 1.000 | 0.450 | 0.000 |
-| routellm-logistic | 0.458 | 0.824 | 6.841 | 0.241 | 1.000 | 0.375 | 1.000 | 0.450 | 0.000 |
-| irt-1pl | 0.468 | 0.765 | 5.167 | 0.084 | 0.500 | 0.075 | 1.000 | 0.450 | 0.200 |
-| knn | 0.511 | 1.000 | 6.658 | 0.161 | 0.925 | 0.300 | 1.167 | 0.525 | 0.000 |
-| encoder-mlp(stub) | 0.477 | 0.840 | 1.000 | 0.520 | 0.000 | 0.000 | 0.833 | 0.375 | 0.350 |
-| slm-head(stub) | 0.506 | 0.936 | 1.000 | 0.505 | 0.000 | 0.000 | 0.833 | 0.375 | 0.350 |
+| always-local | 0.275 | 0.500 | 1.000 | 1.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.550 |
+| always-frontier | 0.275 | 0.500 | 71.062 | 0.000 | 1.000 | 0.000 | 1.000 | 0.550 | 0.000 |
+| routellm-logistic | 0.221 | 0.500 | 71.062 | 0.207 | 1.000 | 0.000 | 1.000 | 0.550 | 0.000 |
+| irt-1pl | 0.155 | 0.500 | 56.143 | 0.381 | 0.500 | 0.000 | 0.455 | 0.250 | 0.300 |
+| knn | 0.171 | 0.500 | 64.648 | 0.350 | 0.925 | 0.000 | 0.864 | 0.475 | 0.075 |
+| encoder-mlp(stub) | 0.178 | 0.500 | 1.000 | 0.895 | 0.000 | 0.000 | 0.000 | 0.000 | 0.550 |
+| slm-head(stub) | 0.183 | 0.500 | 1.000 | 0.880 | 0.000 | 0.000 | 0.000 | 0.000 | 0.550 |
 
 - Operating threshold = 0.50. AIQ is threshold-independent (area under the cost/quality hull).
 - cell-B (under_escal) = stayed local but frontier would have passed — the costly miss.
@@ -103,7 +103,7 @@ Gold set meta:
 | encoder-mlp(stub) | 0.000 | 0.500 | 0.814 |
 | slm-head(stub) | 0.000 | 0.500 | 0.804 |
 
-- Split by session+time at unix 1784656478: 42 train / 18 eval sessions; train_rows=143 eval_rows=9 (eval source="judge").
+- Split by session+time at unix 1784700172: 42 train / 18 eval sessions; train_rows=143 eval_rows=9 (eval source="judge").
 - Backtests only RANK routers — they inherit the label heuristic's blind spots and log censoring. Absolute numbers come from the gold set only.
 
 ### off-policy-ips-dr
@@ -130,21 +130,21 @@ Gold set meta:
 | always-frontier | 0.000 | 0.000 |
 | routellm-logistic | 0.400 | 0.200 |
 | irt-1pl | 1.000 | 0.000 |
-| knn | 0.800 | 0.100 |
+| knn | 0.800 | 0.050 |
 | encoder-mlp(stub) | 1.000 | 0.000 |
 | slm-head(stub) | 1.000 | 0.000 |
 
 - difficulty_monotonicity: fraction of easy/hard pairs where score rises with difficulty (want 1.0).
 - topic_flip_rate: fraction of off-topic keyword injections that flipped the decision (want 0.0 — the topic-collapse guardrail).
 
-### policy layer (deployed router: knn, gold AIQ=0.511)
+### policy layer (deployed router: routellm-logistic, gold AIQ=0.221)
 
 | calibration | threshold | escalation | quality_retention | cost_vs_local | under_escal(cellB) |
 |---|--:|--:|--:|--:|--:|
-| target escalation 30% | 0.652 | 0.375 | 1.056 | 4.41 | 0.250 |
-| target quality 95% | 0.652 | 0.375 | 1.056 | 4.41 | 0.250 |
+| target escalation 30% | 0.885 | 0.350 | 0.182 | 19.38 | 0.450 |
+| target quality 95% | 0.517 | 1.000 | 1.000 | 71.06 | 0.000 |
 
-Quota gate (threshold 0.652, cap 20%): escalated 7/40 = 17.5% of traffic.
+Quota gate (threshold 0.885, cap 20%): escalated 6/40 = 15.0% of traffic.
 
 > Target-escalation-rate calibration is safe on logs; target-QUALITY calibration is only trustworthy on the dual-arm gold set (or online A/B).
 
