@@ -1,0 +1,28 @@
+{
+  "task_id": "swe-psf__requests-1142",
+  "instance_id": "psf__requests-1142",
+  "arm": "local",
+  "model": "claude-sonnet-4",
+  "price_rung": 1.0,
+  "outcome": false,
+  "graded": false,
+  "wall_s": 55.4,
+  "timed_out": false,
+  "diff": "",
+  "diff_bytes": 0,
+  "metrics": {
+    "assistant_turns": 6,
+    "tool_calls": 5,
+    "tool_errors": 1,
+    "input_tokens": 14124,
+    "output_tokens": 842,
+    "cost_usd": 0.059108999999999995,
+    "native_tool_calls": 5,
+    "rescued_tool_calls": 0
+  },
+  "grade": {
+    "resolved": false,
+    "graded": false,
+    "note": "empty diff \u2014 agent produced no change"
+  }
+}

@@ -1,8 +1,12 @@
 {
   "synthetic": false,
   "executable": true,
-  "local_model": "qwen2.5-coder:14b (via Anthropic-\u003eOllama proxy)",
+  "local_model": "qwen2.5-coder:14b (via Anthropic->Ollama proxy)",
   "frontier_model": "claude-sonnet (CLI alias; via subscription)",
-  "n": 11,
-  "local_arm_missing": 0
+  "n": 12,
+  "local_arm_missing": 0,
+  "real_swe_verified_instances": [
+    "psf__requests-1142"
+  ],
+  "note": "mixed executable gold: curated SWE-shaped rows (qwen2.5-coder) + real SWE-bench Verified rows (gpt-oss:20b, official swebench harness)"
 }

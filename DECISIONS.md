@@ -211,3 +211,58 @@ here with its rationale. Newest sections may be appended over the build.
   the local arm. The frontier arm (API) is unaffected; the local arm is
   resumable and completes as GPU windows open. Partial-but-real results are the
   deliverable when a full local sweep is blocked (see the brief's Part 5).
+
+## D16 — Step 1: one REAL SWE-bench Verified instance through the proven plumbing
+
+The curated set (D14) proved the agentic loop + Docker grading; Step 1 closes the
+last gap by driving **one genuine SWE-bench Verified instance** (`psf__requests-1142`)
+end-to-end. What changed, and what deliberately did not:
+
+- **Instance choice.** `psf__requests-1142` — F2P=1, P2P=5 (fastest grading), short
+  381-char problem statement (clean firewall). Materialized by
+  `agentic/runner/materialize_swe.py` into the SAME `tasks/<id>/` layout as D14
+  (`repo/` at base_commit with `.git` stripped, `task.json`), with `test_patch` +
+  `gold_patch` quarantined in `_oracle/` OUTSIDE `repo/`. "No runner change" (D14)
+  held: `run_swe_arm.py` reuses the exact `claude -p` invocation.
+
+- **TWO GRADING PATHS, kept separate (mirrors the two SERVING paths).** The curated
+  tasks grade with the in-repo `python:3.11-slim` + pytest Docker executor. A real
+  SWE-bench instance cannot be graded that way (its hidden F2P test lives in
+  `test_patch`, applied only at grade time, and it needs the instance's own env).
+  So the real arm grades with the **official swebench harness** (v4.1.0, reused from
+  the sibling `ail-self-routing/.venv_swe`), fed the agent's diff as the prediction;
+  the harness applies `test_patch` itself, so the ground-truth firewall holds by
+  construction. `agentic/runner/test_firewall.py` independently asserts the hidden
+  tests are absent from the agent-visible `repo/` and the gold fix is not pre-applied.
+  A later "cleanup" that routes real instances through the curated executor would
+  silently misgrade them — the two grading paths are intentionally separate.
+
+- **Proxy: kept the in-repo shim, no off-the-shelf proxy needed.** The plan allowed
+  starting with claude-code-router / LiteLLM and falling back to a minimal in-repo
+  shim. The in-repo `ollama_anthropic_proxy.py` already translates `tool_use` /
+  `tool_result` faithfully and — critically — reads NATIVE Ollama `message.tool_calls`
+  first (`build_anthropic_blocks`), only rescuing prose-JSON when absent. So no
+  external proxy was introduced; the external dependency footprint stays confined to
+  the Job-B Python quarantine (proxy + swebench harness), never the stdlib-only Go core.
+
+- **Local model swap: gpt-oss:20b, not qwen2.5-coder.** qwen2.5-coder was the binding
+  constraint (~0% native tool-call fidelity; 100% prose-JSON rescued — D14 /
+  RESULTS_AGENTIC). Probed and confirmed **gpt-oss:20b emits clean NATIVE
+  `message.tool_calls`**; in the Step-1 run it drove the loop at **5/5 = 100% native
+  fidelity, 0 rescued**. This resolves the harness-faithfulness gap. A minor deviation
+  from the plan's "Ollama Qwen" letter, aligned with its intent (throwaway local, prove
+  plumbing) — and it makes the plumbing proof stronger. Result: `outcome_local=0`
+  (gpt-oss explored via 5 native tool calls but committed no edit → empty diff),
+  `outcome_frontier=1` (resolved) — a discriminative dual-arm row (local fails /
+  frontier succeeds). Getting a non-degenerate local *attempt* (turn/prompt tuning) is
+  Step-2 territory, not Step 1.
+
+- **Gold emission.** `agentic/runner/emit_gold.py` appends the single dual-arm
+  `Executable=true` row to `data_agentic/gold.jsonl` (append-if-absent, 11→12 rows) and
+  updates `gold_meta.json` (`real_swe_verified_instances`). Hand-emitted rather than via
+  the Go assembler (`cmd/agentic`), which consumes the curated-runner format + Docker
+  executor; batch SWE assembly through the Go path is a Step-2 item. `make agentic-eval`
+  runs clean over the mixed 12-row set.
+
+- **RTX-6000 / Gemma environment: NOT touched.** All local serving used throwaway Ollama
+  (gpt-oss:20b) on the dev box. The sensitive box + gateway remain a later step (D14/Step 4).

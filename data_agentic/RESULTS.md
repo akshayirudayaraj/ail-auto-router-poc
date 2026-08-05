@@ -23,10 +23,14 @@ Gold set meta:
 {
   "synthetic": false,
   "executable": true,
-  "local_model": "qwen2.5-coder:14b (via Anthropic-\u003eOllama proxy)",
+  "local_model": "qwen2.5-coder:14b (via Anthropic->Ollama proxy)",
   "frontier_model": "claude-sonnet (CLI alias; via subscription)",
-  "n": 11,
-  "local_arm_missing": 0
+  "n": 12,
+  "local_arm_missing": 0,
+  "real_swe_verified_instances": [
+    "psf__requests-1142"
+  ],
+  "note": "mixed executable gold: curated SWE-shaped rows (qwen2.5-coder) + real SWE-bench Verified rows (gpt-oss:20b, official swebench harness)"
 }
 ```
 
@@ -34,13 +38,13 @@ Gold set meta:
 
 | router | aiq | auc | cost_vs_local | ece | escalation@thr | over_escalation | qual_retention | quality@thr | under_escal_cellB |
 |---|--:|--:|--:|--:|--:|--:|--:|--:|--:|
-| always-local | 0.500 | 0.500 | 0.000 | 1.000 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
-| always-frontier | 0.500 | 0.500 | 0.000 | 0.000 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
-| routellm-logistic | 0.436 | 0.500 | 0.000 | 0.069 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
-| irt-1pl | 0.472 | 0.500 | 0.000 | 0.195 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
-| knn | 0.484 | 0.500 | 0.000 | 0.955 | 0.091 | 0.000 | 0.091 | 0.091 | 0.909 |
-| encoder-mlp(stub) | 0.484 | 0.500 | 0.000 | 0.973 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
-| slm-head(stub) | 0.465 | 0.500 | 0.000 | 0.909 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
+| always-local | 0.500 | 0.500 | 1.000 | 1.000 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
+| always-frontier | 0.500 | 0.500 | 11.349 | 0.000 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
+| routellm-logistic | 0.489 | 0.500 | 11.349 | 0.066 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
+| irt-1pl | 0.522 | 0.500 | 11.349 | 0.193 | 1.000 | 0.000 | 1.000 | 1.000 | 0.000 |
+| knn | 0.476 | 0.500 | 2.358 | 0.958 | 0.083 | 0.000 | 0.083 | 0.083 | 0.917 |
+| encoder-mlp(stub) | 0.476 | 0.500 | 1.000 | 0.975 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
+| slm-head(stub) | 0.499 | 0.500 | 1.000 | 0.909 | 0.000 | 0.000 | 0.000 | 0.000 | 1.000 |
 
 - Operating threshold = 0.50. AIQ is threshold-independent (area under the cost/quality hull).
 - cell-B (under_escal) = stayed local but frontier would have passed — the costly miss.
@@ -97,14 +101,14 @@ Gold set meta:
 - difficulty_monotonicity: fraction of easy/hard pairs where score rises with difficulty (want 1.0).
 - topic_flip_rate: fraction of off-topic keyword injections that flipped the decision (want 0.0 — the topic-collapse guardrail).
 
-### policy layer (deployed router: knn, gold AIQ=0.484)
+### policy layer (deployed router: irt-1pl, gold AIQ=0.522)
 
 | calibration | threshold | escalation | quality_retention | cost_vs_local | under_escal(cellB) |
 |---|--:|--:|--:|--:|--:|
-| target escalation 30% | 0.000 | 1.000 | 1.000 | 0.00 | 0.000 |
-| target quality 95% | 0.000 | 1.000 | 1.000 | 0.00 | 0.000 |
+| target escalation 30% | 0.837 | 0.333 | 0.333 | 2.99 | 0.667 |
+| target quality 95% | 0.695 | 1.000 | 1.000 | 11.35 | 0.000 |
 
-Quota gate (threshold 0.000, cap 20%): escalated 2/11 = 18.2% of traffic.
+Quota gate (threshold 0.837, cap 20%): escalated 2/12 = 16.7% of traffic.
 
 > Target-escalation-rate calibration is safe on logs; target-QUALITY calibration is only trustworthy on the dual-arm gold set (or online A/B).
 

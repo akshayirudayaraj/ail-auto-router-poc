@@ -12,7 +12,7 @@
       "metrics": {
         "aiq": 0.5,
         "auc": 0.5,
-        "cost_vs_local": 0,
+        "cost_vs_local": 1,
         "ece": 1,
         "escalation@thr": 0,
         "over_escalation": 0,
@@ -26,7 +26,7 @@
       "metrics": {
         "aiq": 0.5,
         "auc": 0.5,
-        "cost_vs_local": 0,
+        "cost_vs_local": 11.348723773887478,
         "ece": 0,
         "escalation@thr": 1,
         "over_escalation": 0,
@@ -38,10 +38,10 @@
     {
       "router": "routellm-logistic",
       "metrics": {
-        "aiq": 0.4358947761503672,
+        "aiq": 0.48891930689979496,
         "auc": 0.5,
-        "cost_vs_local": 0,
-        "ece": 0.06929346136123786,
+        "cost_vs_local": 11.348723773887478,
+        "ece": 0.06550458835782,
         "escalation@thr": 1,
         "over_escalation": 0,
         "qual_retention": 1,
@@ -52,10 +52,10 @@
     {
       "router": "irt-1pl",
       "metrics": {
-        "aiq": 0.47162773328907515,
+        "aiq": 0.5217000045196573,
         "auc": 0.5,
-        "cost_vs_local": 0,
-        "ece": 0.1954090094294636,
+        "cost_vs_local": 11.348723773887478,
+        "ece": 0.19267339094427324,
         "escalation@thr": 1,
         "over_escalation": 0,
         "qual_retention": 1,
@@ -66,24 +66,24 @@
     {
       "router": "knn",
       "metrics": {
-        "aiq": 0.4836106385627152,
+        "aiq": 0.4760509279286841,
         "auc": 0.5,
-        "cost_vs_local": 0,
-        "ece": 0.9545454545454545,
-        "escalation@thr": 0.09090909090909091,
+        "cost_vs_local": 2.3580783108378993,
+        "ece": 0.9583333333333333,
+        "escalation@thr": 0.08333333333333333,
         "over_escalation": 0,
-        "qual_retention": 0.09090909090909091,
-        "quality@thr": 0.09090909090909091,
-        "under_escal_cellB": 0.9090909090909091
+        "qual_retention": 0.08333333333333333,
+        "quality@thr": 0.08333333333333333,
+        "under_escal_cellB": 0.9166666666666666
       }
     },
     {
       "router": "encoder-mlp(stub)",
       "metrics": {
-        "aiq": 0.4836106385627152,
+        "aiq": 0.4760509279286841,
         "auc": 0.5,
-        "cost_vs_local": 0,
-        "ece": 0.9727272727272727,
+        "cost_vs_local": 1,
+        "ece": 0.975,
         "escalation@thr": 0,
         "over_escalation": 0,
         "qual_retention": 0,
@@ -94,10 +94,10 @@
     {
       "router": "slm-head(stub)",
       "metrics": {
-        "aiq": 0.4653624330940625,
+        "aiq": 0.4992440335143349,
         "auc": 0.5,
-        "cost_vs_local": 0,
-        "ece": 0.9092727272727273,
+        "cost_vs_local": 1,
+        "ece": 0.9089166666666667,
         "escalation@thr": 0,
         "over_escalation": 0,
         "qual_retention": 0,
@@ -114,19 +114,19 @@
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         }
       ],
       "hull": [
@@ -134,13 +134,13 @@
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         },
         {
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         }
       ]
     },
@@ -151,19 +151,19 @@
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 1,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         }
       ],
       "hull": [
@@ -171,13 +171,13 @@
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         },
         {
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         }
       ]
     },
@@ -188,79 +188,85 @@
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.8823938127968297,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.8907391310547804,
-          "escalation": 0.9090909090909091,
-          "quality": 0.9090909090909091,
-          "cost": 14205
+          "escalation": 0.9166666666666666,
+          "quality": 0.9166666666666666,
+          "cost": 13481.25
         },
         {
           "threshold": 0.8956739436146313,
-          "escalation": 0.8181818181818182,
-          "quality": 0.8181818181818182,
-          "cost": 13453.636363636364
+          "escalation": 0.8333333333333334,
+          "quality": 0.8333333333333334,
+          "cost": 12792.5
         },
         {
           "threshold": 0.902359260656971,
-          "escalation": 0.7272727272727273,
-          "quality": 0.7272727272727273,
-          "cost": 12625.90909090909
+          "escalation": 0.75,
+          "quality": 0.75,
+          "cost": 12033.75
         },
         {
           "threshold": 0.9273141736399698,
-          "escalation": 0.6363636363636364,
-          "quality": 0.6363636363636364,
-          "cost": 11612.727272727272
+          "escalation": 0.6666666666666666,
+          "quality": 0.6666666666666666,
+          "cost": 11105
         },
         {
           "threshold": 0.9278227669305132,
-          "escalation": 0.5454545454545454,
-          "quality": 0.5454545454545454,
-          "cost": 10210.90909090909
+          "escalation": 0.5833333333333334,
+          "quality": 0.5833333333333334,
+          "cost": 9820
         },
         {
           "threshold": 0.9359621970197298,
-          "escalation": 0.45454545454545453,
-          "quality": 0.45454545454545453,
-          "cost": 9006.818181818182
+          "escalation": 0.5,
+          "quality": 0.5,
+          "cost": 8716.25
         },
         {
           "threshold": 0.9383432978006936,
-          "escalation": 0.36363636363636365,
-          "quality": 0.36363636363636365,
-          "cost": 6144.545454545455
+          "escalation": 0.4166666666666667,
+          "quality": 0.4166666666666667,
+          "cost": 6092.5
         },
         {
           "threshold": 0.9502696441717327,
-          "escalation": 0.2727272727272727,
-          "quality": 0.2727272727272727,
-          "cost": 4341.818181818182
+          "escalation": 0.3333333333333333,
+          "quality": 0.3333333333333333,
+          "cost": 4440
+        },
+        {
+          "threshold": 0.9761730146797766,
+          "escalation": 0.25,
+          "quality": 0.25,
+          "cost": 2968.75
         },
         {
           "threshold": 0.9916024853263368,
-          "escalation": 0.18181818181818182,
-          "quality": 0.18181818181818182,
-          "cost": 2736.818181818182
+          "escalation": 0.16666666666666666,
+          "quality": 0.16666666666666666,
+          "cost": 3755.9166666666665
         },
         {
           "threshold": 0.9952912120141941,
-          "escalation": 0.09090909090909091,
-          "quality": 0.09090909090909091,
-          "cost": 889.0909090909091
+          "escalation": 0.08333333333333333,
+          "quality": 0.08333333333333333,
+          "cost": 2062.1666666666665
         },
         {
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         }
       ],
       "hull": [
@@ -268,19 +274,19 @@
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         },
         {
-          "threshold": 0.9952912120141941,
-          "escalation": 0.09090909090909091,
-          "quality": 0.09090909090909091,
-          "cost": 889.0909090909091
+          "threshold": 0.9761730146797766,
+          "escalation": 0.25,
+          "quality": 0.25,
+          "cost": 2968.75
         },
         {
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         }
       ]
     },
@@ -291,79 +297,85 @@
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.6954997681152949,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.7045516106399423,
-          "escalation": 0.9090909090909091,
-          "quality": 0.9090909090909091,
-          "cost": 13536.818181818182
+          "escalation": 0.9166666666666666,
+          "quality": 0.9166666666666666,
+          "cost": 12868.75
         },
         {
           "threshold": 0.7346923469112503,
-          "escalation": 0.8181818181818182,
-          "quality": 0.8181818181818182,
-          "cost": 12523.636363636364
+          "escalation": 0.8333333333333334,
+          "quality": 0.8333333333333334,
+          "cost": 11940
         },
         {
           "threshold": 0.7580774681652058,
-          "escalation": 0.7272727272727273,
-          "quality": 0.7272727272727273,
-          "cost": 11772.272727272728
+          "escalation": 0.75,
+          "quality": 0.75,
+          "cost": 11251.25
         },
         {
           "threshold": 0.7803942433135371,
-          "escalation": 0.6363636363636364,
-          "quality": 0.6363636363636364,
-          "cost": 11038.636363636364
+          "escalation": 0.6666666666666666,
+          "quality": 0.6666666666666666,
+          "cost": 10578.75
         },
         {
           "threshold": 0.787769016092111,
-          "escalation": 0.5454545454545454,
-          "quality": 0.5454545454545454,
-          "cost": 9235.90909090909
+          "escalation": 0.5833333333333334,
+          "quality": 0.5833333333333334,
+          "cost": 8926.25
         },
         {
           "threshold": 0.8178212260158977,
-          "escalation": 0.45454545454545453,
-          "quality": 0.45454545454545453,
-          "cost": 7630.909090909091
+          "escalation": 0.5,
+          "quality": 0.5,
+          "cost": 7455
         },
         {
           "threshold": 0.8254364847945317,
-          "escalation": 0.36363636363636365,
-          "quality": 0.36363636363636365,
-          "cost": 6426.818181818182
+          "escalation": 0.4166666666666667,
+          "quality": 0.4166666666666667,
+          "cost": 6351.25
+        },
+        {
+          "threshold": 0.837418412392821,
+          "escalation": 0.3333333333333333,
+          "quality": 0.3333333333333333,
+          "cost": 3727.5
         },
         {
           "threshold": 0.8488234114534239,
-          "escalation": 0.2727272727272727,
-          "quality": 0.2727272727272727,
-          "cost": 3564.5454545454545
+          "escalation": 0.25,
+          "quality": 0.25,
+          "cost": 4514.666666666667
         },
         {
           "threshold": 0.9265381995700186,
-          "escalation": 0.18181818181818182,
-          "quality": 0.18181818181818182,
-          "cost": 2736.818181818182
+          "escalation": 0.16666666666666666,
+          "quality": 0.16666666666666666,
+          "cost": 3755.9166666666665
         },
         {
           "threshold": 0.9708971212046876,
-          "escalation": 0.09090909090909091,
-          "quality": 0.09090909090909091,
-          "cost": 889.0909090909091
+          "escalation": 0.08333333333333333,
+          "quality": 0.08333333333333333,
+          "cost": 2062.1666666666665
         },
         {
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         }
       ],
       "hull": [
@@ -371,25 +383,19 @@
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         },
         {
-          "threshold": 0.9708971212046876,
-          "escalation": 0.09090909090909091,
-          "quality": 0.09090909090909091,
-          "cost": 889.0909090909091
-        },
-        {
-          "threshold": 0.8488234114534239,
-          "escalation": 0.2727272727272727,
-          "quality": 0.2727272727272727,
-          "cost": 3564.5454545454545
+          "threshold": 0.837418412392821,
+          "escalation": 0.3333333333333333,
+          "quality": 0.3333333333333333,
+          "cost": 3727.5
         },
         {
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         }
       ]
     },
@@ -400,25 +406,25 @@
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.5,
-          "escalation": 0.09090909090909091,
-          "quality": 0.09090909090909091,
-          "cost": 1847.7272727272727
+          "escalation": 0.08333333333333333,
+          "quality": 0.08333333333333333,
+          "cost": 2940.9166666666665
         },
         {
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         }
       ],
       "hull": [
@@ -426,13 +432,13 @@
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         },
         {
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         }
       ]
     },
@@ -443,25 +449,25 @@
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.3,
-          "escalation": 0.09090909090909091,
-          "quality": 0.09090909090909091,
-          "cost": 1847.7272727272727
+          "escalation": 0.08333333333333333,
+          "quality": 0.08333333333333333,
+          "cost": 2940.9166666666665
         },
         {
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         }
       ],
       "hull": [
@@ -469,13 +475,13 @@
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         },
         {
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         }
       ]
     },
@@ -486,79 +492,85 @@
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.036,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         },
         {
           "threshold": 0.039,
-          "escalation": 0.9090909090909091,
-          "quality": 0.9090909090909091,
-          "cost": 14205
+          "escalation": 0.9166666666666666,
+          "quality": 0.9166666666666666,
+          "cost": 13481.25
         },
         {
           "threshold": 0.04599999999999999,
-          "escalation": 0.8181818181818182,
-          "quality": 0.8181818181818182,
-          "cost": 13377.272727272728
+          "escalation": 0.8333333333333334,
+          "quality": 0.8333333333333334,
+          "cost": 12722.5
         },
         {
           "threshold": 0.047,
-          "escalation": 0.7272727272727273,
-          "quality": 0.7272727272727273,
-          "cost": 12625.90909090909
+          "escalation": 0.75,
+          "quality": 0.75,
+          "cost": 12033.75
         },
         {
           "threshold": 0.063,
-          "escalation": 0.6363636363636364,
-          "quality": 0.6363636363636364,
-          "cost": 9763.636363636364
+          "escalation": 0.6666666666666666,
+          "quality": 0.6666666666666666,
+          "cost": 9410
         },
         {
           "threshold": 0.069,
-          "escalation": 0.5454545454545454,
-          "quality": 0.5454545454545454,
-          "cost": 7960.909090909091
+          "escalation": 0.5833333333333334,
+          "quality": 0.5833333333333334,
+          "cost": 7757.5
         },
         {
           "threshold": 0.072,
-          "escalation": 0.45454545454545453,
-          "quality": 0.45454545454545453,
-          "cost": 6756.818181818182
+          "escalation": 0.5,
+          "quality": 0.5,
+          "cost": 6653.75
         },
         {
           "threshold": 0.076,
-          "escalation": 0.36363636363636365,
-          "quality": 0.36363636363636365,
-          "cost": 5743.636363636364
+          "escalation": 0.4166666666666667,
+          "quality": 0.4166666666666667,
+          "cost": 5725
+        },
+        {
+          "threshold": 0.09499999999999999,
+          "escalation": 0.3333333333333333,
+          "quality": 0.3333333333333333,
+          "cost": 4910
         },
         {
           "threshold": 0.09699999999999999,
-          "escalation": 0.2727272727272727,
-          "quality": 0.2727272727272727,
-          "cost": 4854.545454545455
+          "escalation": 0.25,
+          "quality": 0.25,
+          "cost": 5697.166666666667
         },
         {
           "threshold": 0.10200000000000001,
-          "escalation": 0.18181818181818182,
-          "quality": 0.18181818181818182,
-          "cost": 3249.5454545454545
+          "escalation": 0.16666666666666666,
+          "quality": 0.16666666666666666,
+          "cost": 4225.916666666667
         },
         {
           "threshold": 0.351,
-          "escalation": 0.09090909090909091,
-          "quality": 0.09090909090909091,
-          "cost": 1847.7272727272727
+          "escalation": 0.08333333333333333,
+          "quality": 0.08333333333333333,
+          "cost": 2940.9166666666665
         },
         {
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
         }
       ],
       "hull": [
@@ -566,19 +578,31 @@
           "threshold": 1.0001,
           "escalation": 0,
           "quality": 0,
-          "cost": 0
+          "cost": 1247.1666666666667
+        },
+        {
+          "threshold": 0.076,
+          "escalation": 0.4166666666666667,
+          "quality": 0.4166666666666667,
+          "cost": 5725
+        },
+        {
+          "threshold": 0.072,
+          "escalation": 0.5,
+          "quality": 0.5,
+          "cost": 6653.75
         },
         {
           "threshold": 0.069,
-          "escalation": 0.5454545454545454,
-          "quality": 0.5454545454545454,
-          "cost": 7960.909090909091
+          "escalation": 0.5833333333333334,
+          "quality": 0.5833333333333334,
+          "cost": 7757.5
         },
         {
           "threshold": -0.0001,
           "escalation": 1,
           "quality": 1,
-          "cost": 14938.636363636364
+          "cost": 14153.75
         }
       ]
     }

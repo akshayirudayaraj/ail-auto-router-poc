@@ -25,3 +25,9 @@ agentic/checkouts/
 agentic/tasks/*/checkout/
 *.pyc
 __pycache__/
+
+# Step-1 real-SWE runtime artifacts (regenerable / noise)
+data_agentic/cache/
+agentic/results/logs/
+agentic/results/pred_*.jsonl
+agentic/results/*.step1_*.json
