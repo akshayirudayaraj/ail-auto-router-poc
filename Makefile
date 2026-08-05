@@ -113,10 +113,19 @@ agentic-proxy-stop:
 agentic-smoke: build agentic-proxy
 	python3 agentic/runner/run_agentic.py --smoke
 
-## agentic-swe: materialize N SWE-bench Verified instances + run BOTH arms
-## (log-first, NO grading). Set SWE_N / SWE_INSTANCES to control selection.
+## SWEBENCH_PY: a python with swebench + datasets (used to build instance images)
+SWEBENCH_PY ?= $(HOME)/development/spectro/ail-self-routing/.venv_swe/bin/python
+
+## agentic-swe-images: build the official SWE-bench per-instance images so the
+## agent runs INSIDE the real env (base -> env -> instance; x86_64, emulated).
+agentic-swe-images:
+	$(SWEBENCH_PY) agentic/runner/build_swe_images.py
+
+## agentic-swe: materialize N SWE-bench Verified instances, build their images,
+## then run BOTH arms IN-CONTAINER (log-first, NO grading). SWE_N controls count.
 agentic-swe: build agentic-proxy
 	python3 agentic/runner/materialize_swe.py --n $(SWE_N)
+	$(MAKE) agentic-swe-images
 	python3 agentic/runner/run_agentic.py --arms local,frontier
 	python3 agentic/runner/split.py
 

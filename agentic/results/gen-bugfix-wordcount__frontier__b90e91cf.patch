@@ -1,0 +1,10 @@
+diff --git a/wordkit/counter.py b/wordkit/counter.py
+index 531d38a..46677a0 100644
+--- a/wordkit/counter.py
++++ b/wordkit/counter.py
+@@ -1,3 +1,3 @@
+ def word_count(text):
+-    # BUG: splits on a single space, so runs of spaces yield empty "words".
+-    return len(text.split(" "))
++    # Split on arbitrary whitespace runs, ignoring leading/trailing space.
++    return len(text.split())

@@ -1,17 +1,13 @@
-diff --git a/requests/models.py b/requests/models.py
-index 9c624d3..fa7a4e7 100644
---- a/requests/models.py
-+++ b/requests/models.py
-@@ -81,7 +81,11 @@ class RequestEncodingMixin(object):
-         """
+diff --git a/test_requests.py b/test_requests.py
+index 137edc0..fc350ba 100755
+--- a/test_requests.py
++++ b/test_requests.py
+@@ -49,7 +49,7 @@ else:
  
-         if isinstance(data, (str, bytes)):
--            return to_native_string(data)
-+            if isinstance(data, str):
-+                return to_native_string(data)
-+            else:
-+                # Binary data should be sent as-is
-+                return data
-         elif hasattr(data, 'read'):
-             return data
-         elif hasattr(data, '__iter__'):
+ 
+ @pytest.fixture
+-def httpbin(httpbin):
++def httpbin(request):
+     # Issue #1483: Make sure the URL always has a trailing slash
+     httpbin_url = httpbin.url.rstrip('/') + '/'
+ 

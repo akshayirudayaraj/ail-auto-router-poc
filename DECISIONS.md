@@ -357,3 +357,34 @@ engine. Choices made in Phase 1:
   data lives in `data/`, agentic data in `data_agentic/` + `agentic/results/`.
   The Go `cmd/agentic` gold assembler (reads `.resolved`) is now offline-engine
   work — NOT invoked on the generation path.
+
+## D19 — Agent runs INSIDE the SWE-bench per-instance container (not the host)
+
+Correcting a real gap: SWE-bench tasks were generated with the agent on the HOST
+(host Python 3.13, no instance deps), so `pytest` failed outright — the agent
+never ran the real suite, authored patches blind, and polluted the host pyenv.
+Fix: run `claude -p` INSIDE the official swebench per-instance image so the agent
+operates in the REAL env (correct Python + pinned deps + repo@base at /testbed),
+can run the tests and iterate, and generation env == grading env.
+
+- **Images = the harness's own.** `build_swe_images.py` builds base→env→instance
+  via swebench (`build_env_images`/`build_instance_images`, tags "latest").
+  x86_64 images run under emulation on this arm64 Mac (slower but correct).
+  `make agentic-swe-images`.
+- **claude in a Linux container.** The host `claude` is a macOS arm64 Mach-O
+  binary — unusable in Linux. So a shared "toolbox" (`agentic/.claude_toolbox/`,
+  gitignored) holds a Linux node + the `@anthropic-ai/claude-code` npm build,
+  built once and bind-mounted read-only into each instance container; `claude`
+  runs there. Proven: node v20 + claude 2.1.x execute in the emulated container.
+- **`IS_SANDBOX=1`.** swebench containers run as root; `claude -p
+  --permission-mode bypassPermissions` refuses root without this. Set it.
+- **Auth per arm.** local → `ANTHROPIC_BASE_URL=http://host.docker.internal:8790`
+  reaches the host proxy (fidelity still logged host-side); frontier → the Max
+  SUBSCRIPTION via `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`) delivered by
+  `--env-file ~/.claude_oauth.env` so the plaintext credential is never handled
+  by the runner (macOS Keychain can't cross into Linux).
+- **Routing.** `run_agentic.is_swe_container_task` sends swe_verified/swebench
+  instances through `container_exec`; self-contained (pure-Python) tasks stay on
+  host (they run correctly there). `AGENT_FORCE_HOST=1` overrides for debug.
+- **Patch capture** from /testbed inside the container (`git add -A && git diff
+  --cached`); repo is at base_commit with .git, test_patch applied only at grade.

@@ -44,6 +44,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import container_exec  # noqa: E402  (containerized SWE execution)
 
 ROOT = os.path.abspath(os.path.join(HERE, ".."))
 TASKS_DIR = os.path.join(ROOT, "tasks")
@@ -403,6 +404,17 @@ def has_executable_oracle(task):
     return bool(task.get("fail_to_pass"))
 
 
+def is_swe_container_task(task):
+    """SWE-bench Verified instances run the agent INSIDE the official per-instance
+    image (real env, agent can run the tests, gen env == grade env). Self-contained
+    tasks (pure-Python) stay on host — they run correctly there. Override with
+    AGENT_FORCE_HOST=1 to force host execution everywhere (debug)."""
+    if os.environ.get("AGENT_FORCE_HOST") == "1":
+        return False
+    return bool(task.get("instance_id")) and (
+        task.get("provenance") == "swe_verified" or task.get("grader") == "swebench")
+
+
 # --------------------------------------------------------------------------
 def run_one(task, arm, force=False):
     """Run one (task, arm) LOG-FIRST with NO grading. Returns (record, cached).
@@ -414,10 +426,22 @@ def run_one(task, arm, force=False):
     if os.path.exists(rp) and not force:
         return json.load(open(rp)), True  # cached
 
-    checkout = fresh_checkout(task)
+    swe = is_swe_container_task(task)
+    checkout = None if swe else fresh_checkout(task)
     try:
-        events, timed_out, wall, proxy_lines, raw, stderr = run_harness(
-            task, arm, arm_cfg, checkout)
+        if swe:
+            # Agent runs INSIDE the official swebench per-instance image; local-arm
+            # calls still traverse the host proxy, so fidelity is logged host-side.
+            proxy_offset = _file_size(PROXY_LOG) if arm_cfg["use_proxy"] else 0
+            events, timed_out, wall, patch, raw, stderr = \
+                container_exec.run_agent_in_container(
+                    task["instance_id"], arm, arm_cfg, build_prompt(task),
+                    timeout=arm_cfg["timeout"])
+            proxy_lines = _read_proxy_since(PROXY_LOG, proxy_offset) if arm_cfg["use_proxy"] else []
+        else:
+            events, timed_out, wall, proxy_lines, raw, stderr = run_harness(
+                task, arm, arm_cfg, checkout)
+            patch = git_diff(checkout)
 
         # A frontier Max/usage rate-limit is a TRANSIENT, not a capability
         # outcome. Bail before writing anything so the (task, arm) stays uncached
@@ -427,7 +451,6 @@ def run_one(task, arm, force=False):
             raise RateLimited(f"{task['id']} {arm}")
 
         metrics = mine_metrics(events, proxy_lines)
-        patch = git_diff(checkout)
         empty_patch = patch.strip() == ""
 
         hit_cap = (metrics["result_subtype"] == "error_max_turns") or \
@@ -482,9 +505,11 @@ def run_one(task, arm, force=False):
             json.dump(result, f, indent=2)
         return result, False
     finally:
-        # The ephemeral checkout is discarded; the patch is already persisted and
-        # the base repo/ + _oracle/ live in tasks/<id>/ for offline grading.
-        shutil.rmtree(checkout, ignore_errors=True)
+        # The ephemeral host checkout is discarded; the patch is already persisted
+        # and the base repo/ + _oracle/ live in tasks/<id>/ for offline grading.
+        # (SWE tasks run in a container that container_exec already removed.)
+        if checkout:
+            shutil.rmtree(checkout, ignore_errors=True)
 
 
 # --------------------------------------------------------------------------

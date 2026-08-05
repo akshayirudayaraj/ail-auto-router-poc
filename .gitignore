@@ -35,3 +35,11 @@ data_agentic/cache/
 agentic/results/logs/
 agentic/results/pred_*.jsonl
 agentic/results/*.step1_*.json
+
+# containerized-agent toolbox (built node+claude blob) + any local token file
+agentic/.claude_toolbox/
+*.oauth.env
+.claude_oauth.env
+
+# swebench image-build logs (noise, regenerable)
+logs/build_images/
