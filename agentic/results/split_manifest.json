@@ -1,0 +1,259 @@
+{
+  "seed": 1337,
+  "holdout_frac": 0.3,
+  "policy": "by_task",
+  "n_tasks": 12,
+  "n_sessions": 26,
+  "n_holdout_tasks": 3,
+  "n_train_tasks": 9,
+  "task_split": {
+    "easy-01-reverse-words": "train",
+    "easy-02-is-even": "holdout",
+    "easy-03-fizzbuzz-range": "train",
+    "easy-04-celsius": "train",
+    "hard-01-expr-eval": "train",
+    "hard-02-toposort": "train",
+    "hard-03-lcs-diff": "train",
+    "med-01-roman": "train",
+    "med-02-csv-quotes": "train",
+    "med-03-interval-merge": "holdout",
+    "med-04-lru-cache": "train",
+    "swe-psf__requests-1142": "holdout"
+  },
+  "items": [
+    {
+      "task_id": "easy-01-reverse-words",
+      "arm": "frontier",
+      "session_id": "easy-01-reverse-words__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "easy-01-reverse-words",
+      "arm": "frontier",
+      "session_id": "easy-01-reverse-words__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "synthetic",
+      "grounding": "synthetic_repo",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "easy-01-reverse-words",
+      "arm": "local",
+      "session_id": "easy-01-reverse-words__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "easy-01-reverse-words",
+      "arm": "local",
+      "session_id": "easy-01-reverse-words__local__963462c0",
+      "split": "train",
+      "provenance": "synthetic",
+      "grounding": "synthetic_repo",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "easy-02-is-even",
+      "arm": "frontier",
+      "session_id": "easy-02-is-even__frontier",
+      "split": "holdout",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "easy-02-is-even",
+      "arm": "local",
+      "session_id": "easy-02-is-even__local",
+      "split": "holdout",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "easy-03-fizzbuzz-range",
+      "arm": "frontier",
+      "session_id": "easy-03-fizzbuzz-range__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "easy-03-fizzbuzz-range",
+      "arm": "local",
+      "session_id": "easy-03-fizzbuzz-range__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "easy-04-celsius",
+      "arm": "frontier",
+      "session_id": "easy-04-celsius__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "easy-04-celsius",
+      "arm": "local",
+      "session_id": "easy-04-celsius__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "hard-01-expr-eval",
+      "arm": "frontier",
+      "session_id": "hard-01-expr-eval__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "hard-01-expr-eval",
+      "arm": "local",
+      "session_id": "hard-01-expr-eval__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "hard-02-toposort",
+      "arm": "frontier",
+      "session_id": "hard-02-toposort__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "hard-02-toposort",
+      "arm": "local",
+      "session_id": "hard-02-toposort__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "hard-03-lcs-diff",
+      "arm": "frontier",
+      "session_id": "hard-03-lcs-diff__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "hard-03-lcs-diff",
+      "arm": "local",
+      "session_id": "hard-03-lcs-diff__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-01-roman",
+      "arm": "frontier",
+      "session_id": "med-01-roman__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-01-roman",
+      "arm": "local",
+      "session_id": "med-01-roman__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-02-csv-quotes",
+      "arm": "frontier",
+      "session_id": "med-02-csv-quotes__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-02-csv-quotes",
+      "arm": "local",
+      "session_id": "med-02-csv-quotes__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-03-interval-merge",
+      "arm": "frontier",
+      "session_id": "med-03-interval-merge__frontier",
+      "split": "holdout",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-03-interval-merge",
+      "arm": "local",
+      "session_id": "med-03-interval-merge__local",
+      "split": "holdout",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-04-lru-cache",
+      "arm": "frontier",
+      "session_id": "med-04-lru-cache__frontier",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "med-04-lru-cache",
+      "arm": "local",
+      "session_id": "med-04-lru-cache__local",
+      "split": "train",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "swe-psf__requests-1142",
+      "arm": "frontier",
+      "session_id": "swe-psf__requests-1142__frontier",
+      "split": "holdout",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    },
+    {
+      "task_id": "swe-psf__requests-1142",
+      "arm": "local",
+      "session_id": "swe-psf__requests-1142__local",
+      "split": "holdout",
+      "provenance": null,
+      "grounding": null,
+      "has_executable_oracle": null
+    }
+  ]
+}

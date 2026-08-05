@@ -38,6 +38,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from firewall_util import hidden_test_leak  # noqa: E402
+
 DATASET = "princeton-nlp/SWE-bench_Verified"
 
 REPO_URL = {"psf/requests": "https://github.com/psf/requests.git"}
@@ -210,23 +213,18 @@ def materialize(rec: dict, tasks_dir: Path) -> tuple[Path, bool]:
 
 
 def firewall_check(tdir: Path) -> None:
-    """Assert the agent-visible repo/ does not contain the HIDDEN tests.
+    """Assert the agent-visible repo/ does not contain the HIDDEN test content.
 
-    The hidden tests are exactly the FAIL_TO_PASS methods introduced by
-    test_patch — NOT every test in the diff. PASS_TO_PASS tests legitimately
-    pre-exist at base_commit (and appear as diff context), so keying off the diff
-    directly over-flags them. We key off the F2P method names instead.
+    Keys off the substantive lines test_patch ADDS (the genuinely hidden bits),
+    not F2P method names — many SWE-bench F2P tests are MODIFICATIONS of tests
+    that already exist at base_commit, so the method name legitimately pre-exists
+    in repo/ and a name-based check false-breaches them. See firewall_util.
     """
-    task = json.loads((tdir / "task.json").read_text())
-    hidden = [t.rsplit("::", 1)[-1] for t in task["fail_to_pass"]]
-    leaked = []
-    for f in (tdir / "repo").rglob("*.py"):
-        txt = f.read_text(errors="ignore")
-        for t in hidden:
-            if f"def {t}" in txt:
-                leaked.append((t, str(f.relative_to(tdir))))
+    leaked = hidden_test_leak(tdir)
     if leaked:
-        raise SystemExit(f"FIREWALL BREACH: hidden F2P tests present in repo/: {leaked}")
+        raise SystemExit(
+            f"FIREWALL BREACH: hidden test content visible in repo/ "
+            f"({len(leaked)} added test lines present, e.g. {leaked[:2]})")
     if (tdir / "repo" / "_oracle").exists():
         raise SystemExit("FIREWALL BREACH: _oracle/ is inside repo/")
 

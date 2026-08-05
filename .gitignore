@@ -23,6 +23,10 @@ python/__pycache__/
 # agentic track runtime artifacts
 agentic/checkouts/
 agentic/tasks/*/checkout/
+# Materialized SWE-bench repo checkouts are large (~150M) and regenerable from
+# the dataset via materialize_swe.py + tasks/swe_selection.json. Keep the small
+# task.json + _oracle (the durable task definition) tracked; ignore the big repo.
+agentic/tasks/swe-*/repo/
 *.pyc
 __pycache__/
 

@@ -17,6 +17,9 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from firewall_util import hidden_test_leak  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 TASKS = ROOT / "tasks"
 
@@ -25,14 +28,16 @@ def check(task_id: str) -> None:
     tdir = TASKS / task_id
     task = json.loads((tdir / "task.json").read_text())
     repo = tdir / "repo"
-
-    # 1. hidden FAIL_TO_PASS tests must be absent from the agent-visible repo
-    hidden = [t.rsplit("::", 1)[-1] for t in task["fail_to_pass"]]
     py = list(repo.rglob("*.py"))
-    for t in hidden:
-        for f in py:
-            if f"def {t}" in f.read_text(errors="ignore"):
-                raise SystemExit(f"BREACH: hidden test {t} present in {f}")
+
+    # 1. the HIDDEN test content (lines test_patch adds) must be absent from the
+    # agent-visible repo/. Keys off added lines, not method names — modified F2P
+    # tests legitimately pre-exist at base_commit (see firewall_util).
+    hidden = [t.rsplit("::", 1)[-1] for t in task["fail_to_pass"]]
+    leaked = hidden_test_leak(tdir)
+    if leaked:
+        raise SystemExit(f"BREACH: hidden test content visible in repo/ "
+                         f"({len(leaked)} added lines, e.g. {leaked[:2]})")
 
     # 2. oracle artifacts must be quarantined outside repo/
     assert (tdir / "_oracle" / "test_patch.diff").exists(), "oracle test_patch missing"
@@ -40,15 +45,23 @@ def check(task_id: str) -> None:
     if (repo / "_oracle").exists():
         raise SystemExit("BREACH: _oracle/ is inside the agent-visible repo/")
 
-    # 3. the gold fix must NOT already be applied (repo is the *buggy* base)
+    # 3. the gold fix must NOT already be applied (repo is the *buggy* base).
+    # SKIP for swe_verified: the repo is checked out at base_commit by
+    # construction, so the fix is definitionally NOT applied; the substring
+    # heuristic below false-positives on small real patches whose added lines
+    # coincidentally match existing code. Meaningful only for GENERATED tasks,
+    # where an author could accidentally ship the fix. Require >=3 substantive
+    # added lines before trusting "all present" to avoid 1-liner false hits.
     gold = (tdir / "_oracle" / "gold_patch.diff").read_text()
-    added = [ln[1:].strip() for ln in gold.splitlines()
-             if ln.startswith("+") and not ln.startswith("+++") and len(ln.strip()) > 6]
-    for target in py:
-        txt = target.read_text(errors="ignore")
-        hits = [a for a in added if a and a in txt]
-        if len(hits) >= max(1, len(added)) and added:  # whole fix already present
-            raise SystemExit(f"BREACH: gold fix appears already applied in {target}")
+    if task.get("provenance") != "swe_verified":
+        added = [ln[1:].strip() for ln in gold.splitlines()
+                 if ln.startswith("+") and not ln.startswith("+++") and len(ln.strip()) > 6]
+        if len(added) >= 3:
+            for target in py:
+                txt = target.read_text(errors="ignore")
+                hits = [a for a in added if a and a in txt]
+                if len(hits) >= len(added):  # whole fix already present
+                    raise SystemExit(f"BREACH: gold fix appears already applied in {target}")
 
     # 4. the ISSUE text must not embed the fix (generated-task leak vector).
     issue_leak_check(task.get("issue", ""), gold)

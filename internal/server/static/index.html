@@ -17,6 +17,7 @@
     </div>
     <nav id="tabs">
       <button data-tab="overview" class="active">Overview</button>
+      <button data-tab="corpus">Corpus</button>
       <button data-tab="traces">Traces</button>
       <button data-tab="data">Labeled data</button>
       <button data-tab="fit">Fit &amp; evaluate</button>
@@ -30,6 +31,15 @@
     <section id="overview" class="tab active">
       <div id="overview-cards" class="cards"></div>
       <div id="overview-note" class="note"></div>
+    </section>
+
+    <!-- CORPUS (agentic generated data browser) -->
+    <section id="corpus" class="tab">
+      <div class="toolbar" id="corpus-toolbar"></div>
+      <div class="tablewrap"><table id="corpus-table"></table></div>
+      <div class="detail" id="corpus-detail">
+        <p class="muted">Select a session row to view its full agentic trace (turns, tool calls, diff).</p>
+      </div>
     </section>
 
     <!-- TRACES -->
