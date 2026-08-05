@@ -13,9 +13,18 @@ CACHE   ?= cache
 
 .PHONY: all gen extract train eval test build clean fmt vet tidy demo serve \
 	agentic agentic-smoke agentic-tasks agentic-image agentic-proxy \
-	agentic-proxy-stop agentic-gold agentic-eval
+	agentic-proxy-stop agentic-gold agentic-eval agentic-swe agentic-generate \
+	agentic-split
 
 DATA_AGENTIC ?= data_agentic
+
+# Agentic model roster (log-first generation). Frontier = Opus via the logged-in
+# subscription; local = gpt-oss:20b via the Anthropic->Ollama proxy (D16: 100%
+# native tool fidelity). Exported so the Python runner + proxy inherit them.
+FRONTIER_MODEL      ?= opus
+PROXY_OLLAMA_MODEL  ?= gpt-oss:20b
+SWE_N               ?= 20
+export FRONTIER_MODEL PROXY_OLLAMA_MODEL
 
 ## build: compile all command binaries into ./bin
 build:
@@ -99,9 +108,27 @@ agentic-proxy:
 agentic-proxy-stop:
 	bash agentic/proxy/proxyctl.sh stop
 
-## agentic-smoke: 1-task, BOTH arms, fidelity smoke (proves each arm can act)
-agentic-smoke: build agentic-image agentic-proxy
+## agentic-smoke: 1-task, BOTH arms, fidelity smoke (proves each arm can act).
+## Generation is grading-free, so it does NOT build the Docker executor image.
+agentic-smoke: build agentic-proxy
 	python3 agentic/runner/run_agentic.py --smoke
+
+## agentic-swe: materialize N SWE-bench Verified instances + run BOTH arms
+## (log-first, NO grading). Set SWE_N / SWE_INSTANCES to control selection.
+agentic-swe: build agentic-proxy
+	python3 agentic/runner/materialize_swe.py --n $(SWE_N)
+	python3 agentic/runner/run_agentic.py --arms local,frontier
+	python3 agentic/runner/split.py
+
+## agentic-generate: run BOTH arms over ALL materialized tasks (log-first, no
+## grading) then write the train/held-out split manifest. The generation entry.
+agentic-generate: build agentic-proxy
+	python3 agentic/runner/run_agentic.py --arms local,frontier
+	python3 agentic/runner/split.py
+
+## agentic-split: (re)write split_manifest.json over existing results (Phase 4)
+agentic-split:
+	python3 agentic/runner/split.py
 
 ## agentic-gold: assemble the executed dual-arm gold set from runner results
 agentic-gold: build

@@ -32,6 +32,7 @@ import sys
 import time
 import uuid
 import urllib.request
+import urllib.error
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -174,8 +175,26 @@ def call_ollama(messages: list[dict], tools: list[dict], max_tokens: int) -> dic
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
-        return json.loads(resp.read().decode())
+    # Retry transient 5xx (e.g. a cold gpt-oss:20b load under GPU contention can
+    # 500 on the first request) before surfacing the error to the CC harness.
+    last = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
+                return json.loads(resp.read().decode())
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode()[:1000]
+            except Exception:
+                body = ""
+            last = RuntimeError(f"ollama HTTP {e.code}: {body}")
+            if 500 <= e.code < 600 and attempt < 2:
+                time.sleep(2 * (attempt + 1))
+                continue
+            # Surface Ollama's actual error body (e.g. a rejected tool-schema),
+            # not just the opaque status, so failures are diagnosable.
+            raise last from e
+    raise last
 
 
 # --------------------------------------------------------------------------

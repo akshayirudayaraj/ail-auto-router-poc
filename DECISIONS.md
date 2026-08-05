@@ -266,3 +266,47 @@ end-to-end. What changed, and what deliberately did not:
 
 - **RTX-6000 / Gemma environment: NOT touched.** All local serving used throwaway Ollama
   (gpt-oss:20b) on the dev box. The sensitive box + gateway remain a later step (D14/Step 4).
+
+## D17 — DATA_PLAN: log-first agentic generation (no grading during generation)
+
+Executing DATA_PLAN.md. The agentic dual-arm runner becomes the ONE generation
+engine and stops grading; grading/judging/scoring all move to a deferred offline
+engine. Choices made in Phase 1:
+
+- **One serving path, no grading during generation.** `run_agentic.py:run_one`
+  no longer calls `score_checkout` (removed the `executor` import); `run_swe_arm.py`
+  no longer calls `grade()` on the generation path (the swebench wrapper is parked,
+  documented OFFLINE-ENGINE-ONLY). Run records carry NO `resolved`/`fail_to_pass_ok`/
+  `per_node`. The base `repo/` + `_oracle/` are preserved so the offline executed
+  oracle can grade later from (base repo + agent diff + test_patch).
+
+- **Two log artifacts per (task, arm), plus the record.** `run_one` now emits a
+  portable RawTurn `<...>.session.jsonl` (user prompt + concatenated assistant turn;
+  `served_model` set; `propensity` null — every task runs on every rung
+  deterministically, so there is no logging policy and no propensity) which
+  `internal/extract` consumes unchanged, and the raw CC `<...>.events.jsonl` event
+  stream (tool_use/tool_result, native/rescued, usage) for the UI trace + fidelity.
+
+- **Configurable roster keyed on `served_model`.** `ARM_MODELS` is an ordered
+  cheap→expensive list; frontier default swapped `sonnet`→**`opus`** (subscription),
+  local = **gpt-oss:20b** via the proxy. Adding a mid-rung = adding an arm.
+
+- **Latency ≠ capability.** `timed_out` / `hit_turn_cap` stay first-class on the
+  record; a timeout is a routing signal, never a capability outcome.
+
+- **Frontier Max rate-limit backstop.** A frontier usage-limit is a TRANSIENT: the
+  `(task, arm)` is neither written nor cached (free resume), with bounded backoff.
+  Detection is FRONTIER-ONLY (a local Ollama arm can never be Max-rate-limited) and
+  scans only an ERRORED result's human-text fields + stderr — never the full raw
+  stream, whose ever-present `anthropic-ratelimit-*` / `usage` metadata otherwise
+  false-matches `429`/`rate_limit` on successful runs (a bug caught and fixed on the
+  first Opus smoke). Verified: local gpt-oss:20b 9/9 native, 0 rescued, non-empty
+  patch; Opus 18 turns, non-empty patch, no false positive.
+
+- **Proxy hardening.** `call_ollama` now surfaces Ollama's actual error body (not the
+  opaque HTTP status) and retries transient 5xx (a cold gpt-oss:20b load under GPU
+  contention can 500 on the first request).
+
+- **Cost under subscription.** `reported_cost_usd` (from the stream-json result event)
+  is a THEORETICAL dollar figure the CLI reports even on the subscription — a useful
+  throttle, but the real Max constraint is a rate limit, not $. Logged as such.

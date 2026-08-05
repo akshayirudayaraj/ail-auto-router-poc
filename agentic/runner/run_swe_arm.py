@@ -1,22 +1,30 @@
-"""Step-1 driver: run ONE arm of the real Claude Code loop on a real SWE-bench
-Verified task dir, then grade the produced diff with the OFFICIAL swebench harness.
+"""Step-1 single-arm SWE driver — LOG-FIRST, NO GRADING on the generation path.
+
+Runs ONE arm of the real Claude Code loop on a real SWE-bench Verified task dir
+and captures the diff + metrics. It does NOT grade during generation (DATA_PLAN
+invariant "no grading during generation"): the `grade()` swebench wrapper below is
+PARKED for the deferred offline engine to reuse — it is never called on the
+generation path.
+
+NOTE: the canonical generation engine is now `run_agentic.py`, the unified
+dual-arm runner, which loads ANY tasks/<id>/task.json (including materialized
+SWE tasks) and emits the full log-first artifact set (RawTurn session.jsonl +
+events.jsonl + patch + record). This driver survives as a single-arm alternate;
+prefer `run_agentic.py` / `make agentic-swe`.
 
 Driving logic mirrors run_agentic.py (same claude -p flags, same fresh-checkout /
-git-diff capture, same fidelity mining) — deliberately kept as a SEPARATE driver
-so the real-SWE grading path (official harness) never entangles the curated-task
-grading path (the python:3.11-slim Docker executor). See DECISIONS: two serving
-AND two grading paths, intentionally separate.
+git-diff capture, same fidelity mining).
 
 Arms:
-  frontier -> claude subscription, model sonnet, no proxy.
+  frontier -> claude subscription, model opus (FRONTIER_MODEL), no proxy.
   local    -> ANTHROPIC_BASE_URL=<tool-capable proxy>, model routed to Ollama,
               --bare (tractability). Requires the proxy up (proxyctl.sh).
 
-Grading: write a predictions jsonl {instance_id, model_name_or_path, model_patch}
-and invoke swebench.harness.run_evaluation (reused, proven install in
-ail-self-routing/.venv_swe). The harness applies test_patch itself, so the
-ground-truth firewall holds by construction. resolved == all F2P pass & all
-P2P still pass.
+Offline grading (parked): write a predictions jsonl {instance_id,
+model_name_or_path, model_patch} and invoke swebench.harness.run_evaluation
+(reused, proven install in ail-self-routing/.venv_swe). The harness applies
+test_patch itself, so the ground-truth firewall holds by construction. resolved
+== all F2P pass & all P2P still pass.
 """
 
 from __future__ import annotations
@@ -44,7 +52,7 @@ DATASET = "princeton-nlp/SWE-bench_Verified"
 
 PRICE_LOCAL, PRICE_FRONTIER = 1.0, 15.0
 ARMS = {
-    "frontier": {"model": os.environ.get("FRONTIER_MODEL", "sonnet"), "bare": False,
+    "frontier": {"model": os.environ.get("FRONTIER_MODEL", "opus"), "bare": False,
                  "max_turns": 40, "timeout": 900, "price": PRICE_FRONTIER, "proxy": False},
     "local": {"model": "claude-sonnet-4", "bare": True,
               "max_turns": 20, "timeout": 1800, "price": PRICE_LOCAL, "proxy": True},
@@ -185,7 +193,11 @@ def git_diff(checkout: Path) -> str:
 
 
 def grade(instance_id: str, arm: str, diff: str) -> dict:
-    """Grade the produced diff with the official swebench harness."""
+    """OFFLINE-ENGINE ONLY — the parked swebench grader. NOT called on the
+    generation path (DATA_PLAN: no grading during generation). Kept here so the
+    deferred offline executed-oracle branch can reuse this proven wrapper.
+
+    Grade the produced diff with the official swebench harness."""
     RESULTS_DIR.mkdir(exist_ok=True)
     run_id = f"step1_{arm}"
     preds = RESULTS_DIR / f"pred_{run_id}.jsonl"
@@ -235,22 +247,21 @@ def main():
           f"native/rescued={metrics['native_tool_calls']}/{metrics['rescued_tool_calls']} "
           f"timed_out={timed_out}", flush=True)
 
-    grade_res = grade(iid, args.arm, diff) if diff.strip() else {
-        "resolved": False, "graded": False, "note": "empty diff — agent produced no change"}
-    print(f"[{args.arm}] GRADE resolved={grade_res['resolved']} "
-          f"({grade_res.get('note','')})", flush=True)
-
+    # NO grading during generation. Preserve the diff + metrics; the base repo/
+    # + _oracle/ (test_patch) let the offline swebench branch grade later.
     out = {
         "task_id": task["id"], "instance_id": iid, "arm": args.arm,
-        "model": ARMS[args.arm]["model"], "price_rung": ARMS[args.arm]["price"],
-        "outcome": bool(grade_res["resolved"]), "graded": grade_res.get("graded", False),
+        "served_model": ARMS[args.arm]["model"], "model": ARMS[args.arm]["model"],
+        "price_rung": ARMS[args.arm]["price"],
+        "provenance": "swe_verified", "grounding": "benchmark",
+        "has_executable_oracle": True, "grader": "swebench",
         "wall_s": round(wall, 1), "timed_out": timed_out,
-        "diff": diff, "diff_bytes": len(diff),
-        "metrics": metrics, "grade": grade_res,
+        "diff": diff, "diff_bytes": len(diff), "empty_patch": not diff.strip(),
+        "metrics": metrics,
     }
     res_path = RESULTS_DIR / f"swe_{task['id']}__{args.arm}.json"
     res_path.write_text(json.dumps(out, indent=2))
-    print(f"[{args.arm}] wrote {res_path}", flush=True)
+    print(f"[{args.arm}] wrote {res_path} (no grade — offline)", flush=True)
 
 
 if __name__ == "__main__":
