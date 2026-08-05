@@ -582,7 +582,12 @@ def main():
                       f"skipping frontier {task['id']}", file=sys.stderr)
                 continue
             t0 = time.time()
-            res, cached = run_with_retry(task, arm, force=args.force)
+            try:
+                res, cached = run_with_retry(task, arm, force=args.force)
+            except container_exec.MissingImageError as e:
+                print(f"[skip ] {task['id']:24s} {arm:8s} no image ({e}); "
+                      f"run `make agentic-swe-images`", file=sys.stderr)
+                continue
             if res is None:            # rate-limited, left uncached this run
                 continue
             tag = "cache" if cached else "ran  "

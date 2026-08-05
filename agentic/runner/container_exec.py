@@ -43,6 +43,12 @@ OAUTH_ENV_FILE = os.environ.get("AGENT_OAUTH_ENV_FILE",
                                 os.path.expanduser("~/.claude_oauth.env"))
 
 
+class MissingImageError(RuntimeError):
+    """The swebench per-instance image isn't built yet (build it with
+    `make agentic-swe-images`). Raised so the batch can SKIP the task rather than
+    crash — some instances fail to build under x86 emulation."""
+
+
 def instance_image(instance_id: str) -> str:
     return f"sweb.eval.x86_64.{instance_id}:latest"
 
@@ -101,7 +107,7 @@ def run_agent_in_container(instance_id, arm, arm_cfg, prompt, *,
     act on /testbed in the REAL env; the diff is captured from /testbed."""
     img = instance_image(instance_id)
     if not has_image(img):
-        raise RuntimeError(
+        raise MissingImageError(
             f"missing image {img} — build it first: `make agentic-swe-images`")
     ensure_toolbox()
 
