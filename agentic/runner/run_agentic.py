@@ -209,13 +209,10 @@ def detect_rate_limit(events, raw, stderr):
     return any(m in low for m in _RATE_LIMIT_MARKERS)
 
 
-def reconstruct_raw_turns(events, session_id, served_model, prompt, t0):
-    """Flatten the CC event stream into a portable RawTurn JSONL session: one
-    user turn (the prompt) + one assistant turn (all assistant text concatenated).
-    The rich per-tool detail intentionally lives only in the `.events.jsonl`
-    trace; the flat RawTurn is what internal/extract consumes. propensity is null
-    (every task runs on every rung deterministically -> no logging policy)."""
-    ts = int(t0)
+def assistant_text(events):
+    """Concatenated assistant text across the event stream (+ a compact tool
+    marker if the turn was pure tool-use). Shared by the single-shot runner and
+    the multi-turn sim_session."""
     parts, tool_names = [], []
     for ev in events:
         if ev.get("type") != "assistant":
@@ -228,6 +225,17 @@ def reconstruct_raw_turns(events, session_id, served_model, prompt, t0):
     content = "\n".join(p.strip() for p in parts if p.strip())
     if not content and tool_names:
         content = "[called tools: " + ", ".join(tool_names) + "]"
+    return content
+
+
+def reconstruct_raw_turns(events, session_id, served_model, prompt, t0):
+    """Flatten the CC event stream into a portable RawTurn JSONL session: one
+    user turn (the prompt) + one assistant turn (all assistant text concatenated).
+    The rich per-tool detail intentionally lives only in the `.events.jsonl`
+    trace; the flat RawTurn is what internal/extract consumes. propensity is null
+    (every task runs on every rung deterministically -> no logging policy)."""
+    ts = int(t0)
+    content = assistant_text(events)
     turns = [
         {"session_id": session_id, "turn_index": 0, "timestamp": ts,
          "role": "user", "content": prompt},

@@ -1,6 +1,7 @@
 package extract
 
 import (
+	"os"
 	"testing"
 
 	"github.com/akshayirudayaraj/ail-routing-test/internal/schema"
@@ -91,3 +92,40 @@ func TestStripHiddenGuard(t *testing.T) {
 }
 
 func fptr(f float64) *float64 { return &f }
+
+// TestLoadRawSimSession spot-checks that a multi-turn sim_session RawTurn JSONL
+// (DATA_PLAN Phase 3) ingests unchanged and reconstructs a real local->frontier
+// escalation (Model gpt-oss:20b with NextModel opus). Mirrors the exact on-disk
+// shape agentic/runner/sim_session.py writes.
+func TestLoadRawSimSession(t *testing.T) {
+	dir := t.TempDir()
+	path := dir + "/sim.jsonl"
+	lines := []string{
+		`{"session_id":"gen-x__sim__local","turn_index":0,"timestamp":1,"role":"user","content":"fix the bug"}`,
+		`{"session_id":"gen-x__sim__local","turn_index":1,"timestamp":1,"role":"assistant","content":"tried, tests still fail","served_model":"gpt-oss:20b"}`,
+		`{"session_id":"gen-x__sim__local","turn_index":2,"timestamp":1,"role":"user","content":"still failing, bringing in a stronger model"}`,
+		`{"session_id":"gen-x__sim__local","turn_index":3,"timestamp":1,"role":"assistant","content":"fixed and tests pass","served_model":"opus"}`,
+	}
+	var buf []byte
+	for _, l := range lines {
+		buf = append(buf, []byte(l+"\n")...)
+	}
+	if err := os.WriteFile(path, buf, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	turns, err := LoadRaw(path, true)
+	if err != nil {
+		t.Fatalf("LoadRaw: %v", err)
+	}
+	if len(turns) != 4 {
+		t.Fatalf("want 4 turns, got %d", len(turns))
+	}
+	obs := Observations(Reconstruct(turns))
+	if len(obs) != 2 {
+		t.Fatalf("want 2 assistant obs, got %d", len(obs))
+	}
+	// first assistant turn is local; its NextModel is the frontier escalation.
+	if obs[0].Model != "gpt-oss:20b" || obs[0].NextModel != "opus" {
+		t.Fatalf("escalation not reconstructed: Model=%q NextModel=%q", obs[0].Model, obs[0].NextModel)
+	}
+}
