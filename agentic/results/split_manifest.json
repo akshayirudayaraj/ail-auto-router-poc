@@ -2,15 +2,16 @@
   "seed": 1337,
   "holdout_frac": 0.3,
   "policy": "by_task",
-  "n_tasks": 12,
-  "n_sessions": 26,
+  "n_tasks": 13,
+  "n_sessions": 28,
   "n_holdout_tasks": 3,
-  "n_train_tasks": 9,
+  "n_train_tasks": 10,
   "task_split": {
     "easy-01-reverse-words": "train",
     "easy-02-is-even": "holdout",
     "easy-03-fizzbuzz-range": "train",
     "easy-04-celsius": "train",
+    "gen-bugfix-wordcount": "train",
     "hard-01-expr-eval": "train",
     "hard-02-toposort": "train",
     "hard-03-lcs-diff": "train",
@@ -110,6 +111,24 @@
       "provenance": null,
       "grounding": null,
       "has_executable_oracle": null
+    },
+    {
+      "task_id": "gen-bugfix-wordcount",
+      "arm": "frontier",
+      "session_id": "gen-bugfix-wordcount__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "synthetic",
+      "grounding": "synthetic_repo",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "gen-bugfix-wordcount",
+      "arm": "local",
+      "session_id": "gen-bugfix-wordcount__local__963462c0",
+      "split": "train",
+      "provenance": "synthetic",
+      "grounding": "synthetic_repo",
+      "has_executable_oracle": true
     },
     {
       "task_id": "hard-01-expr-eval",
