@@ -49,9 +49,31 @@ def main() -> int:
     print(f"[build] building images for {len(recs)} instances "
           f"(base -> env -> instance; x86_64, emulated on arm64)…", flush=True)
     # tags are required by this swebench version; "latest" matches container_exec.
-    build_env_images(client, recs, False, 4, None, "latest", "latest")
-    build_instance_images(client, recs, False, 4, None, "latest", "latest")
-    print(f"[build] done: {len(recs)} instance images ready.")
+    # Env images are shared per repo-version; build them first (tolerate failures
+    # so one bad env doesn't block the rest).
+    try:
+        build_env_images(client, recs, False, 4, None, "latest", "latest")
+    except Exception as e:
+        print(f"[build] some env images failed (continuing): {e}", flush=True)
+    # Build instance images ONE AT A TIME so a single failure (e.g. a missing env
+    # image under emulation) never aborts the others. Idempotent/resumable: skip
+    # instances whose image already exists.
+    from container_exec import instance_image, has_image  # local import
+    built, skipped, failed = [], [], []
+    for rec in recs:
+        iid = rec["instance_id"]
+        if has_image(instance_image(iid)):
+            skipped.append(iid)
+            continue
+        try:
+            build_instance_images(client, [rec], False, 1, None, "latest", "latest")
+            built.append(iid)
+        except Exception as e:
+            failed.append((iid, str(e).splitlines()[0][:120]))
+            print(f"[build] FAILED {iid}: {str(e).splitlines()[0][:120]}", flush=True)
+    print(f"[build] done: built={len(built)} already={len(skipped)} failed={len(failed)}")
+    if failed:
+        print("[build] failed instances:", [f[0] for f in failed])
     return 0
 
 
