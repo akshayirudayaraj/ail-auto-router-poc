@@ -108,6 +108,13 @@ agentic-proxy:
 agentic-proxy-stop:
 	bash agentic/proxy/proxyctl.sh stop
 
+## agentic-grade: offline executed-oracle branch — run hidden tests on each
+## session's produced patch -> labels/executed.jsonl (docker_pytest needs the
+## executor image; swebench needs the swebench venv; ungradeable sessions skipped).
+agentic-grade:
+	docker build -q -t agentic-runner:py311 agentic/exec/ >/dev/null
+	python3 agentic/runner/grade_offline.py
+
 ## agentic-smoke: 1-task, BOTH arms, fidelity smoke (proves each arm can act).
 ## Generation is grading-free, so it does NOT build the Docker executor image.
 agentic-smoke: build agentic-proxy

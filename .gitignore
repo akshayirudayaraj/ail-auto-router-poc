@@ -46,3 +46,6 @@ logs/build_images/
 
 # report.py narrative — local artifact; canonical agentic results are data_agentic/RESULTS.md
 RESULTS_AGENTIC.md
+
+# offline-engine executed-oracle rebuild cache (executed.jsonl is the artifact)
+agentic/results/labels/_executed_cache/
