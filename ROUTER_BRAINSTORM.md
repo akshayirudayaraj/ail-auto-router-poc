@@ -13,18 +13,18 @@
 
 ## Abstract
 
-The auto router serves each Claude Code (CC) call from the cheapest model that is still good enough, staying on a local open-weight model by default and bursting to a frontier model only when local would fall short and the user's frontier budget allows.
+The auto router serves each AI Launchpad call from the cheapest model that is still good enough, staying on a local open-weight model by default and bursting to a frontier model only when local would fall short and the user's frontier budget allows.
 
-When the user first sends their request, a meta-routing filter ([§1](#1-background)) drops models that aren't even eligible for this request (because of e.g., spend caps, no egress, or a capability the prompt needs like image input) before any routing logic runs. For the actual routing algorithm, there are two branches: cascade ([§4](#4-cascade-non-predictive-routing)) generates something first and then judges whether to promote (better decisions, but it pays generation time), while predictive ([§5](#5-predictive-routing)) decides from the prompt alone in under half a second (cheap on every call, but limited by how much of a task's difficulty is knowable before you attempt it).
+When the user first sends their request, a meta-routing filter ([§1](#1-background)) drops the models that aren't eligible for it (because of e.g., spend caps, no egress, or a capability the prompt needs like image input) before any routing logic runs. The routing decision we will need to make for production comes in two branches. Cascade ([§4](#4-cascade-non-predictive-routing)) generates something first and then judges whether to promote it: better decisions, but it pays the generation time. Predictive ([§5](#5-predictive-routing)) decides from the prompt alone in under half a second: cheap on every call, but limited by how much of a task's difficulty you can know before attempting it.
 
-The real bottleneck is upstream of both: high-quality data to train and evaluate the router. We need two datasets — one to train a router and a separate, stronger one to evaluate it ([§2](#2-the-hard-problem-data-to-train-and-data-to-evaluate)). Note that there is no single training-data shape since each candidate router consumes a different projection of the same outcomes, but we can derive the necessary data shapes from the selected data sources. The doc tackles the data problem first, argues why off-the-shelf routers fail ([§3](#3-why-off-the-shelf-routing-doesnt-work)), then walks through the cascade and predictive algorithms worth implementing. The winner can't be picked *a priori*, so a proof-of-concept harness ([§6](#6-proof-of-concept-the-routing-test-harness)) builds the data, trains every candidate, and scores them on execution-grounded results. The next deliverable is that harness, which will inform the router that eventually ships to prod.
+The bottleneck is upstream of the routing algorithm decision: high-quality data to train and evaluate the router. We need two datasets: one to train a router and a separate, stronger one to evaluate it ([§2](#2-the-hard-problem-data-to-train-and-data-to-evaluate)). Note that there is no single training-data shape since each candidate router consumes a different view of the same outcomes, but we can derive the necessary data shapes from the selected data sources. The doc tackles the data problem first, argues why off-the-shelf routers fail ([§3](#3-why-off-the-shelf-routing-doesnt-work)), then walks through the cascade and predictive algorithms worth implementing. The winner can't be picked *a priori*, so a proof-of-concept harness ([§6](#6-proof-of-concept-the-routing-test-harness)) builds the data, trains every candidate, and scores them on execution-grounded results. The next deliverable is that harness, which will inform the router that eventually ships to prod.
 
 ---
 
 ## Contents
 
 1. [Background](#1-background) — the goal, the routing stack (meta-routing → cascade/predictive), why capability not topic, current state.
-2. [The Hard Problem: Data to Train and Data to Evaluate](#2-the-hard-problem-data-to-train-and-data-to-evaluate) — data sources, the offline label engine, per-router data shapes, and the evaluation dataset + metrics.
+2. [The Hard Problem: Data to Train and Data to Evaluate](#2-the-hard-problem-data-to-train-and-data-to-evaluate) — data sources, the offline label engine, and the evaluation dataset + metrics.
 3. [Why Off-the-Shelf Routing Doesn't Work](#3-why-off-the-shelf-routing-doesnt-work) — why topic classification and fixed difficulty tiers fail.
 4. [Cascade (Non-Predictive) Routing](#4-cascade-non-predictive-routing) — standard generate-then-judge, self-routing harness.
 5. [Predictive Routing](#5-predictive-routing) — RouteLLM, IRT, kNN, and SLM options with pros, cons, and limits.
@@ -73,12 +73,12 @@ But before picking any router we have to solve **(1) how to gather data to train
 
 #### i. Data sources
 
-We have three sources. They emit the same schema, so the identical extract → label → train → eval code runs over all three.
+I propose three sources. They emit the same schema, so the identical extract → label → train → eval code runs over all three. The guiding principles here are to get cheap and diverse data.
 
-- *Source 1 — mining our own logs.* Log internal AIL usage and analyze those logs offline. Our logs are a solid starting point for a representation of the kinds of prompts we'll need to route on. They are also a cheap data source, since the other ones require time and money for generation. From them, we can extract signals about model performance. One way to do this is by extracting heuristics of negative signals (e.g., the user admitting failure, pasting an error, or switching models) - we can afford to do heavy analysis here like LLM-as-judge over `(prompt, response)`. The task's first prompt is the training example and the outcome is whether the served model ultimately solved the task.
+- *Source 1 — mining our own logs.* Log internal AIL usage and analyze those logs offline. Our logs are a solid starting point for a representation of the kinds of prompts we'll need to route on. They are also a cheap data source, since the other ones require time and money for generation. From logs, we can extract signals about model performance. One way to do this is by extracting heuristics of negative signals (e.g., the user admitting failure, pasting an error, or switching models) - we can afford to do heavy analysis here like LLM-as-judge over `(prompt, response)`. The task's first prompt is the training example and the outcome is whether the served model ultimately solved the task. The logs must also record, per request, the set of models actually available in the box at that time (the post-filter candidate set), since that is the menu the router chose from and any faithful replay or off-policy estimate has to respect it.
 - *Source 2 — semi-synthetic sessions (benchmark-seeded).* Take a task ready-made from an existing agentic coding benchmark. Using the existing harness (prompt, repo, etc.), we run across a set of local and frontier models with a simulated user, emitting the same schema so it flows through the same pipeline as the logs. It's semi-synthetic because the task is established by a professional third-party lab (only the session around it is generated). From this, we get a diverse set of validated tasks and often an oracle (which can output outcome) as well. A definitive oracle is preferred since they can stamp `outcome ∈ {success, failure}` by execution; those without one fall back to the same extract → judge → implicit-signal pipeline the log source uses, tagged as a weaker label. The limitations are contamination (public benchmarks may already sit in a model's training data; we prefer contamination-resistant / held-out sets) and a fixed task distribution that may not match our traffic.
-  - Candidates, hard-oracle first: *SWE-bench Verified* (500 human-validated bug-fixes with a hidden unit-test oracle, but widely public → contamination risk) and *SWE-bench Pro* (held-out / commercial repos, contamination-resistant, hidden tests) give definitive execution oracles; *Terminal-Bench* and *SWE-Lancer* add oracle-backed terminal and end-to-end tasks; *τ²-bench* even ships its own simulated user + programmatic reward, the closest to our target shape. Oracle-less or narrow sets are still usable, but only through the judge fallback.
-- *Source 3 — synthetic sessions.* We generate whole sessions from scratch: a task generator, the real CC harness, and a simulated user emitting the same production-format schema. It's fully synthetic because we invent the task too. This is the coverage-widener — it reaches the task types, languages, and difficulties the other two sources miss, which matters because our own logs are narrow and a router trained only on them is mis-calibrated on the far wider range real customers bring. We follow these principles for generation:
+  - Candidates, hard-oracle first: *SWE-bench Verified* (500 human-validated bug-fixes with a hidden unit-test oracle, but widely public → contamination risk) and *SWE-bench Pro* (held-out / commercial repos, contamination-resistant, hidden tests) give definitive execution oracles; *Terminal-Bench* and *SWE-Lancer* add oracle-backed terminal and end-to-end tasks; *τ²-bench* even ships its own simulated user + programmatic reward, the closest to our target shape. Oracle-less or narrow sets are still usable with the LLM-as-a-judge fallback.
+- *Source 3 — synthetic sessions.* We generate whole sessions from scratch: a task generator, the real CC harness, and a simulated user emitting the same production-format schema. It's fully synthetic because we invent the task too. This widens our coverage — it reaches the task types, languages, and difficulties the other two sources miss, which matters because our own logs are narrow and a router trained only on them is mis-calibrated on the far wider range real customers bring. The goal of these synthetic sessions will be to cover our expected blindspots. We follow these principles for generation:
   1. Ground tasks in real OSS repos, don't invent them from nothing. Snapshot a permissively-licensed repo at a commit and derive the task from real history (revert a bug-fix commit → "these tests fail, fix it"; a merged PR → a feature task with its tests as the oracle).
   2. Prefer an executable oracle. Oracle-less tasks fall back to the offline judge, tagged weaker.
   3. Diversify on purpose — stratified sampling across archetype (greenfield / bug-fix / refactor / migration / test-writing / infra / review), language, repo scale, and difficulty, so thin regions still get covered.
@@ -89,15 +89,15 @@ We have three sources. They emit the same schema, so the identical extract → l
 
 #### ii. Offline label engine
 
-All sources feed one engine that turns raw sessions into outcomes. In the case where there is an explicit oracle, that is deferred to. Otherwise, this engine builds the binary success label `y_mi ∈ {0,1}` on a `(model m, prompt i)` pair.
+All sources feed one engine that turns raw sessions into outcomes. When a task has an explicit oracle, we use it. Otherwise, this engine builds the binary success label `y_mi ∈ {0,1}` on a `(model m, prompt i)` pair.
 
 Given a session (ordered requests + responses + model), we derive outcome signals:
 
-- Implicit behavioral heuristics (cheap, weak, abundant): retry/rephrase (failure); a user-driven local→frontier switch right after a turn; negative-correction language; a pasted-back stack trace after a code turn (failure); versus the conversation moving on / a long chain completing uninterrupted (success).
-- Offline LLM-judge (expensive, stronger, synthesized): a frontier judge over `(prompt, response)` for adequacy. This will be the backbone because implicit signals are noisy.
+- Implicit behavioral heuristics (cheap, weak, abundant): retry/rephrase (failure); a user-driven local→frontier switch right after a turn; negative-correction language; a pasted-back stack trace after a code turn (failure); versus the conversation moving on / a long chain completing uninterrupted (success). We can use regex and LLM-as-a-judge here to find these signals.
+- Offline LLM-judge (expensive, stronger, synthesized): a frontier judge over `(prompt, response)` for adequacy. This will be the backbone because implicit signals are noisy. We validate the judge on a small sample two ways: consensus (run it k times and check it agrees with itself on the outcome) and inter-rater reliability (that its verdicts track human ratings, i.e. LLM-judge ≈ human).
 - Self-consistency: sample the local model k times offline; high disagreement = near or past its competence edge.
 
-Every `y_mi` is a proxy, and the judge is itself fallible on agentic code steps. We owe a human-audited calibration set (a few hundred `(prompt, response, human verdict)` triples) that does double duty: it measures how well the judge tracks ground truth, and anchors the known-difficulty prompts used to fit per-model ability (below).
+Most `y_mi`s will be proxies, so we owe a human-audited calibration set (a few hundred `(prompt, response, human verdict)` triples) that does double duty: it measures how well the judge tracks ground truth, and anchors the known-difficulty prompts used to fit per-model ability (below).
 
 ```mermaid
 flowchart TD
@@ -139,7 +139,7 @@ flowchart TD
 
 ### 2B. Evaluation data
 
-**You cannot evaluate the router on the same labels you trained it on.** Scoring against our training labels just measures agreement with the teacher (label circularity) and rewards a router that learned the labeler's blind spots. Eval labels must be strictly stronger and/or independent. Ordered best→weakest: `executed > human > explicit-user-preference > judge > implicit`.
+We cannot evaluate the router on the same labels we trained it on. Scoring against our training labels just measures agreement with the teacher (label circularity) and rewards a router that learned the labeler's blind spots. Eval labels must be strictly stronger and/or independent. Ordered best→weakest: `executed > human > explicit-user-preference > judge > implicit`.
 
 1. *Executed / test-pass outcomes (strongest, when they exist).* Where a turn's code is run against tests, log the real pass/fail. Trustworthy, but only available for the slice of traffic that has tests (subset of semi-synthetic data). These feed straight into the gold-set numbers below.
 
@@ -148,7 +148,7 @@ flowchart TD
    - *The cost-vs-quality trade-off, as one number.* Sweeping the escalation threshold traces a curve of quality-at-each-cost; we collapse that whole curve into a single score so two routers can be compared at a glance (higher = a better quality-per-dollar deal across the range). The bar to beat is a random local/frontier mix — any real router must sit above it.
    - *Missed-escalation rate* — how often the router kept a task local that frontier would have gotten right. The expensive mistake, so we track it on its own.
 
-   The gold set is expensive and small, so it anchors absolute claims; the cheaper signals below only rank.
+   The gold set is expensive and small. Because it is held out, none of it was in training. We can score it with the same LLM-judge used for the training labels. That won't catch a router that has reward-hacked the judge, but it still shows whether the router generalizes, which is useful on its own. Ideally a human also reviews some samples.
 
 3. *Explicit in-product preference.* A lightweight 👍/👎 (or accept / redo) on responses. It's independent of the judge + heuristics that made the training labels, so it breaks circularity, and it reflects real user-perceived adequacy. Caveats: sparse (users rarely click), biased (unhappy users click more), and censored (only reflects the model that was served). Best use is a cheap online monitor and a way to rank A/B variants.
 
@@ -224,7 +224,7 @@ Design principles:
 
 ### 5.1 The candidate approaches — pros, cons, limits
 
-We can't pick the winner on paper — the choice is empirical, so we test as many as feasible with input data (pending logging data) in the POC ([§6](#6-proof-of-concept-the-routing-test-harness) is the harness that does exactly this).
+We can't pick the winner on paper — the choice is empirical, so we test as many as feasible with input data (pending logging data) in the POC ([§6](#6-proof-of-concept-the-routing-test-harness) is the harness that does exactly this). We will essentially try a bunch of them and see which one performs the best. Here, I outline how some of these algorithms work.
 
 **RouteLLM (pairwise).** Given a prompt, predict `P(strong model's answer preferred over weak model's)`, then route by a probability threshold. The standard/SOTA predictive router; ships with `calibrate_threshold` to hit a target escalation rate.
 
@@ -247,12 +247,14 @@ We can't pick the winner on paper — the choice is empirical, so we test as man
 - *Pros:* no training; drift-friendly (add rows and it adapts); competitive in the literature ("Simple kNN Beats Complex Learned Routers"); trivially interpretable ("routed like these neighbors").
 - *Cons / limits:* only as good as the embedding — a topic-clustering embedder blurs the lexically-similar/different-difficulty pairs that matter here (see the frozen-vs-fine-tuned note in [§5.2](#5-predictive-routing)); requires keeping a labeled index around and doing a lookup at inference; sensitive to neighbor coverage in thin regions.
 
-**SLM (small-LM router).** A small language model that emits the decision directly. Legitimate only when it predicts the decision, not a topic/difficulty label (else it's [§3.3](#3-why-off-the-shelf-routing-doesnt-work)). Shape depends on formulation ([§2A.iii](#2-the-hard-problem-data-to-train-and-data-to-evaluate)): model-classification (kNN-style labels), binary classification (IRT-style, also yields `P(success|model)`), or regression (continuous targets).
+**SLM (small-LM router).** A small language model that emits the decision directly. Legitimate only when it predicts the decision, not a topic/difficulty label (else it's [§3.1 / §3.2](#3-why-off-the-shelf-routing-doesnt-work)). Shape depends on formulation (the per-router shapes in [§6](#6-proof-of-concept-the-routing-test-harness)): model-classification (kNN-style labels), binary classification (IRT-style, also yields `P(success|model)`), or regression (continuous targets).
 
 *In → Out:* train on raw `prompt` text + a routing target (cheapest-adequate model, per-model outcome, or continuous score) → emits the decision directly — chosen model, or per-model `P(success)`.
 
 - *Pros:* the backbone may carry reasoning-difficulty signal that frozen encoders miss; a flexible approximator that can model prompt×model interaction (wins on plentiful data + a jagged surface).
 - *Cons / limits:* the most data-hungry option (only trainable once a large label pile exists); pays a full autoregressive forward pass per decision — real pressure against <500ms and heavier at onboarding; black-box.
+
+The other three key on model identity (a per-model `θ_m`, index, or slot), so restricting to the session's available models is easy, and a new model onboards by adding its parameter. An SLM that classifies over a fixed model vocabulary is worse off: the roster is baked into its output layer, so it has to be reshaped every time the model set changes. There are two ways around that. Keep it pointwise — feed the candidate model in as an input and emit its `P(success)` one model at a time, which inherits the same free masking. Or read the softmax log-probs over the model slots and pick the highest-scoring model that is actually available.
 
 ### 5.2 The encoded prompt
 
@@ -266,7 +268,7 @@ Long-context caveat: small encoders cap at ~512 tokens while CC calls run 50k+; 
 
 ## 6. Proof of Concept: The Routing Test Harness
 
-The next concrete deliverable is a complete harness that (a) manufactures realistic data, (b) processes raw sessions into the per-router shapes of [§2A](#2-the-hard-problem-data-to-train-and-data-to-evaluate), (c) trains every candidate router, and (d) evaluates them honestly — so the empirical "which approach wins" question ([§5.1](#5-predictive-routing)) can actually be answered. This exists in prototype form as the `ail-routing-test` repo, still in progress. The design intent is that when real production logs arrive, only the data generator is swapped out — the extraction / train / eval code is the real, reusable deliverable.
+The next concrete deliverable is a complete harness that (a) generates realistic data, (b) processes raw sessions into the per-router shapes of [§2A](#2-the-hard-problem-data-to-train-and-data-to-evaluate), (c) trains every candidate router, and (d) evaluates them honestly — so the empirical "which approach wins" question ([§5.1](#5-predictive-routing)) can actually be answered. This exists in prototype form as the `ail-routing-test` repo, still in progress. The design intent is that when real production logs arrive, only the data generator is swapped out — the extraction / train / eval code is the real, reusable deliverable.
 
 The harness is one pipeline from raw data to a ranked bake-off. All three data sources of [§2A](#2-the-hard-problem-data-to-train-and-data-to-evaluate) — observed logs, semi-synthetic (benchmark-seeded), and fully synthetic — emit the same production schema, so a single parse → shape → train → eval path runs over any of them; the agentic execution oracle is a second, stronger labeling path that yields the non-circular gold the evaluation anchors on.
 
@@ -284,31 +286,26 @@ flowchart TD
     BENCH --> SCHEMA
     SYN --> SCHEMA
 
-    %% ========== ② Data parsing — label & capability engine ==========
-    subgraph S2["② Data parsing · label &amp; capability engine"]
+    %% ========== ② Data parsing — training labels ==========
+    subgraph S2["② Data parsing · training labels"]
         FIRE["<b>Ground-truth firewall</b><br/>hides the answer key<br/>before extraction sees it"]
-        RECON["<b>Session reconstruction</b><br/>orders calls · finds the next turn"]
+        RECON["<b>Session reconstruction</b><br/>from raw request logs<br/><i>groups + orders calls · one session per task</i>"]
+        SPLIT{"<b>Train / held-out split</b><br/><i>partition by prompt<br/>before any labeling</i>"}
         IMPLICIT["<b>Implicit-signal mining</b><br/><i>switch · paste-error · retry · moveon</i>"]
         JUDGE["<b>Offline LLM-judge</b><br/>sampled adequacy<br/><i>weaker label source</i>"]
-        ORACLE["<b>Execution oracle</b><br/>run local &amp; frontier — or full set — on the task<br/><i>real attempts, sandboxed · dual/multi-arm</i>"]
-        GRADE["<b>Grade each arm</b><br/>hidden tests → pass/fail<br/><i>non-circular · LLM-judge only if no tests</i>"]
     end
-    SCHEMA --> FIRE --> RECON
-    RECON --> IMPLICIT
-    RECON --> JUDGE
-    FIRE -. "run local &amp; frontier" .-> ORACLE
-    ORACLE --> GRADE
+    SCHEMA --> FIRE --> RECON --> SPLIT
+    SPLIT -- "train prompts" --> IMPLICIT
+    SPLIT -- "train prompts" --> JUDGE
 
-    %% ========== ③ Per-router shape extraction ==========
-    subgraph S3["③ Per-router shapes"]
+    %% ========== ③ Per-router shapes (training inputs) ==========
+    subgraph S3["③ Per-router shapes · training inputs"]
         PW["<b>Pointwise</b><br/>(prompt, model, outcome)"]
         PAIR["<b>Pairwise</b><br/>(prompt, preferred)<br/>+ binary reduction"]
-        GOLD["<b>Gold set</b><br/>per prompt: local &amp; frontier outcome<br/><i>trusted eval labels</i>"]
     end
     IMPLICIT --> PW
     JUDGE --> PW
     PW -- "derived" --> PAIR
-    GRADE --> GOLD
 
     %% ========== ④ Fit the routers (train) ==========
     subgraph S4["④ Fit the routers (train)"]
@@ -328,10 +325,19 @@ flowchart TD
     RLLM --> HUB
     SLM --> HUB
 
-    %% ========== ⑤ Evaluation — honest, non-circular ==========
-    subgraph S5["⑤ Evaluation · honest, non-circular"]
-        DARM["<b>Dual-arm gold</b><br/>run local &amp; frontier<br/><i>only absolute cost/quality</i>"]
-        BT["<b>Backtest on held-out data</b><br/>ranks routers · never grades<br/>on its own training labels"]
+    %% ========== gold lane — held-out, execution-graded ==========
+    subgraph GL["Held-out gold labeling"]
+        ORACLE["<b>Execution oracle</b><br/>run full model suite on the task<br/><i>real attempts, sandboxed · dual/multi-arm</i>"]
+        GRADE["<b>Grade each arm</b><br/>hidden tests → pass/fail<br/><i>non-circular · LLM-judge only if no tests</i>"]
+        GOLD["<b>Gold set</b><br/>pointwise · trusted · held-out<br/><i>per prompt: every model's outcome</i>"]
+    end
+    SPLIT -. "held-out prompts · run local &amp; frontier" .-> ORACLE
+    ORACLE --> GRADE --> GOLD
+
+    %% ========== ⑤ Evaluation — non-circular ==========
+    subgraph S5["⑤ Evaluation · non-circular"]
+        DARM["<b>Gold-set scoring</b><br/>local vs frontier on held-out<br/><i>only absolute cost/quality</i>"]
+        BT["<b>Backtesting on held-out data</b><br/>ranks routers · never grades<br/>on its own training labels"]
         OPE["<b>Off-policy estimate</b><br/>score a router<br/>without deploying it"]
         GUARD["<b>Scorecard</b><br/>cost/quality · missed escalations<br/>· topic-collapse check"]
     end
@@ -354,8 +360,9 @@ flowchart TD
     class LOGS,BENCH,SYN src;
     class SCHEMA schema;
     class FIRE,RECON,IMPLICIT,JUDGE parse;
-    class ORACLE,GRADE oracle;
-    class PW,PAIR,GOLD shape;
+    class SPLIT schema;
+    class ORACLE,GRADE,GOLD oracle;
+    class PW,PAIR shape;
     class IRT,KNN,RLLM,SLM train;
     class HUB hub;
     class DARM,BT,OPE,GUARD eval;
@@ -365,34 +372,42 @@ flowchart TD
     style S3 fill:#f0fdfa,stroke:#5eead4,color:#0f3d38;
     style S4 fill:#fffbeb,stroke:#fcd34d,color:#5a3707;
     style S5 fill:#fff1f2,stroke:#fda4af,color:#7a132e;
+    style GL fill:#f0fdf4,stroke:#86efac,color:#14532d;
 ```
 
 The harness has three parts (sharing one cached model backend):
 
-1. Make the data. A generator produces synthetic coding sessions that secretly record the right answer, then the extraction pipeline reconstructs each session and labels it exactly the way it would a real log, mining implicit signals ([§2A](#2-the-hard-problem-data-to-train-and-data-to-evaluate)) and sampling the judge to output the pointwise / pairwise / gold datasets the routers need. Because we know the planted truth, we also get a report card on how well extraction recovered it.
+1. Make the data. A generator produces synthetic coding sessions that secretly record the right answer, then the extraction pipeline reconstructs each session and labels it exactly the way it would a real log, mining implicit signals, and sampling the judge to output the pointwise / pairwise / gold datasets the routers need. Because we know the planted truth, we also get a report card on how well extraction recovered it. Some data (and oracles) are pulled from existing benchmarks. See more detail in [§2A](#2-the-hard-problem-data-to-train-and-data-to-evaluate).
 2. Train the routers. All four candidates from [§5.1](#5-predictive-routing) — RouteLLM, IRT, kNN, and the encoder-MLP / SLM head — sit behind one shared `fit → score → decide` interface, so they can be trained and compared on equal footing.
-3. Evaluate. The harness uses four checks with increasing trustworthiness: a **backtest** that replays held-out data to *rank* routers, limited to decisions whose outcome we actually have (the dual-arm gold set, or logged decisions that match what was served); an **off-policy estimate** that recovers the unseen counterfactual statistically, which works only if the logs came from randomized exploration; a **dual-arm gold set** — the only source of real absolute cost/quality numbers, because it runs local & frontier on the same task and executes both; and a **scorecard** of the headline numbers (cost-vs-quality, how often it wrongly kept a task local, and a check that it routes on difficulty rather than "it's code"). More detail on evals is in [§2B](#2-the-hard-problem-data-to-train-and-data-to-evaluate).
+3. Evaluate. Which outcomes we trust as ground truth is the label ladder in [§2B](#2-the-hard-problem-data-to-train-and-data-to-evaluate). This step is the separate question of how to turn those labels into a router comparison.
 
-The strongest labels come from an execution-grounded track: instead of asking a judge whether an answer was good, the harness runs the task through the real Claude Code loop on both a local and a frontier model and takes the verdict from the repo's hidden tests. The local model is reached through an Anthropic→Ollama proxy so it drives the exact same tool protocol as frontier — the point being to measure whether local can actually *operate the tools*, not just reason.
+   - Gold-set scoring runs every rung on the same held-out task and executes each. It is the only source of real absolute cost and quality numbers, but it is small and expensive, so its coverage is tiny. The test is to see if our routing decision aligns with the weakest adequate model.
+   - Backtesting mock replays our large logs using the router. It only covers decisions whose outcome we already have, either from the gold set or from logged decisions where the served model matches the router's pick. With backtesting, we can cheaply check if the model that the router would've served actually completed the task effectively (measurement via oracle or LLM-as-a-judge). This is on held-out, not trained on, data. The replay must respect each request's logged candidate set, since crediting the router for a model that wasn't available that session would be an invalid counterfactual.
+   - Off-policy estimate is the offline stand-in for an A/B test: it estimates how a candidate router would perform on real production traffic without ever deploying it. The difficulty is that our logs only record how the one model we actually served did, and tell us nothing about the models we passed over. We can reconstruct those unseen choices statistically, but only if the live system occasionally served a random alternative instead of its usual pick and recorded how often it did so (ε-greedy exploration). Done right, it gives what neither the gold set nor the backtest can: an estimate of a router's real deployed performance on our actual traffic, at full scale. The formal estimators are Inverse Propensity Scoring and its lower-variance cousin, Doubly Robust. The catch is that this exploration has to already be present in the logs, so the method is blocked until we ship an auto router that itself explores; it cannot help choose the first router, and only comes online once we add exploration to the router.
+   - Guardrail suite is a safety gate, not a router score. Perturbation pairs (keyword injection, and easy-vs-hard matched on the same topic) confirm the router keys on capability, not topic.
 
-The harness leans on AIL's existing proxy. The Claude Code loop gives us the agentic execution, but reaching a local model through the same path prod uses is what makes the numbers trustworthy and AIL's gateway (`gateway/pkg`) already does that job. So instead of the standalone Anthropic→Ollama shim, the harness can pull in the relevant gateway code (or point at a running gateway), which turns adding a local model into a drag-and-drop step: register GLM 5.2 — or any other Ollama-served model — in AIL config and the whole execution-grounded track runs it through the exact serving stack prod would use. That keeps the harness and the shipping router on one backend, so a local model that tests well here behaves the same way in production.
+Scorecard collects the headline numbers e.g., cost-vs-quality and missed-escalation rate from the gold set and backtesting.
+
+The harness leans on AIL's existing proxy. The Claude Code loop gives us the agentic execution, but reaching a local model through the same path prod uses is what makes the numbers trustworthy and AIL's gateway (`gateway/pkg`) already does that job. So instead of the standalone Anthropic→Ollama shim, the harness can pull in the relevant gateway code (or point at a running gateway), which turns adding a local model into a drag-and-drop step: register any other Ollama-served model in AIL config and the whole execution-grounded track runs it through the exact serving stack prod would use. That keeps the harness and the shipping router on one backend, so a local model that tests well here behaves the same way in production. I'll likely use the RTX 6000 set-up we have with Gemma 4.
 
 Early runs so far are with small-scale synthetic data but they verify the plumbing works. Extraction recovers planted signals cleanly (implicit-label precision 1.00 at recall 0.66 — high-precision by design, it misses quietly-abandoned failures). All four routers fit and rank on a tiny (n=40) dual-arm gold set, enough to compare approaches but far too small to crown one.
 
-POC follows a Crawl → Walk → Run. One encoder+MLP core carries all three stages, so climbing is reinterpreting its output plus adding offline machinery, not a rewrite. Crawl ships a single binary local-vs-frontier classifier on one calibrated threshold — enough to answer a go/no-go predictive routing experiment, route real traffic, and start producing labels. Walk makes the score continuous with a calibrated, quota-aware threshold and adds ε-greedy exploration — most of the product value lives here. Run adds IRT's per-model decoupling only if onboarding new local models becomes a measured pain ([§5.1](#5-predictive-routing)); it may never be needed.
+POC follows a Crawl → Walk → Run. One encoder+MLP core carries all three stages, so climbing is reinterpreting its output plus adding offline machinery. Crawl ships a single binary local-vs-frontier classifier on one calibrated threshold — enough to answer a go/no-go predictive routing experiment, route real traffic, and start producing labels. Walk makes the score continuous with a calibrated, quota-aware threshold and adds ε-greedy exploration — most of the product value lives here. Run adds IRT's per-model decoupling since onboarding new local models may become a pain. More and more data will be added with each stage as well.
 
 ---
 
 ## 7. A Note on When to Route
 
-Developers work one task per set of context: they start a session by stating the task (no pleasantries), and for a new task they either `/clear` or open a new chat. So the natural decision point is at the start, from near-zero context — the first prompt is dense, honest intent, and short (which dissolves the "which 512-token slice do I encode?" problem, [§5.2](#5-predictive-routing)). A new task is detectable at the gateway as a request whose conversation history is empty or near-empty, which catches both new-session and `/clear`. (TODO: confirm what the gateway sees on a `/clear`.)
+Developers work one task per set of context: they start a session by stating the task (usually no pleasantries), and for a new task they either `/clear` or open a new chat. So the natural decision point is at the start, from near-zero context. The first prompt is dense, honest intent, and short, which removes the "which 512-token slice do I encode?" problem ([§5.2](#5-predictive-routing)).
 
-The core tension:
+A new task shows up at the gateway as a request whose conversation history is empty or near-empty, which catches both a new session and a `/clear`. The `/clear` itself sends no signal — it is a client-side command in Claude Code and makes no API call. The effect shows up on the next prompt: Claude Code keeps no state at the gateway and resends the whole conversation as the `messages` array each turn, so a cleared session arrives carrying just the single new user turn and no prior history. We detect this from the count of user/assistant turns, not the request size, since the system prompt and tool schemas are always present and large. There is also a more direct signal than history length: Claude Code sends `X-Claude-Code-Session-Id` on every request and the gateway already logs it (`ReqLog.SessionID`), plus `X-Claude-Code-Agent-Id` to mark subagent calls, so a fresh chat or session arrives with a new session id. Anthropic's own `metadata.user_id` is on the wire too, but the gateway drops it, so we can't use it.
 
-- Route at the start. If it routes to weak and weak is adequate — great, cheapest path.
+This low-context routing strategy still has a core tension:
+
+- If it routes to weak and weak is adequate — great, cheapest path.
 - If it routes to strong, on each subsequent turn we're burning credits.
 
-We can use an asymmetric rerouting policy (sticky-up, eager-down) to solve this. In the initial routing to strong, we can try to re-route back to weak to claw back cost (frontier output tokens are the expense). We would demote at boundaries (a fresh user turn / new sub-task = near-empty-history delta), not mid-tool-loop; there's no shared KV cache across models, so every switch re-prefills the (50k-token) context cold but that's okay since it would be a one-time cost to switch from frontier to local.
+We can use an asymmetric rerouting policy (sticky-up, eager-down) to solve this. In the initial routing to strong, we can try to re-route back to weak to claw back cost. We would attempt to demote at boundaries (a fresh user turn / new sub-task = near-empty-history delta); there's no shared KV cache across models, so every switch re-prefills the (50k-token) context cold but that's okay since it would be a one-time cost to switch from frontier to local (latency worth the cost savings).
 
 A potential problem is the case where we route to local but it clearly is inadequate at accomplishing the task. Down the line, here's where a cascade style approach would be useful - if from predictive routing we route to the weaker local model but the local model clearly fails, then we can reroute to the frontier model on the next turn. This item would be post MVP though.
 
