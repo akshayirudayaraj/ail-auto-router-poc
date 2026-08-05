@@ -76,6 +76,29 @@ func AppendLabels(dir string, src schema.LabelSource, recs []LabelRecord) error 
 // so it is never re-ingested as a source.
 var sourceFiles = []string{"executed.jsonl", "judge.jsonl", "implicit.jsonl"}
 
+// WriteLabels (over)writes <dir>/labels/<source>.jsonl with exactly recs. Use for
+// deterministic sources (heuristics) that are recomputed from the logs each run, so
+// re-runs don't accumulate duplicates. (Append is for the judge, whose calls are
+// expensive/cached.)
+func WriteLabels(dir string, src schema.LabelSource, recs []LabelRecord) error {
+	ldir := filepath.Join(dir, "labels")
+	if err := os.MkdirAll(ldir, 0o755); err != nil {
+		return err
+	}
+	f, err := os.Create(filepath.Join(ldir, string(src)+".jsonl"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	for _, r := range recs {
+		if err := enc.Encode(r); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // LoadLabels reads the append-only source label files under <dir>/labels
 // (executed/judge/implicit), skipping the resolved output.
 func LoadLabels(dir string) ([]LabelRecord, error) {

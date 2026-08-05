@@ -121,6 +121,11 @@ agentic-grade:
 agentic-calibrate:
 	$(GO) run ./cmd/label -calibrate
 
+## agentic-heuristics: mine implicit labels from sim-user reactions in each
+## session's RawTurn log (deterministic, no model call). Rewrites labels/implicit.jsonl.
+agentic-heuristics:
+	$(GO) run ./cmd/label -heuristics
+
 ## agentic-smoke: 1-task, BOTH arms, fidelity smoke (proves each arm can act).
 ## Generation is grading-free, so it does NOT build the Docker executor image.
 agentic-smoke: build agentic-proxy

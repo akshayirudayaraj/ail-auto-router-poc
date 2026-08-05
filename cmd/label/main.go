@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/akshayirudayaraj/ail-routing-test/internal/backend"
@@ -34,8 +35,9 @@ func main() {
 		session = flag.String("session", "", "judge only this session key (default: all)")
 		dryRun    = flag.Bool("dry-run", false, "build + print evidence packs; no model call")
 		forceK    = flag.Bool("force-k", false, "always run K votes (calibration sample)")
-		k         = flag.Int("k", 3, "votes when escalated")
-		calibrate = flag.Bool("calibrate", false, "calibrate weak labels vs executed truth + fuse; no model call")
+		k          = flag.Int("k", 3, "votes when escalated")
+		calibrate  = flag.Bool("calibrate", false, "calibrate weak labels vs executed truth + fuse; no model call")
+		heuristics = flag.Bool("heuristics", false, "mine implicit labels from sim-user reactions; no model call")
 	)
 	flag.Parse()
 
@@ -110,6 +112,35 @@ func main() {
 				r.Key, splitByTask[r.TaskID], r.HasOracle, pack.Render())
 		}
 		lg.Printf("dry-run: rendered %d packs", len(refs))
+		return
+	}
+
+	// -heuristics: mine implicit labels from the sim-user reactions in each
+	// session's RawTurn log. Deterministic, no backend. Rewrites implicit.jsonl.
+	if *heuristics {
+		isFront := label.FrontierPredicate(cfg.FrontierModel)
+		var all []label.LabelRecord
+		var withReaction int
+		for _, r := range refs {
+			sp := filepath.Join(*results, r.Key+".session.jsonl")
+			ts := time.Now().Unix()
+			recs, err := label.HeuristicLabelsFromSession(sp, isFront, r.Ident(splitByTask[r.TaskID], ts), ts)
+			if err != nil {
+				lg.Printf("skip %s: %v", r.Key, err)
+				continue
+			}
+			for _, rec := range recs {
+				if v, _ := rec.Evidence["had_user_reaction"].(bool); v {
+					withReaction++
+				}
+			}
+			all = append(all, recs...)
+		}
+		if err := label.WriteLabels(*results, schema.LabelImplicit, all); err != nil {
+			lg.Fatalf("write implicit labels: %v", err)
+		}
+		lg.Printf("heuristics: %d implicit labels (%d from a real user reaction, rest weak default) -> labels/implicit.jsonl",
+			len(all), withReaction)
 		return
 	}
 
