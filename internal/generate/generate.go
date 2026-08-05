@@ -1,6 +1,13 @@
-// Package generate produces realistic Claude-Code-style session logs (Pillar
-// 1a) as JSONL. It is the ONLY synthetic piece: when real logs arrive it is
-// swapped out and everything downstream is reused unchanged.
+// Package generate produces TEMPLATED Claude-Code-style session logs (Pillar 1a)
+// as JSONL.
+//
+// QUARANTINED — PLUMBING/CI FIXTURE ONLY (DATA_PLAN Phase 6). This renders stub
+// text and PLANTS outcomes from a synthetic IRT model; nothing is executed. Its
+// output is provenance="templated" and MUST NEVER be reported as signal. It
+// survives only as a fast, free, no-model-call fixture to exercise the
+// downstream Go code (extract/train/eval/server) in tests and CI. All real
+// training/eval data comes from the agentic log-first runner (agentic/, Sources
+// 2 + 3); see DATA_PLAN.md and DECISIONS D17/D18.
 //
 // The generative model of outcomes is deliberately a 1PL IRT model:
 //

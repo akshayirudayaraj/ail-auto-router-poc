@@ -310,3 +310,50 @@ engine. Choices made in Phase 1:
 - **Cost under subscription.** `reported_cost_usd` (from the stream-json result event)
   is a THEORETICAL dollar figure the CLI reports even on the subscription — a useful
   throttle, but the real Max constraint is a rate limit, not $. Logged as such.
+
+## D18 — DATA_PLAN Phases 2A–6: sources, gate, split, UI, quarantine
+
+- **Source 2 at scale (Phase 2A).** `materialize_swe.py` scaled 1→N: selects N
+  SWE-bench Verified instances biased to small repos + small F2P/P2P, diversified
+  with a per-repo cap, logging every pick and drop to `swe_selection.json` (no
+  silent truncation) with a contamination note (Verified is public). 26 instances
+  materialized firewall-green. The large `repo/` checkouts are gitignored
+  (regenerable from the dataset); `task.json` + `_oracle/` are the durable record.
+
+- **Firewall correctness.** The "hidden test absent" check keys off the LINES
+  test_patch ADDS (`firewall_util.hidden_test_leak`), not F2P method names — many
+  SWE F2P tests MODIFY tests that already exist at base_commit, so a name-based
+  check false-breaches them. A leak = a strong majority of substantive added test
+  lines already present in repo/. The "gold-already-applied" check is skipped for
+  `swe_verified` (base is base_commit by construction; the substring heuristic
+  false-positives on small real patches). Extended with an ISSUE-text leak scan
+  (generated tasks add the issue as a new leak vector).
+
+- **Source 3 gate (Phase 2B).** Generated tasks are AUTHORED in a Claude session
+  (the repo ships the spec `TASK_SPEC.md` + gate, not an API generator).
+  `agentic/synth/validate_task.py` admits a task only on schema completeness +
+  firewall (incl. issue leak) + fail-before/pass-after via the Docker executor
+  (validation, not generation grading). `oss_repos.md` is the permissive-repo
+  allowlist for grounded tasks.
+
+- **Simulated user (Phase 3).** `sim_session.py` drives multi-turn `claude -p`
+  via `--resume`; a scripted, seeded, deterministic sim-user reacts to IN-SESSION
+  cues only (visible test fails / done / stuck), including a real local→frontier
+  escalation. Emits RawTurn `.session.jsonl` that `internal/extract` ingests
+  unchanged (spot-checked by `TestLoadRawSimSession`).
+
+- **Split (Phase 4).** `split.py` partitions BY TASK, seeded/deterministic
+  (sha1(seed:task_id), not process-salted hash()), zero cross-split leakage
+  (asserted), byte-identical re-run. Writes `split_manifest.json`
+  {split, provenance, grounding, has_executable_oracle} per session.
+
+- **UI (Phase 5).** Stdlib-only `/api/agentic` (facet-filterable table, one row
+  per (task,arm)) + `/api/agentic/session` (full trace: RawTurn turns, CC tool
+  events, diff, issue; oracle hidden behind an explicit reveal). New Corpus tab.
+  No scoring shown — the offline engine's labels surface here once it exists.
+
+- **Quarantine (Phase 6).** `internal/generate` is marked plumbing/CI-fixture
+  only (`provenance=templated`, never signal) in its package doc + README; its
+  data lives in `data/`, agentic data in `data_agentic/` + `agentic/results/`.
+  The Go `cmd/agentic` gold assembler (reads `.resolved`) is now offline-engine
+  work — NOT invoked on the generation path.

@@ -144,14 +144,33 @@ Package layout:
 | `internal/backend` | Embed / Generate / Judge, cache, concurrency, caps |
 | `internal/numerics` | dot/cosine, logistic regression (GD), Newton helpers |
 | `internal/feature` | prompt → structural `Features` |
-| `internal/generate` | Pillar 1a synthetic log generator |
+| `internal/generate` | **QUARANTINED** templated log generator — CI/plumbing fixture only (`provenance=templated`, never signal) |
 | `internal/extract` | Pillar 1b extraction + 1c quality report |
 | `internal/router` | Pillar 2 routers + interface |
 | `internal/eval` | Pillar 3 harness, metrics, policy |
-| `internal/server` | web console (stdlib `net/http` + embedded SPA) |
+| `internal/server` | web console (stdlib `net/http` + embedded SPA); **Corpus** tab browses agentic logs |
 | `cmd/{gen,extract,train,eval}` | stage entrypoints |
 | `cmd/serve` | web console server (`make serve`) |
+| `agentic/` | **non-portable** log-first generation: `claude -p` dual-arm runner + Anthropic→Ollama proxy + SWE materializer + synth gate + sim-user |
 | `python/` | **non-portable** encoder + SLM-head training |
+
+### Data sources & the one serving path (DATA_PLAN)
+
+All trustworthy data now comes from **one serving path** — an agentic `claude -p`
+run across both rungs (`local=gpt-oss:20b` via the proxy, `frontier=opus` via the
+subscription), producing a log-first artifact set (RawTurn `.session.jsonl` + raw
+`.events.jsonl` + `.patch` + a grade-free run record). **No grading happens during
+generation** — outcomes are the deferred offline engine's job.
+
+| Source | Origin | Runner | Grading |
+|---|---|---|---|
+| **2 — semi-synthetic** | SWE-bench Verified (given) | `run_agentic.py` (`make agentic-swe`) | offline (swebench harness) |
+| **3 — generated** | authored in a Claude session, OSS-grounded; gated by `agentic/synth/validate_task.py` | `run_agentic.py` | offline (docker pytest) |
+| ~~templated~~ | `internal/generate` | — | **quarantined; never signal** |
+
+The corpus is deterministically split into train/held-out (`agentic/runner/split.py`
+→ `split_manifest.json`) *before* any labeling. Off-policy propensities stay null by
+construction (every task runs on every rung deterministically — no logging policy).
 
 ---
 
