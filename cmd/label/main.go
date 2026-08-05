@@ -32,9 +32,10 @@ func main() {
 		results = flag.String("results", "agentic/results", "dir of run records + logs")
 		tasks   = flag.String("tasks", "agentic/tasks", "dir of task.json + oracle")
 		session = flag.String("session", "", "judge only this session key (default: all)")
-		dryRun  = flag.Bool("dry-run", false, "build + print evidence packs; no model call")
-		forceK  = flag.Bool("force-k", false, "always run K votes (calibration sample)")
-		k       = flag.Int("k", 3, "votes when escalated")
+		dryRun    = flag.Bool("dry-run", false, "build + print evidence packs; no model call")
+		forceK    = flag.Bool("force-k", false, "always run K votes (calibration sample)")
+		k         = flag.Int("k", 3, "votes when escalated")
+		calibrate = flag.Bool("calibrate", false, "calibrate weak labels vs executed truth + fuse; no model call")
 	)
 	flag.Parse()
 
@@ -42,6 +43,41 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		lg.Fatalf("config: %v", err)
+	}
+
+	// -calibrate: score judge/heuristics against executed truth, fuse the weak
+	// labels (judge-primary) into canonical labels, write the report + resolved.
+	// No backend needed.
+	if *calibrate {
+		recs, err := label.LoadLabels(*results)
+		if err != nil {
+			lg.Fatalf("load labels: %v", err)
+		}
+		if len(recs) == 0 {
+			lg.Fatalf("no labels under %s/labels (run grade_offline.py and/or the judge first)", *results)
+		}
+		rep := label.Calibrate(recs)
+		if err := label.SaveCalibration(*results, rep); err != nil {
+			lg.Fatalf("save calibration: %v", err)
+		}
+		fp := label.DefaultFuseParams()
+		fp.JudgeAccuracy = rep.JudgeAccuracy()
+		if c, ok := rep.BySource["implicit"]; ok {
+			fp.HeurAccuracy = c.Accuracy
+		}
+		resolved := label.ResolveWithFusion(recs, fp)
+		if err := label.SaveResolved(*results, resolved); err != nil {
+			lg.Fatalf("save resolved: %v", err)
+		}
+		if err := label.AssertEvalStrongerThanTrain(resolved); err != nil {
+			lg.Printf("WARN %v", err)
+		}
+		j := rep.BySource["judge"]
+		lg.Printf("calibration: executed=%d | judge N=%d acc=%.3f P=%.3f R=%.3f | judge↔heur agree=%.3f (n=%d)%s",
+			rep.NExecuted, j.N, j.Accuracy, j.Precision, j.Recall, rep.JudgeHeurAgreement, rep.NJudgeHeurPairs,
+			noteSuffix(rep.Note))
+		lg.Printf("resolved %d canonical labels -> labels/resolved.jsonl (+ calibration/report.json)", len(resolved))
+		return
 	}
 
 	refs, err := label.ListSessions(*results)
@@ -122,4 +158,11 @@ func main() {
 	lg.Printf("judged %d sessions -> labels/judge.jsonl (adequate=%d inadequate=%d skipped=%d)",
 		len(recs), adequate, inadequate, skipped)
 	be.LogStats()
+}
+
+func noteSuffix(note string) string {
+	if note == "" {
+		return ""
+	}
+	return " | " + note
 }

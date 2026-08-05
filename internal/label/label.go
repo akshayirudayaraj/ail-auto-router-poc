@@ -44,6 +44,11 @@ type LabelRecord struct {
 // key identifies the session a label is about, for Resolve.
 func (r LabelRecord) key() string { return r.TaskID + "|" + r.Model }
 
+func fileExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
 // AppendLabels appends records to <dir>/labels/<source>.jsonl (created if needed).
 // Append-only by design: re-labeling never rewrites history.
 func AppendLabels(dir string, src schema.LabelSource, recs []LabelRecord) error {
@@ -66,9 +71,20 @@ func AppendLabels(dir string, src schema.LabelSource, recs []LabelRecord) error 
 	return nil
 }
 
-// LoadLabels reads all labels/*.jsonl records under dir (any source present).
+// sourceFiles are the append-only per-branch label files LoadLabels reads. The
+// fusion OUTPUT (resolved.jsonl) lives alongside them but is deliberately excluded
+// so it is never re-ingested as a source.
+var sourceFiles = []string{"executed.jsonl", "judge.jsonl", "implicit.jsonl"}
+
+// LoadLabels reads the append-only source label files under <dir>/labels
+// (executed/judge/implicit), skipping the resolved output.
 func LoadLabels(dir string) ([]LabelRecord, error) {
-	paths, _ := filepath.Glob(filepath.Join(dir, "labels", "*.jsonl"))
+	var paths []string
+	for _, name := range sourceFiles {
+		if p := filepath.Join(dir, "labels", name); fileExists(p) {
+			paths = append(paths, p)
+		}
+	}
 	var out []LabelRecord
 	for _, p := range paths {
 		f, err := os.Open(p)

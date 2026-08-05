@@ -115,6 +115,12 @@ agentic-grade:
 	docker build -q -t agentic-runner:py311 agentic/exec/ >/dev/null
 	python3 agentic/runner/grade_offline.py
 
+## agentic-calibrate: score judge/heuristics vs executed truth + fuse weak labels
+## (judge-primary) into canonical labels. No model call. Writes calibration/report.json
+## + labels/resolved.jsonl.
+agentic-calibrate:
+	$(GO) run ./cmd/label -calibrate
+
 ## agentic-smoke: 1-task, BOTH arms, fidelity smoke (proves each arm can act).
 ## Generation is grading-free, so it does NOT build the Docker executor image.
 agentic-smoke: build agentic-proxy

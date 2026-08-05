@@ -49,3 +49,6 @@ RESULTS_AGENTIC.md
 
 # offline-engine executed-oracle rebuild cache (executed.jsonl is the artifact)
 agentic/results/labels/_executed_cache/
+agentic/results/labels/resolved.jsonl
+agentic/results/labels/judge.jsonl
+agentic/results/calibration/
