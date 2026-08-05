@@ -129,3 +129,38 @@ func TestLoadRawSimSession(t *testing.T) {
 		t.Fatalf("escalation not reconstructed: Model=%q NextModel=%q", obs[0].Model, obs[0].NextModel)
 	}
 }
+
+// TestSimSessionSignals asserts a reconstructed multi-turn sim_session (the
+// DATA_PLAN Phase 3 shape, now that reconstruct_raw_turns keeps one assistant
+// turn per event with per-turn served_model) yields BOTH an implicit signal and
+// a real local->frontier escalation pair. Guards the run_agentic.py fix.
+func TestSimSessionSignals(t *testing.T) {
+	sid := "gen-x__sim__local"
+	turns := []schema.RawTurn{
+		{SessionID: sid, TurnIndex: 0, Role: schema.RoleUser, Content: "fix the failing test"},
+		{SessionID: sid, TurnIndex: 1, Role: schema.RoleAssistant, Content: "[Bash] pytest -q\n2 failed", ServedModel: "gpt-oss:20b"},
+		// sim-user pastes the failure; the NEXT assistant turn is still local -> paste_error, NOT escalation
+		{SessionID: sid, TurnIndex: 2, Role: schema.RoleUser, Content: "the tests are still failing:\n```\nAssertionError: nope\n```\nplease fix"},
+		{SessionID: sid, TurnIndex: 3, Role: schema.RoleAssistant, Content: "[Edit] mod.py", ServedModel: "gpt-oss:20b"},
+		// sim-user escalates; the NEXT assistant turn is frontier -> switch
+		{SessionID: sid, TurnIndex: 4, Role: schema.RoleUser, Content: "that still isn't working. bringing in a stronger model."},
+		{SessionID: sid, TurnIndex: 5, Role: schema.RoleAssistant, Content: "fixed; tests pass", ServedModel: "opus"},
+	}
+	obs := Observations(Reconstruct(turns))
+	if len(obs) != 3 {
+		t.Fatalf("want 3 assistant obs, got %d", len(obs))
+	}
+	isFrontier := func(m string) bool { return m == "opus" }
+
+	// obs[0]: local turn, next user pasted an error, next assistant still local -> paste_error
+	if l := InferSignal(obs[0], isFrontier); l.Signal != SigPasteErr || l.Outcome != 0 {
+		t.Fatalf("obs[0] want paste_error/0, got %v/%d", l.Signal, l.Outcome)
+	}
+	// obs[1]: local turn, next assistant is frontier -> a REAL escalation pair (switch)
+	if obs[1].Model != "gpt-oss:20b" || obs[1].NextModel != "opus" {
+		t.Fatalf("obs[1] escalation not reconstructed: Model=%q NextModel=%q", obs[1].Model, obs[1].NextModel)
+	}
+	if l := InferSignal(obs[1], isFrontier); l.Signal != SigSwitch || l.Outcome != 0 {
+		t.Fatalf("obs[1] want switch/0, got %v/%d", l.Signal, l.Outcome)
+	}
+}

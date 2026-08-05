@@ -174,11 +174,18 @@ def simulate(task, start_arm, max_user_turns, escalate_prob, seed):
                           "role": "user", "content": text})
         ti += 1
 
-    def add_assistant(text, served):
+    def add_assistant_turns(events, served):
+        """Append ONE assistant RawTurn per assistant event (with tool summaries),
+        stitching this --resume turn's event stream into the running session so
+        sim-user turns interleave and a served_model change is visible per turn."""
         nonlocal ti
-        raw_turns.append({"session_id": label, "turn_index": ti, "timestamp": ts0,
-                          "role": "assistant", "content": text, "served_model": served})
-        ti += 1
+        ats = R.assistant_turns(events, served)
+        if not ats:
+            ats = [{"role": "assistant", "content": "[no output]", "served_model": served}]
+        for at in ats:
+            raw_turns.append({"session_id": label, "turn_index": ti,
+                              "timestamp": ts0, **at})
+            ti += 1
 
     try:
         arm = start_arm
@@ -190,8 +197,7 @@ def simulate(task, start_arm, max_user_turns, escalate_prob, seed):
                 prompt, arm, checkout, session_id=session_id)
             if session_id is None:
                 session_id = session_id_of(events)
-            add_assistant(R.assistant_text(events) or "[no text]",
-                          R.ARMS[arm]["served_model"])
+            add_assistant_turns(events, R.ARMS[arm]["served_model"])
             cue, fail_snip = read_cue(events)
             print(f"[sim] turn {step} arm={arm} cue={cue} wall={wall:.0f}s "
                   f"session={session_id}", file=sys.stderr)
@@ -212,8 +218,7 @@ def simulate(task, start_arm, max_user_turns, escalate_prob, seed):
             add_user(hand)
             events, timed_out, wall = run_turn(hand, "frontier", checkout,
                                                session_id=None)
-            add_assistant(R.assistant_text(events) or "[no text]",
-                          R.ARMS["frontier"]["served_model"])
+            add_assistant_turns(events, R.ARMS["frontier"]["served_model"])
             print(f"[sim] forced escalation turn arm=frontier wall={wall:.0f}s",
                   file=sys.stderr)
     finally:

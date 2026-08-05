@@ -210,39 +210,63 @@ def detect_rate_limit(events, raw, stderr):
     return any(m in low for m in _RATE_LIMIT_MARKERS)
 
 
-def assistant_text(events):
-    """Concatenated assistant text across the event stream (+ a compact tool
-    marker if the turn was pure tool-use). Shared by the single-shot runner and
-    the multi-turn sim_session."""
-    parts, tool_names = [], []
+def tool_summary(block):
+    """Compact one-line summary of a single tool_use block, e.g. '[Bash] pytest -q'
+    or '[Edit] test_requests.py'. Keeps the RawTurn readable without the full
+    tool payload (which lives in .events.jsonl)."""
+    name = block.get("name", "tool")
+    inp = block.get("input", {}) or {}
+    if name == "Bash" and inp.get("command"):
+        cmd = str(inp["command"]).strip().splitlines()[0] if str(inp["command"]).strip() else ""
+        return f"[Bash] {cmd[:140]}"
+    for k in ("file_path", "path", "notebook_path"):
+        if inp.get(k):
+            return f"[{name}] {os.path.basename(str(inp[k]))}"
+    if name == "Read" or name == "Grep" or name == "Glob":
+        return f"[{name}] {str(inp.get('pattern') or inp.get('path') or '')[:80]}".rstrip()
+    return f"[{name}]"
+
+
+def assistant_turns(events, served_model):
+    """One RawTurn-shaped dict PER assistant EVENT (not collapsed), in order.
+    content = the assistant's text for that turn + a compact summary of its
+    tool_use actions; served_model set on every turn. This preserves the ordered
+    turn sequence internal/extract mines (per-turn served_model → escalation
+    detection). CC type:'user' events are tool_result plumbing, NOT user turns,
+    so they are intentionally skipped here."""
+    out = []
     for ev in events:
         if ev.get("type") != "assistant":
             continue
+        texts, tools = [], []
         for b in ev.get("message", {}).get("content", []):
-            if b.get("type") == "text" and b.get("text"):
-                parts.append(b["text"])
+            if b.get("type") == "text" and b.get("text", "").strip():
+                texts.append(b["text"].strip())
             elif b.get("type") == "tool_use":
-                tool_names.append(b.get("name", "tool"))
-    content = "\n".join(p.strip() for p in parts if p.strip())
-    if not content and tool_names:
-        content = "[called tools: " + ", ".join(tool_names) + "]"
-    return content
+                tools.append(tool_summary(b))
+        content = "\n".join(texts + tools) if (texts or tools) else "[no output]"
+        out.append({"role": "assistant", "content": content,
+                    "served_model": served_model})
+    return out
+
+
+def assistant_text(events):
+    """Concatenated assistant text across the stream (single string). Kept for
+    callers that want the whole response as one blob (e.g. logging/judging)."""
+    return "\n".join(t["content"] for t in assistant_turns(events, None))
 
 
 def reconstruct_raw_turns(events, session_id, served_model, prompt, t0):
-    """Flatten the CC event stream into a portable RawTurn JSONL session: one
-    user turn (the prompt) + one assistant turn (all assistant text concatenated).
-    The rich per-tool detail intentionally lives only in the `.events.jsonl`
-    trace; the flat RawTurn is what internal/extract consumes. propensity is null
-    (every task runs on every rung deterministically -> no logging policy)."""
+    """Portable RawTurn JSONL session for a single-shot `claude -p` run: turn 0 =
+    the genuine user prompt, then ONE assistant turn per assistant event (with
+    tool summaries + served_model). The rich per-tool payload lives in
+    .events.jsonl; this is the ordered turn view internal/extract consumes.
+    propensity is null (every task runs on every rung deterministically)."""
     ts = int(t0)
-    content = assistant_text(events)
-    turns = [
-        {"session_id": session_id, "turn_index": 0, "timestamp": ts,
-         "role": "user", "content": prompt},
-        {"session_id": session_id, "turn_index": 1, "timestamp": ts,
-         "role": "assistant", "content": content, "served_model": served_model},
-    ]
+    turns = [{"session_id": session_id, "turn_index": 0, "timestamp": ts,
+              "role": "user", "content": prompt}]
+    for i, at in enumerate(assistant_turns(events, served_model), start=1):
+        turns.append({"session_id": session_id, "turn_index": i, "timestamp": ts, **at})
     return turns
 
 
