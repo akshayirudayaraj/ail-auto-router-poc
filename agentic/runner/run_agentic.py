@@ -486,6 +486,7 @@ def run_one(task, arm, force=False):
             "ollama_model": LOCAL_OLLAMA_MODEL if arm == "local" else None,
             "provenance": task_provenance(task),
             "grounding": task_grounding(task),
+            "execution": "container" if swe else "host",  # where the agent ran
             "split": None,                       # assigned by Phase 4 (split.py)
             "has_executable_oracle": has_executable_oracle(task),
             "config_hash": chash,
