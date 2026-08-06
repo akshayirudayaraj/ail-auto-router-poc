@@ -34,24 +34,28 @@ const (
 type LabelSource string
 
 const (
-	LabelImplicit LabelSource = "implicit" // mined from user-behavior heuristics (weakest)
-	LabelJudge    LabelSource = "judge"    // frontier-as-judge verdict
-	LabelHuman    LabelSource = "human"    // human annotation
-	LabelExecuted LabelSource = "executed" // executable ground truth, e.g. unit tests (strongest)
+	LabelImplicit  LabelSource = "implicit"  // mined from user-behavior heuristics (weakest)
+	LabelJudge     LabelSource = "judge"     // frontier-as-judge verdict
+	LabelConsensus LabelSource = "consensus" // judge + implicit fused (no oracle); see internal/label/fuse.go
+	LabelHuman     LabelSource = "human"     // human annotation
+	LabelExecuted  LabelSource = "executed"  // executable ground truth, e.g. unit tests (strongest)
 )
 
 // LabelStrength returns an ordinal used to compare label sources. Higher is
-// stronger. Unknown sources return -1.
+// stronger. Unknown sources return -1. Consensus (judge+implicit fusion) sits
+// above raw judge but below any oracle/human ground truth.
 func LabelStrength(s LabelSource) int {
 	switch s {
 	case LabelImplicit:
 		return 0
 	case LabelJudge:
 		return 1
-	case LabelHuman:
+	case LabelConsensus:
 		return 2
-	case LabelExecuted:
+	case LabelHuman:
 		return 3
+	case LabelExecuted:
+		return 4
 	default:
 		return -1
 	}

@@ -16,6 +16,14 @@ func impl_(task string, out int) LabelRecord {
 	return LabelRecord{TaskID: task, Model: "m", LabelSource: schema.LabelImplicit, Outcome: out}
 }
 
+// implSig_ is an implicit record carrying a specific behavioral signal (for the
+// consensus tiering: switch/paste_error/negative/retry are strong failures,
+// moveon a strong success, complete/none are weak).
+func implSig_(task string, out int, conf float64, signal string) LabelRecord {
+	return LabelRecord{TaskID: task, Model: "m", LabelSource: schema.LabelImplicit, Outcome: out,
+		LabelConfidence: conf, Evidence: map[string]any{"signal": signal}}
+}
+
 func TestCalibrate_JudgeVsExecuted(t *testing.T) {
 	// 4 sessions with executed truth + judge prediction.
 	// truth:  t1 inadequate(0), t2 inadequate(0), t3 adequate(1), t4 adequate(1)
@@ -52,39 +60,49 @@ func TestCalibrate_NoOverlap(t *testing.T) {
 	}
 }
 
-func TestFuse_JudgePrimary(t *testing.T) {
+func TestFuse_Consensus(t *testing.T) {
 	p := DefaultFuseParams()
 
-	// agree -> outcome judge, confidence boosted above base
+	// agree + STRONG signal -> consensus source, judge outcome, confidence boosted
 	j := judge_("t", 0, 0.8)
-	h := impl_("t", 0)
+	h := implSig_("t", 0, 0.75, "negative") // strong failure, agrees with judge=0
 	got, ok := FuseSession(&j, &h, p)
-	if !ok || got.Outcome != 0 || got.LabelConfidence <= 0.8 {
-		t.Errorf("agree: outcome=%d conf=%v (want 0, >0.8)", got.Outcome, got.LabelConfidence)
+	if !ok || got.LabelSource != schema.LabelConsensus || got.Outcome != 0 || got.LabelConfidence <= 0.8 {
+		t.Errorf("agree+strong: src=%v outcome=%d conf=%v (want consensus/0/>0.8)", got.LabelSource, got.Outcome, got.LabelConfidence)
 	}
 	if got.Evidence["agreement"] != true {
 		t.Errorf("agree: agreement flag not set")
 	}
 
-	// disagree -> outcome STILL judge, confidence penalized, flagged
-	j2 := judge_("t", 0, 0.8)
-	h2 := impl_("t", 1)
+	// STRONG FAILURE cue vs a judge "success" -> FLIP to inadequate
+	j2 := judge_("t", 1, 0.8)
+	h2 := implSig_("t", 0, 0.8, "paste_error")
 	got2, _ := FuseSession(&j2, &h2, p)
-	if got2.Outcome != 0 {
-		t.Errorf("disagree: outcome must stay judge's (0); got %d", got2.Outcome)
-	}
-	if got2.LabelConfidence >= 0.8 {
-		t.Errorf("disagree: confidence should be penalized below base; got %v", got2.LabelConfidence)
-	}
-	if got2.Evidence["disagreement_flag"] != true {
-		t.Errorf("disagree: disagreement_flag not set")
+	if got2.Outcome != 0 || got2.Evidence["rule"] != "consensus_veto_flip0" || got2.Evidence["flipped"] != true {
+		t.Errorf("veto: want outcome 0 flipped; got outcome=%d rule=%v", got2.Outcome, got2.Evidence["rule"])
 	}
 
-	// judge only
-	j3 := judge_("t", 1, 0.7)
-	got3, _ := FuseSession(&j3, nil, p)
-	if got3.Outcome != 1 || got3.Evidence["rule"] != "judge_only" {
-		t.Errorf("judge-only: outcome=%d rule=%v", got3.Outcome, got3.Evidence["rule"])
+	// WEAK implicit disagreeing (complete/none) -> ignored: outcome & conf unchanged
+	j3 := judge_("t", 0, 0.8)
+	h3 := impl_("t", 1) // no signal => none (weak)
+	got3, _ := FuseSession(&j3, &h3, p)
+	if got3.Outcome != 0 || got3.LabelConfidence != 0.8 || got3.Evidence["rule"] != "consensus_weak_ignore" {
+		t.Errorf("weak disagree: want 0/0.8/ignore; got outcome=%d conf=%v rule=%v", got3.Outcome, got3.LabelConfidence, got3.Evidence["rule"])
+	}
+
+	// STRONG SUCCESS vs a judge failure -> keep judge (don't fabricate adequate), penalized
+	j4 := judge_("t", 0, 0.8)
+	h4 := implSig_("t", 1, 0.7, "moveon")
+	got4, _ := FuseSession(&j4, &h4, p)
+	if got4.Outcome != 0 || got4.Evidence["rule"] != "consensus_conflict_keepjudge" || got4.LabelConfidence >= 0.8 {
+		t.Errorf("conflict: want outcome 0 kept & penalized; got outcome=%d conf=%v rule=%v", got4.Outcome, got4.LabelConfidence, got4.Evidence["rule"])
+	}
+
+	// judge only -> stays judge source + rule
+	j5 := judge_("t", 1, 0.7)
+	got5, _ := FuseSession(&j5, nil, p)
+	if got5.Outcome != 1 || got5.Evidence["rule"] != "judge_only" || got5.LabelSource != schema.LabelJudge {
+		t.Errorf("judge-only: outcome=%d rule=%v src=%v", got5.Outcome, got5.Evidence["rule"], got5.LabelSource)
 	}
 }
 

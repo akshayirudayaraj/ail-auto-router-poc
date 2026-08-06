@@ -7,14 +7,19 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/akshayirudayaraj/ail-routing-test/internal/extract"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/schema"
 )
 
 // Fusion combines the weak labels (judge + heuristics) on an oracle-LESS session
-// into one canonical outcome + calibrated confidence. Rule = JUDGE-PRIMARY
-// (OFFLINE_ENGINE_PLAN §6.2): the judge sees full context (the evidence pack);
-// heuristics are a noisy behavioral proxy. So heuristics never override the judge —
-// they modulate confidence and flag disagreements.
+// into one canonical CONSENSUS outcome + confidence (source = "consensus").
+// Judge-primary by default: the judge sees full context (the evidence pack) and
+// sets the outcome, with heuristics modulating confidence — EXCEPT a strong,
+// high-precision behavioral FAILURE cue (user pasted an error, said "wrong",
+// retried, or escalated) vetoes a judge "success" and flips the outcome to 0
+// (false-adequate is the costly routing error). Weak implicit defaults
+// (complete/none) are treated as noise. Reliabilities can later be calibrated
+// against the executed oracle (FuseParams.JudgeAccuracy/HeurAccuracy).
 
 // FuseParams tune fusion. JudgeAccuracy/HeurAccuracy come from Calibrate (0 =
 // uncalibrated → fall back to the labels' own confidence).
@@ -54,29 +59,85 @@ func FuseSession(judge, heur *LabelRecord, p FuseParams) (LabelRecord, bool) {
 			"fused": true, "rule": "judge_only", "judge_outcome": judge.Outcome})
 		return rec, true
 
-	default: // both present — judge-primary, heuristic modulates confidence
-		rec := *judge // outcome ALWAYS the judge's
+	default: // both present — CONSENSUS of judge + implicit (Strategy A)
+		rec := *judge
+		rec.LabelSource = schema.LabelConsensus
 		b := base(p.JudgeAccuracy, judge.LabelConfidence)
+
+		sig := heurSignal(heur)
+		strongFail := extract.SignalIsFailure(sig) // switch/paste_error/negative/retry
+		strongSuccess := sig == extract.SigMoveOn  // explicit praise / positive move-on
+		strong := strongFail || strongSuccess      // implicit carries a high-precision cue
 		agree := judge.Outcome == heur.Outcome
+
 		var conf float64
-		if agree {
-			conf = b + (1-b)*p.AgreeBoost
-		} else {
+		var rule string
+		switch {
+		case agree:
+			// concur — boost confidence, but only when implicit is a real signal
+			// (a bare complete/none default adds ~nothing).
+			boost := 0.0
+			if strong {
+				boost = p.AgreeBoost
+			}
+			conf = b + (1-b)*boost
+			rule = "consensus_agree"
+		case strongFail && judge.Outcome == 1:
+			// A strong behavioral FAILURE cue (user pasted an error, said "wrong",
+			// retried, or escalated local→frontier) against a plausible-looking
+			// judge "success": trust the cue and FLIP to inadequate. False-adequate
+			// is the costly routing error, and the cue sees what the diff can't.
+			rec.Outcome = 0
+			conf = heurConf(heur) // the failure cue's own (per-signal) precision
+			rule = "consensus_veto_flip0"
+		case strong:
+			// Conflicting STRONG success vs a judge failure: do NOT fabricate an
+			// "adequate" — keep the judge's conservative outcome, mark it uncertain.
 			conf = b * p.DisagreePenalty
+			rule = "consensus_conflict_keepjudge"
+		default:
+			// weak implicit (complete/none) disagreeing is noise — ignore it.
+			conf = b
+			rule = "consensus_weak_ignore"
 		}
 		rec.LabelConfidence = clamp01(conf)
 		rec.Evidence = mergeEvidence(rec.Evidence, map[string]any{
 			"fused":             true,
-			"rule":              "judge_primary",
+			"rule":              rule,
+			"consensus":         true,
 			"judge_outcome":     judge.Outcome,
 			"heuristic_outcome": heur.Outcome,
+			"implicit_signal":   string(sig),
+			"strong_signal":     strong,
 			"agreement":         agree,
 			"base_confidence":   b,
 			"calibrated":        p.JudgeAccuracy > 0,
 			"disagreement_flag": !agree,
+			"flipped":           rule == "consensus_veto_flip0",
 		})
 		return rec, true
 	}
+}
+
+// heurSignal reads the implicit signal kind off a heuristic record's evidence
+// (heuristics.go stamps evidence["signal"]).
+func heurSignal(heur *LabelRecord) extract.SignalKind {
+	if heur == nil || heur.Evidence == nil {
+		return extract.SigNone
+	}
+	if s, ok := heur.Evidence["signal"].(string); ok {
+		return extract.SignalKind(s)
+	}
+	return extract.SigNone
+}
+
+// heurConf returns the heuristic label's confidence (the per-signal precision),
+// with a sane floor when unset.
+func heurConf(heur *LabelRecord) float64 {
+	if heur != nil && heur.LabelConfidence > 0 {
+		return heur.LabelConfidence
+	}
+	return 0.6
 }
 
 func base(calibAcc, labelConf float64) float64 {
