@@ -1,0 +1,11 @@
+{
+  "id": "internal-01-cache-ttl",
+  "tier": "internal",
+  "issue": "Our in-memory cache in cache.py grows without bound — entries are never evicted, so a long-running worker slowly leaks memory. Add a TTL: on get(), an entry older than ttl_seconds (default 300) must be treated as absent and removed. Do NOT change the public API (set/get signatures) and do not add external dependencies.",
+  "provenance": "internal_usage",
+  "grounding": "internal",
+  "has_executable_oracle": false,
+  "source": "internal-usage",
+  "test_cmd": "python -m pytest -q",
+  "sample_note": "ILLUSTRATIVE SAMPLE (Source 1 wiring), not real user telemetry. Hand-authored to exercise the implicit + judge label paths for internal-usage logs, which carry no hidden-test oracle. Replace with real Claude Code session logs when available."
+}

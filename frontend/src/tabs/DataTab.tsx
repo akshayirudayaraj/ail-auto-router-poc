@@ -13,8 +13,8 @@ const CAT_META: Record<
 > = {
   internal: {
     title: "Internal logs (Source 1)",
-    desc: "Real Claude Code session logs from production/internal use. <b>Not yet wired in</b> — waiting on real logs. Once available these are the strongest signal (real users, real tasks) and feed the router directly.",
-    waiting: true,
+    desc: "Real Claude Code session logs from production/internal use — real users, real tasks, and (crucially) real multi-turn <b>user reactions</b> the implicit miner reads. They carry <b>no hidden-test oracle</b>, so outcomes come from the weak sources: <b>implicit</b> (behavior heuristics) + <b>judge</b> (frontier-as-judge over a distilled evidence pack). <b>Currently one illustrative sample</b> wiring this path end-to-end; replace with real logs as they land.",
+    match: (r) => String(r.source) === "internal_usage",
   },
   semi: {
     title: "Semi-synthetic (Source 2 · SWE-bench Verified)",
@@ -24,7 +24,7 @@ const CAT_META: Record<
   synth: {
     title: "Synthetic (Source 3 · fully generated)",
     desc: "The task + repo/harness/oracle are generated (by Opus), then each model rung runs an agentic session — outcomes come from <b>execution</b> where an oracle exists, else the offline LLM-judge over a distilled evidence pack. Never templated. (Includes the curated easy/med/hard warm-up tasks.)",
-    match: (r) => String(r.source) !== "swe_verified",
+    match: (r) => String(r.source) !== "swe_verified" && String(r.source) !== "internal_usage",
   },
 };
 
