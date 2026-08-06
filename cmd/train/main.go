@@ -24,6 +24,11 @@ func main() {
 	if err != nil {
 		lg.Fatalf("config: %v", err)
 	}
+	// Adapt the roster to the served models in this data dir (no-op on synthetic;
+	// picks up gpt-oss:20b / opus on the agentic set) so routers fit the right
+	// models without hand-set env vars.
+	cfg = dataio.ResolveRoster(cfg)
+	lg.Printf("roster: local=%v frontier=%s (data dir %s)", cfg.LocalModels, cfg.FrontierModel, cfg.DataDir)
 	pw, err := dataio.LoadPointwise(cfg)
 	if err != nil {
 		lg.Fatalf("load pointwise: %v (run `make extract` first)", err)
