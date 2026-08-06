@@ -173,6 +173,15 @@ svg.bars .bv { fill: var(--ink); font-family: var(--mono); font-size: 11px; }
 .swatch.loc { background: var(--local); }
 .swatch.fro { background: var(--frontier); }
 
+/* detail page breadcrumb (Data row -> full chat) */
+.crumb { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.crumb .back {
+  background: var(--chip); border: 1px solid var(--line); color: var(--ink);
+  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-family: inherit;
+}
+.crumb .back:hover { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.crumb .crumb-sid code { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
 /* session trace — back-and-forth chat */
 .chat { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
 .chat .msg { display: flex; gap: 10px; align-items: flex-start; }

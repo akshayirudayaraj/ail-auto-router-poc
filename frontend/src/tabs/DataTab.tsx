@@ -71,6 +71,26 @@ export function DataTab() {
     return evidenceBlurb(src || rec?.source, rec?.evidence);
   };
 
+  // Detail "page": clicking a row swaps the list out for the full chat trace
+  // with a Back breadcrumb (below the top navbar), rather than an inline panel.
+  if (selected) {
+    return (
+      <section className="tab active">
+        <div className="crumb">
+          <button className="back" onClick={() => setSelected(null)}>
+            ← Back
+          </button>
+          <span className="crumb-sid">
+            <code>{selected}</code>
+          </span>
+        </div>
+        <div id="data-detail">
+          <SessionDetail sid={selected} />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="tab active">
       <div className="subtabs">
@@ -153,14 +173,6 @@ export function DataTab() {
           )}
         </>
       )}
-
-      <div id="data-detail">
-        {selected ? (
-          <SessionDetail sid={selected} />
-        ) : (
-          <p className="muted">Select a session row to reconstruct its full trace (turns, tool calls, labels, diff).</p>
-        )}
-      </div>
     </section>
   );
 }
