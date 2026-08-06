@@ -80,7 +80,7 @@ export function RouteTab() {
           <label>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               Turn type
-              <HelpTip text="open = a fresh, first-turn task prompt; followup = a continuation turn in an existing conversation. It's a model-free feature the routers use — follow-ups tend to be easier / more context-bound, so they escalate less." />
+              <HelpTip text="A single feature bit the routers trained on — not real history: open = a session's first task-stating prompt, followup = a later turn. With one pasted prompt there's no conversation behind it; this just flips that bit (a minor nudge to the score). Leave it 'open' for a fresh prompt." />
             </span>
             <select value={turnType} onChange={(e) => setTurnType(e.target.value)}>
               <option value="open">open</option>
@@ -145,7 +145,10 @@ function RouteResultView({ r, pick }: { r: RouteResult; pick: string }) {
       <div className="panel">
         <div className="router-row">
           <b>router</b>
-          <b>escalation score</b>
+          <b style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            escalation score
+            <HelpTip text="The router's score in [0,1] — its estimate that this prompt needs the frontier model (i.e. local would be inadequate). The bar visualizes it; the request escalates when score ≥ threshold." />
+          </b>
           <b style={{ textAlign: "right" }}>score</b>
           <b style={{ textAlign: "right" }}>decision</b>
         </div>

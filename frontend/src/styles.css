@@ -81,7 +81,7 @@ main { padding: 26px 24px 64px; max-width: 1200px; margin: 0 auto; }
 }
 .card .big { font-size: 27px; font-weight: 700; letter-spacing: -.02em; }
 .card .lbl { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
-.note { margin-top: 16px; color: var(--muted); }
+.note { margin: 16px 0 22px; color: var(--muted); }
 
 /* ---- split (traces) ---- */
 .split { display: grid; grid-template-columns: 288px 1fr; gap: 18px; }
