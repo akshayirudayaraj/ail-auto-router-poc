@@ -24,15 +24,24 @@ function contentToText(c: unknown): string {
 function buildItems(turns: TraceTurn[], events: any[], model?: string): ChatItem[] {
   const items: ChatItem[] = [];
 
-  // Opening human turn(s): the initial task instruction (and any sim-user text
-  // turns) live in the reconstructed turns, not in the CC event stream.
-  turns.filter((t) => t.role === "user" && (t.content || "").trim()).forEach((t) => items.push({ kind: "msg", role: "user", text: t.content || "" }));
+  // The OPENING human instruction lives in the reconstructed turns, not in the
+  // CC event stream (which starts at the assistant). Take only that first user
+  // turn here; any LATER user messages (multi-turn reactions) come from the
+  // event stream below, in their true chronological position — otherwise every
+  // user turn would bunch at the top ahead of all assistant activity.
+  const opening = turns.find((t) => t.role === "user" && (t.content || "").trim());
+  if (opening) items.push({ kind: "msg", role: "user", text: opening.content || "" });
 
   if (!events.length) {
-    // No raw events — fall back to the reconstructed assistant turns.
-    turns
-      .filter((t) => t.role !== "user")
-      .forEach((t) => items.push({ kind: "msg", role: "assistant", text: t.content || "", model: t.served_model || model }));
+    // No raw events — fall back to ALL reconstructed turns in order (this is the
+    // only path that must interleave user/assistant purely from turns).
+    turns.slice(opening ? turns.indexOf(opening) + 1 : 0).forEach((t) =>
+      items.push(
+        t.role === "user"
+          ? { kind: "msg", role: "user", text: t.content || "" }
+          : { kind: "msg", role: "assistant", text: t.content || "", model: t.served_model || model },
+      ),
+    );
     return items;
   }
 
