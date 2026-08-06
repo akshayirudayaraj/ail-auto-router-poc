@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { signed } from "../format";
 import { useConsole } from "../store";
 import { ModelChip } from "../components/chips";
-import { BarChart } from "../components/BarChart";
+import { HelpTip } from "../components/HelpTip";
 import { PairwiseTable, PointwiseTable } from "../components/DatasetTables";
 import type { RouterMeta, TrainedOn } from "../api";
 
@@ -43,6 +43,7 @@ export function TrainingTab() {
   const ds = fit?.data_summary;
   const training = fit?.training || {};
   const abilities = fit?.abilities || [];
+  const hasPlanted = abilities.some((a) => a.planted != null);
 
   const onFitAll = async () => {
     setBusyAll(true);
@@ -145,6 +146,11 @@ export function TrainingTab() {
             <span className="muted small">{fitStatus}</span>
           )}
         </div>
+        <p className="muted small" style={{ marginTop: 10 }}>
+          <b>Threshold tuning:</b> raise the operating threshold until quality-vs-Opus dips below 100% on the Evals
+          scorecard (quality leaks appear), then back off one notch — that's the most traffic kept local at no quality
+          cost. AIQ / offload_isoq are threshold-independent, so they won't move.
+        </p>
         <p className="muted small">
           Each router consumes a specific data <b>shape</b>: IRT and kNN read <b>pointwise</b>; RouteLLM reads{" "}
           <b>pairwise</b> (plus pointwise pseudo-pairs). Fit them together above, or individually below with their own
@@ -187,23 +193,19 @@ export function TrainingTab() {
 
       {/* ---- IRT ability recovery ---- */}
       <h3>
-        IRT ability recovery <span className="muted">(θ, reference-centered — higher = more capable)</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          IRT ability recovery <span className="muted">(θ, reference-centered — higher = more capable)</span>
+          <HelpTip text="1-parameter IRT (Rasch): P(model adequate on a prompt) = σ(model ability θ − prompt difficulty). 'Recovery' = does the fit recover each model's latent ability θ — vs the planted truth on synthetic data? θ is centered on the local model; the router escalates a prompt when its difficulty exceeds local's ability." />
+        </span>
       </h3>
       {abilities.length ? (
         <>
-          <div className="chart">
-            <BarChart
-              items={abilities.map((a) => ({ label: a.model, value: a.recovered }))}
-              diverging
-              fmtV={signed}
-            />
-          </div>
-          <div className="tablewrap">
+          <div className="tablewrap" style={{ maxWidth: 400 }}>
             <table>
               <thead>
                 <tr>
                   <th>model</th>
-                  <th className="num">planted θ</th>
+                  {hasPlanted && <th className="num">planted θ</th>}
                   <th className="num">recovered θ</th>
                 </tr>
               </thead>
@@ -213,7 +215,7 @@ export function TrainingTab() {
                     <td>
                       <ModelChip model={a.model} />
                     </td>
-                    <td className="num">{a.planted == null ? "—" : signed(a.planted)}</td>
+                    {hasPlanted && <td className="num">{a.planted == null ? "—" : signed(a.planted)}</td>}
                     <td className="num">{signed(a.recovered)}</td>
                   </tr>
                 ))}

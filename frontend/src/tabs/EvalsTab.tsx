@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { type Anchor, type LeaderRow } from "../api";
 import { useConsole } from "../store";
 import { CostQualityPlot } from "../components/CostQualityPlot";
 import { GoldTable } from "../components/DatasetTables";
+import { HelpTip } from "../components/HelpTip";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -65,39 +65,6 @@ const PCT_METRICS = new Set([
 function fmtMetric(key: string, v: number | null | undefined): string {
   if (v == null) return "";
   return PCT_METRICS.has(key) ? `${(v * 100).toFixed(0)}%` : v.toFixed(3);
-}
-
-// HelpTip: a "?" chip that shows explanatory text on hover/focus. The bubble is
-// portaled to <body> and position:fixed so it can't be clipped by the table's
-// overflow container, and it appears instantly (no native-title delay).
-function HelpTip({ text }: { text: string }) {
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const show = (el: HTMLElement) => {
-    const r = el.getBoundingClientRect();
-    const x = Math.min(Math.max(r.left + r.width / 2, 150), window.innerWidth - 150);
-    setPos({ x, y: r.bottom + 8 });
-  };
-  return (
-    <span
-      className="qmark"
-      tabIndex={0}
-      role="img"
-      aria-label={text}
-      onMouseEnter={(e) => show(e.currentTarget)}
-      onMouseLeave={() => setPos(null)}
-      onFocus={(e) => show(e.currentTarget)}
-      onBlur={() => setPos(null)}
-    >
-      ?
-      {pos &&
-        createPortal(
-          <span className="tip-bubble" style={{ left: pos.x, top: pos.y }}>
-            {text}
-          </span>,
-          document.body,
-        )}
-    </span>
-  );
 }
 
 // A column header with an inline "?" that reveals the metric's one-liner on hover.
