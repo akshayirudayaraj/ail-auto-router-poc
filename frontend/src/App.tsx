@@ -17,10 +17,7 @@ export function App() {
       <header>
         <div className="brand">
           <span className="logo">⇌</span>
-          <div>
-            <h1>AIL Auto Router POC</h1>
-            <p className="sub">predictive auto-router · console</p>
-          </div>
+          <h1>AIL Auto Router POC</h1>
         </div>
         <nav id="tabs">
           {TABS.map((t) => (
