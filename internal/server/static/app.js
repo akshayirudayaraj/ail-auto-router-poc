@@ -23,8 +23,15 @@ const api = async (path, opts) => (await fetch(path, opts)).json();
 const fmt = (x) => (typeof x === "number" ? (Number.isInteger(x) ? x : x.toFixed(3)) : x);
 const signed = (x) => (x >= 0 ? "+" : "") + Number(x).toFixed(2);
 
-let STATE = { summary: null, localSet: new Set(), frontier: "", routers: [], fit: null };
-function isLocal(m) { return STATE.localSet.has(m); }
+let STATE = { summary: null, localSet: new Set(), frontier: "", routers: [], fit: null, modelArm: {} };
+// isLocal prefers the AUTHORITATIVE arm seen in the run records (modelArm, built
+// from the corpus) over the config roster — the roster can be stale/misresolved on
+// old data dirs, but a session's arm is ground truth. This keeps opus (frontier)
+// and gpt-oss:20b (local) reliably distinct-colored in the Data view.
+function isLocal(m) {
+  if (m in STATE.modelArm) return STATE.modelArm[m] === "local";
+  return STATE.localSet.has(m);
+}
 function modelChip(m) {
   if (!m) return el("span", { class: "muted" }, "—");
   return el("span", { class: "chip " + (isLocal(m) ? "model-local" : "model-frontier") }, m);
@@ -83,6 +90,10 @@ async function loadCorpus() {
   const [r, lb] = await Promise.all([api("/api/agentic"), api("/api/labels")]);
   corpusRows = r.rows || [];
   corpusLabels = lb.by_session || {};
+  // Authoritative model→arm map from the run records (drives chip colors).
+  corpusRows.forEach((row) => {
+    if (row.served_model && row.arm) STATE.modelArm[row.served_model] = row.arm;
+  });
   renderData();
 }
 
@@ -292,6 +303,7 @@ function renderEvals() {
   const chart = $("#evals-aiq-chart"); chart.innerHTML = "";
   const legend = $("#evals-legend"); legend.textContent = "";
 
+  $("#evals-dist").innerHTML = "";
   if (!r || r.error || !r.has_gold || !(r.leaderboard || []).length) {
     empty.innerHTML = "No dual-arm <b>gold</b> set yet (executed holdout not populated). Absolute cost/quality numbers appear once grading runs and <code>make agentic-materialize</code> writes gold rows. The harness methods below still describe what will be measured.";
     renderEvalMethods();
@@ -315,7 +327,48 @@ function renderEvals() {
   chart.append(svgBars(r.leaderboard.map((x) => ({ label: x.router, value: x.metrics.aiq || 0 })), { fmt: (v) => v.toFixed(3), color: "var(--accent)" }));
   legend.innerHTML = "AIQ = area under the cost/quality hull (higher = more quality per unit cost; best highlighted). " +
     "under_escal_cellB = stayed local but frontier would have passed (the costly miss). Only these gold numbers are absolute.";
+  renderRoutingDist(r);
   renderEvalMethods();
+}
+
+// renderRoutingDist: for each router, what fraction of gold prompts it sends to
+// LOCAL vs FRONTIER (@ the operating threshold), alongside the quality it retains
+// vs always-frontier. The win condition: match always-frontier's quality
+// (qual_retention ≈ 1.0) while keeping a HIGH share local (low escalation = low cost).
+function renderRoutingDist(r) {
+  const box = $("#evals-dist"); box.innerHTML = "";
+  const nGold = r.n_gold || 0;
+  // order: always-local, learned routers (by ascending escalation), always-frontier
+  const rows = [...r.leaderboard].sort((a, b) =>
+    (a.metrics["escalation@thr"] ?? 0) - (b.metrics["escalation@thr"] ?? 0));
+
+  rows.forEach((row) => {
+    const esc = row.metrics["escalation@thr"] ?? 0;         // frontier fraction
+    const qr = row.metrics["qual_retention"];               // vs always-frontier
+    const froN = Math.round(esc * nGold), locN = nGold - froN;
+    const locPct = Math.round((1 - esc) * 100), froPct = 100 - locPct;
+
+    const stack = el("div", { class: "stack" });
+    if (locPct > 0) stack.append(el("span", { class: "seg loc", style: `width:${locPct}%` }, locPct >= 12 ? `${locPct}%` : ""));
+    if (froPct > 0) stack.append(el("span", { class: "seg fro", style: `width:${froPct}%` }, froPct >= 12 ? `${froPct}%` : ""));
+
+    // quality-retention badge: green if it essentially matches always-frontier
+    let qBadge = el("span", { class: "muted small" }, "—");
+    if (qr != null) {
+      const good = qr >= 0.98;
+      qBadge = el("span", { class: "chip " + (good ? "ok" : qr >= 0.9 ? "warn" : "bad") }, "quality " + (qr * 100).toFixed(0) + "% of frontier");
+    }
+    box.append(el("div", { class: "dist-row" },
+      el("span", { class: "rname" }, row.router),
+      stack,
+      el("span", { class: "dist-counts muted small" }, nGold ? `${locN} local · ${froN} frontier` : `${locPct}% local · ${froPct}% frontier`),
+      qBadge));
+  });
+
+  box.append(el("div", { class: "dist-legend muted small" },
+    el("span", { class: "swatch loc" }), " routed to local (gpt-oss:20b, cheap) ",
+    el("span", { class: "swatch fro" }), " escalated to frontier (opus). ",
+    "Ideal: a learned router near always-frontier's quality while keeping a high local share."));
 }
 
 const EVAL_METHODS = [
@@ -394,23 +447,30 @@ async function runRoute() {
 // =====================================================================
 // charts + helpers
 // =====================================================================
+const trunc = (s, n) => { s = String(s); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+
 // svgBars: horizontal bar chart. items=[{label,value}]. diverging=true centers at 0.
+// Labels sit in a fixed left gutter (truncated to fit); values render just outside
+// each bar's far end (clamped into the plot); text is vertically centered on the
+// bar via dominant-baseline — so nothing overlaps regardless of label length.
 function svgBars(items, opts = {}) {
   const fmtV = opts.fmt || ((v) => String(fmt(v)));
-  const W = 560, rowH = 26, padL = 130, padR = 60, H = items.length * rowH + 10;
-  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "bars", width: "100%", height: H });
+  const W = 640, rowH = 30, padL = 150, padR = 66, H = items.length * rowH + 12;
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "bars", width: "100%", preserveAspectRatio: "xMinYMin meet" });
   const maxAbs = Math.max(1e-9, ...items.map((it) => Math.abs(it.value)));
   const plotW = W - padL - padR;
   const zeroX = opts.diverging ? padL + plotW / 2 : padL;
   const scale = opts.diverging ? (plotW / 2) / maxAbs : plotW / maxAbs;
-  if (opts.diverging) s.append(svg("line", { x1: zeroX, y1: 0, x2: zeroX, y2: H, stroke: "var(--border)", "stroke-width": 1 }));
+  if (opts.diverging) s.append(svg("line", { x1: zeroX, y1: 4, x2: zeroX, y2: H - 4, stroke: "var(--line)", "stroke-width": 1, "stroke-dasharray": "3 3" }));
   items.forEach((it, i) => {
-    const y = i * rowH + 5, w = Math.abs(it.value) * scale;
+    const cy = i * rowH + rowH / 2 + 6;
+    const w = Math.abs(it.value) * scale;
     const x = it.value >= 0 ? zeroX : zeroX - w;
     const color = opts.color || (it.value >= 0 ? "var(--good)" : "var(--bad)");
-    s.append(svg("text", { x: padL - 8, y: y + rowH / 2 - 4, "text-anchor": "end", class: "bl" }, it.label));
-    s.append(svg("rect", { x, y: y, width: Math.max(1, w), height: rowH - 10, rx: 3, fill: color, opacity: 0.85 }));
-    s.append(svg("text", { x: (it.value >= 0 ? x + w + 5 : x - 5), y: y + rowH / 2 - 4, "text-anchor": it.value >= 0 ? "start" : "end", class: "bv" }, fmtV(it.value)));
+    s.append(svg("text", { x: padL - 8, y: cy, "text-anchor": "end", "dominant-baseline": "middle", class: "bl" }, trunc(it.label, 18)));
+    s.append(svg("rect", { x, y: cy - (rowH - 14) / 2, width: Math.max(2, w), height: rowH - 14, rx: 3, fill: color, opacity: 0.85 }));
+    const vx = it.value >= 0 ? x + w + 6 : x - 6;
+    s.append(svg("text", { x: vx, y: cy, "text-anchor": it.value >= 0 ? "start" : "end", "dominant-baseline": "middle", class: "bv" }, fmtV(it.value)));
   });
   return s;
 }
