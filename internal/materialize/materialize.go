@@ -21,10 +21,10 @@
 //   - Firewall. AssertEvalStrongerThanTrain still holds: gold is executed (the
 //     strongest source), so it dominates any weak train label.
 //
-// Cost units mirror internal/agentic + internal/gold: billable (input+output)
-// tokens * price, frontier priced 15x local. Tokens are joined back to each
-// canonical session's run record by session_id (not newest-per-arm), so cost
-// reflects the exact session that produced the graded label.
+// Cost is real API $: input_tokens·in_price + output_tokens·out_price, priced
+// per tier (Opus $5/$25 per M in/out; local ≈ $0.05/$0.25). Tokens are joined
+// back to each canonical session's run record by session_id (not newest-per-arm),
+// so cost reflects the exact session that produced the graded label.
 //
 // stdlib-only + internal deps; no new third-party modules (invariant 1).
 package materialize
@@ -40,11 +40,17 @@ import (
 	"github.com/akshayirudayaraj/ail-routing-test/internal/schema"
 )
 
-// Cost convention (see package doc). Kept local so this package doesn't pull the
-// Python-bridge internal/agentic in; the two constants must stay in sync with it.
+// Cost model: real API $ pricing, per-token, priced SEPARATELY for input and
+// output (output is the pricier side). Frontier = Claude Opus ($5/M in, $25/M
+// out); local open-weight ≈ $0.05/M in, $0.25/M out (~100× cheaper). This makes
+// the frontier genuinely more expensive per token, so the gold cost/quality
+// curve has a real routing trade-off to reward (vs. a token-count proxy, under
+// which the token-hungry local model looked "expensive").
 const (
-	priceLocal    = 1.0
-	priceFrontier = 15.0
+	priceInFrontier  = 5.0 / 1e6  // $ per input token (Opus)
+	priceOutFrontier = 25.0 / 1e6 // $ per output token (Opus)
+	priceInLocal     = 0.05 / 1e6 // $ per input token (local open-weight)
+	priceOutLocal    = 0.25 / 1e6 // $ per output token (local open-weight)
 )
 
 // Embedder is the slice of the backend the builder needs (best-effort).
@@ -59,7 +65,10 @@ type Session struct {
 	OutputTokens int
 }
 
-func (s Session) billable() int { return s.InputTokens + s.OutputTokens }
+// costUSD prices a session at the given per-token input/output rates.
+func (s Session) costUSD(inPrice, outPrice float64) float64 {
+	return float64(s.InputTokens)*inPrice + float64(s.OutputTokens)*outPrice
+}
 
 // Datasets is the materialized output, ready to write with Save.
 type Datasets struct {
@@ -225,8 +234,8 @@ func Build(ctx context.Context, cfg config.Config, resolved []label.LabelRecord,
 			OutcomeFrontier: p.frontier.Outcome,
 			LocalModel:      localModel,
 			FrontierModel:   frontierModel,
-			CostLocal:       float64(sessions[p.local.SessionID].billable()) * priceLocal,
-			CostFrontier:    float64(sessions[p.frontier.SessionID].billable()) * priceFrontier,
+			CostLocal:       sessions[p.local.SessionID].costUSD(priceInLocal, priceOutLocal),
+			CostFrontier:    sessions[p.frontier.SessionID].costUSD(priceInFrontier, priceOutFrontier),
 			Executable:      true,
 		})
 	}

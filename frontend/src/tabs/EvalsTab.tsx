@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { type FitResult } from "../api";
 import { useConsole } from "../store";
 import { BarChart } from "../components/BarChart";
 import { GoldTable } from "../components/DatasetTables";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const LEADER_COLS = [
   "aiq",
@@ -101,11 +103,29 @@ function RoutingDist({ fit }: { fit: FitResult }) {
 }
 
 export function EvalsTab() {
-  const { fit, ensureFit } = useConsole();
+  const { fit, ensureFit, runEval } = useConsole();
+  const [busy, setBusy] = useState(false);
+  const [evalAt, setEvalAt] = useState("");
+  const [evalErr, setEvalErr] = useState("");
 
   useEffect(() => {
     ensureFit();
   }, [ensureFit]);
+
+  const onRunEvals = async () => {
+    setBusy(true);
+    setEvalAt("");
+    setEvalErr("");
+    try {
+      const [res] = await Promise.all([runEval(), sleep(450)]);
+      if (res.error) setEvalErr(res.error);
+      else setEvalAt(new Date().toLocaleTimeString());
+    } catch (e) {
+      setEvalErr(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const hasGold = !!(fit && !fit.error && fit.has_gold && (fit.leaderboard || []).length);
 
@@ -114,6 +134,29 @@ export function EvalsTab() {
 
   return (
     <section className="tab active">
+      <div className="panel">
+        <div className="controls">
+          <button className="primary" onClick={onRunEvals} disabled={busy}>
+            {busy ? "running evals…" : "Run evals"}
+          </button>
+          {busy ? (
+            <span className="fit-status running">
+              <span className="spinner" /> running dual-arm gold benchmark…
+            </span>
+          ) : evalErr ? (
+            <span className="fit-status err">✗ {evalErr}</span>
+          ) : evalAt ? (
+            <span className="fit-status done">
+              ✓ evaluated {fit?.n_gold ?? 0} gold rows · {evalAt}
+            </span>
+          ) : (
+            <span className="muted small">
+              Re-runs the dual-arm gold benchmark on the current fit source and refreshes the leaderboard.
+            </span>
+          )}
+        </div>
+      </div>
+
       {!hasGold && (
         <div
           className="note"

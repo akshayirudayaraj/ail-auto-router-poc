@@ -86,6 +86,17 @@ export interface FitResult {
   training?: Record<string, TrainedOn>;
 }
 
+// Result of an on-demand eval run (POST /api/eval).
+export interface EvalResult {
+  error?: string;
+  method?: string;
+  train_source?: string;
+  threshold?: number;
+  n_gold?: number;
+  leaderboard?: LeaderRow[];
+  notes?: string[];
+}
+
 export interface AgenticRow {
   session_id: string;
   served_model?: string;
