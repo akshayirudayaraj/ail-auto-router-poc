@@ -2,6 +2,7 @@ import { useState } from "react";
 import { apiPost, type RouteResult } from "../api";
 import { fmt } from "../format";
 import { useConsole } from "../store";
+import { HelpTip } from "../components/HelpTip";
 
 const ROUTE_EXAMPLES = [
   "Reverse a string in Go.",
@@ -47,6 +48,13 @@ export function RouteTab() {
 
   return (
     <section className="tab active">
+      <div
+        className="note"
+        dangerouslySetInnerHTML={{
+          __html:
+            "<b>Route a new prompt.</b> Type any prompt and see the live <b>local-vs-Opus</b> decision — the per-router escalation scores and the model-free prompt features behind them. This is the router running on a single request (the aggregate scores live under Evals).",
+        }}
+      />
       <div className="panel route-panel">
         <label className="block">
           New prompt
@@ -70,7 +78,10 @@ export function RouteTab() {
             </select>
           </label>
           <label>
-            Turn type
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              Turn type
+              <HelpTip text="open = a fresh, first-turn task prompt; followup = a continuation turn in an existing conversation. It's a model-free feature the routers use — follow-ups tend to be easier / more context-bound, so they escalate less." />
+            </span>
             <select value={turnType} onChange={(e) => setTurnType(e.target.value)}>
               <option value="open">open</option>
               <option value="followup">followup</option>
