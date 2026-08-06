@@ -303,7 +303,13 @@ type OperatingPoint struct {
 	QualityRetention float64         `json:"quality_retention"` // vs always-frontier
 	Cost             float64         `json:"cost"`              // mean achieved cost
 	CostVsLocal      float64         `json:"cost_vs_local"`     // vs always-local
-	Cells            EscalationCells `json:"cells"`
+	// Safety = recall of "local inadequate": of prompts where local would fail,
+	// the fraction the router correctly escalated. High = few quality leaks.
+	Safety float64 `json:"safety"`
+	// Thrift = of prompts where local would have passed, the fraction the router
+	// kept local. High = the router captures the available savings, not over-paying.
+	Thrift float64         `json:"thrift"`
+	Cells  EscalationCells `json:"cells"`
 }
 
 // Operating computes the operating point for a router's gold scores at a
@@ -312,10 +318,23 @@ func Operating(scores []float64, gold []schema.GoldRow, threshold float64) Opera
 	decisions := make([]bool, len(gold))
 	var q, c, esc float64
 	var qFront, cLocal float64
+	// safety/thrift denominators and hits (see field docs on OperatingPoint).
+	var localFail, escOnFail, localPass, keepOnPass float64
 	for i, row := range gold {
 		decisions[i] = scores[i] >= threshold
 		qFront += float64(row.OutcomeFrontier)
 		cLocal += row.CostLocal
+		if row.OutcomeLocal == 0 {
+			localFail++
+			if decisions[i] {
+				escOnFail++
+			}
+		} else {
+			localPass++
+			if !decisions[i] {
+				keepOnPass++
+			}
+		}
 		if decisions[i] {
 			q += float64(row.OutcomeFrontier)
 			c += row.CostFrontier
@@ -339,5 +358,70 @@ func Operating(scores []float64, gold []schema.GoldRow, threshold float64) Opera
 	if cLocal > 0 {
 		op.CostVsLocal = c / cLocal
 	}
+	if localFail > 0 {
+		op.Safety = escOnFail / localFail
+	}
+	if localPass > 0 {
+		op.Thrift = keepOnPass / localPass
+	}
 	return op
+}
+
+// Baseline is one reference operating point on the gold set (a non-learned
+// policy). It anchors the cost/quality plot and bounds what a learned router
+// can achieve.
+type Baseline struct {
+	Name       string  `json:"name"`
+	LocalShare float64 `json:"local_share"` // fraction kept on local
+	QualRet    float64 `json:"qual_retention"`
+	CostVsLoc  float64 `json:"cost_vs_local"`
+}
+
+// GoldBaselines returns the three reference policies on the gold set:
+//   - always-local: never escalate (cheapest; quality ceiling below frontier),
+//   - always-frontier: always escalate (best quality; most expensive),
+//   - oracle: escalate iff local would fail (the perfect router — the maximum
+//     local share reachable at full frontier quality).
+//
+// OracleLocalShare is the denominator for a router's savings_capture: how much
+// of the safely-offloadable traffic the router actually kept local.
+func GoldBaselines(gold []schema.GoldRow) (baselines []Baseline, oracleLocalShare float64) {
+	n := float64(len(gold))
+	if n == 0 {
+		return nil, 0
+	}
+	var qLocal, qFront, cLocal, cFront float64
+	var localPass, oracleQ, oracleCost float64
+	for _, row := range gold {
+		qLocal += float64(row.OutcomeLocal)
+		qFront += float64(row.OutcomeFrontier)
+		cLocal += row.CostLocal
+		cFront += row.CostFrontier
+		if row.OutcomeLocal == 1 {
+			localPass++
+			oracleQ += float64(row.OutcomeLocal)
+			oracleCost += row.CostLocal
+		} else {
+			oracleQ += float64(row.OutcomeFrontier)
+			oracleCost += row.CostFrontier
+		}
+	}
+	ret := func(q float64) float64 {
+		if qFront > 0 {
+			return q / qFront
+		}
+		return 0
+	}
+	cvl := func(c float64) float64 {
+		if cLocal > 0 {
+			return c / cLocal
+		}
+		return 0
+	}
+	oracleLocalShare = localPass / n
+	return []Baseline{
+		{Name: "always-local", LocalShare: 1, QualRet: ret(qLocal), CostVsLoc: cvl(cLocal)},
+		{Name: "oracle", LocalShare: oracleLocalShare, QualRet: ret(oracleQ), CostVsLoc: cvl(oracleCost)},
+		{Name: "always-frontier", LocalShare: 0, QualRet: ret(qFront), CostVsLoc: cvl(cFront)},
+	}, oracleLocalShare
 }

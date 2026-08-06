@@ -106,6 +106,47 @@ func TestOperatingRetention(t *testing.T) {
 	}
 }
 
+func TestSafetyThrift(t *testing.T) {
+	gold := goldFixture() // 5 easy (local ok), 5 hard (local fails, frontier ok)
+	// oracle decision: escalate the hard rows, keep the easy ones.
+	oracle := Operating([]float64{0, 0, 0, 0, 0, 1, 1, 1, 1, 1}, gold, 0.5)
+	if math.Abs(oracle.Safety-1.0) > 1e-9 {
+		t.Fatalf("oracle safety = %v want 1.0 (caught every local failure)", oracle.Safety)
+	}
+	if math.Abs(oracle.Thrift-1.0) > 1e-9 {
+		t.Fatalf("oracle thrift = %v want 1.0 (kept every easy prompt local)", oracle.Thrift)
+	}
+	// always-local: never escalates -> catches no failures but wastes nothing.
+	local := Operating(make([]float64, len(gold)), gold, 0.5)
+	if local.Safety != 0 {
+		t.Fatalf("always-local safety = %v want 0 (missed every failure)", local.Safety)
+	}
+	if math.Abs(local.Thrift-1.0) > 1e-9 {
+		t.Fatalf("always-local thrift = %v want 1.0", local.Thrift)
+	}
+}
+
+func TestGoldBaselines(t *testing.T) {
+	gold := goldFixture()
+	anchors, oracleShare := GoldBaselines(gold)
+	if math.Abs(oracleShare-0.5) > 1e-9 {
+		t.Fatalf("oracle local share = %v want 0.5 (half the prompts are easy)", oracleShare)
+	}
+	by := map[string]Baseline{}
+	for _, a := range anchors {
+		by[a.Name] = a
+	}
+	if a := by["always-frontier"]; math.Abs(a.QualRet-1.0) > 1e-9 || a.LocalShare != 0 {
+		t.Fatalf("always-frontier = %+v want share 0 / retention 1", a)
+	}
+	if a := by["oracle"]; math.Abs(a.QualRet-1.0) > 1e-9 || math.Abs(a.LocalShare-0.5) > 1e-9 {
+		t.Fatalf("oracle = %+v want share 0.5 / retention 1 (full quality at half cost)", a)
+	}
+	if a := by["always-local"]; math.Abs(a.QualRet-0.5) > 1e-9 || a.LocalShare != 1 {
+		t.Fatalf("always-local = %+v want share 1 / retention 0.5", a)
+	}
+}
+
 func TestCalibrateEscalationRate(t *testing.T) {
 	scores := []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0}
 	thr := CalibrateEscalationRate(scores, 0.3)

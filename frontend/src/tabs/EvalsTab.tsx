@@ -1,27 +1,51 @@
 import { useEffect, useState } from "react";
-import { type FitResult } from "../api";
+import { type Anchor, type LeaderRow } from "../api";
 import { useConsole } from "../store";
-import { BarChart } from "../components/BarChart";
+import { CostQualityPlot } from "../components/CostQualityPlot";
 import { GoldTable } from "../components/DatasetTables";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Headline metrics first (the POC goal: keep requests local without losing
-// quality), then secondary/diagnostic.
-const LEADER_COLS = [
+// Headline scorecard = local share + quality retention. Everything else is a
+// supporting or secondary/diagnostic column.
+const PRIMARY_COLS = ["local_share@thr", "qual_retention", "safety", "thrift", "savings_capture", "under_escal_cellB"];
+const SECONDARY_COLS = ["offload_isoq", "escalation@thr", "quality@thr", "over_escalation", "aiq", "auc", "ece", "cost_vs_local"];
+
+const COL_LABEL: Record<string, string> = {
+  "local_share@thr": "local share",
+  qual_retention: "quality vs Opus",
+  safety: "safety",
+  thrift: "thrift",
+  savings_capture: "vs oracle",
+  under_escal_cellB: "quality leaks",
+  offload_isoq: "offload_isoq",
+  "escalation@thr": "escalation@thr",
+  "quality@thr": "quality@thr",
+  over_escalation: "over_escal",
+  aiq: "aiq",
+  auc: "auc",
+  ece: "ece",
+  cost_vs_local: "cost_vs_local",
+};
+
+// metrics shown as percentages; the rest as 3-decimal floats.
+const PCT_METRICS = new Set([
   "local_share@thr",
   "qual_retention",
-  "offload_isoq",
+  "safety",
+  "thrift",
+  "savings_capture",
   "under_escal_cellB",
+  "offload_isoq",
   "escalation@thr",
   "quality@thr",
   "over_escalation",
-  "aiq",
-  "auc",
-  "ece",
-  "cost_vs_local",
-];
-const HEADLINE_METRIC = "offload_isoq";
+]);
+
+function fmtMetric(key: string, v: number | null | undefined): string {
+  if (v == null) return "";
+  return PCT_METRICS.has(key) ? `${(v * 100).toFixed(0)}%` : v.toFixed(3);
+}
 
 const EVAL_METHODS: [string, string][] = [
   ["dual-arm-gold", "Both arms' outcomes known → RouterBench-style cost/quality curve, AIQ, and escalation cells. The only trustworthy ABSOLUTE anchor."],
@@ -45,54 +69,67 @@ function EvalMethods() {
   );
 }
 
-// For each router, the fraction of gold prompts it sends to LOCAL vs FRONTIER
-// (@ threshold), alongside the quality it retains vs always-frontier. The win
-// condition: match always-frontier's quality (qual_retention ≈ 1.0) while
-// keeping a HIGH share local (low escalation = low cost).
-function RoutingDist({ fit }: { fit: FitResult }) {
-  const nGold = fit.n_gold || 0;
-  const rows = [...(fit.leaderboard || [])].sort(
-    (a, b) => ((a.metrics["escalation@thr"] ?? 0) as number) - ((b.metrics["escalation@thr"] ?? 0) as number),
+// champion = the router that keeps the MOST traffic local while still matching
+// frontier quality (retention ≈ 1). Falls back to the highest-quality router
+// when none reaches full quality. Used to highlight the winning row.
+function champion(rows: LeaderRow[]): string {
+  const qr = (r: LeaderRow) => (r.metrics["qual_retention"] as number) ?? 0;
+  const ls = (r: LeaderRow) => (r.metrics["local_share@thr"] as number) ?? 0;
+  const full = rows.filter((r) => qr(r) >= 0.995);
+  const pool = full.length ? full : rows;
+  let best: LeaderRow | null = null;
+  for (const r of pool) {
+    if (!best) {
+      best = r;
+      continue;
+    }
+    if (full.length ? ls(r) > ls(best) : qr(r) > qr(best)) best = r;
+  }
+  return best?.router ?? "";
+}
+
+// The POC headline: for each learned router, the share of requests it keeps on
+// the cheap LOCAL model, with a badge for the quality it retains vs always-Opus.
+// Ideal = a long green bar (high local share) at 100% quality.
+function ScoreCard({ rows: rows0, anchors, nGold, champ }: { rows: LeaderRow[]; anchors: Anchor[]; nGold: number; champ: string }) {
+  const oracle = anchors.find((a) => a.name === "oracle");
+  const rows = [...rows0].sort(
+    (a, b) => ((b.metrics["local_share@thr"] ?? 0) as number) - ((a.metrics["local_share@thr"] ?? 0) as number),
   );
 
   return (
     <>
       <div id="evals-dist">
         {rows.map((row) => {
-          const esc = (row.metrics["escalation@thr"] ?? 0) as number;
+          const ls = (row.metrics["local_share@thr"] ?? 0) as number;
           const qr = row.metrics["qual_retention"];
-          const froN = Math.round(esc * nGold),
-            locN = nGold - froN;
-          const locPct = Math.round((1 - esc) * 100),
-            froPct = 100 - locPct;
+          const locPct = Math.round(ls * 100);
+          const locN = Math.round(ls * nGold);
 
           let qBadge = <span className="muted small">—</span>;
           if (qr != null) {
             const good = qr >= 0.98;
             qBadge = (
               <span className={"chip " + (good ? "ok" : qr >= 0.9 ? "warn" : "bad")}>
-                quality {(qr * 100).toFixed(0)}% of frontier
+                quality {(qr * 100).toFixed(0)}% of Opus
               </span>
             );
           }
 
           return (
             <div key={row.router} className="dist-row">
-              <span className="rname">{row.router}</span>
+              <span className="rname" style={row.router === champ ? { fontWeight: 700, color: "var(--good)" } : undefined}>
+                {row.router}
+              </span>
               <div className="stack">
                 {locPct > 0 && (
                   <span className="seg loc" style={{ width: `${locPct}%` }}>
                     {locPct >= 12 ? `${locPct}%` : ""}
                   </span>
                 )}
-                {froPct > 0 && (
-                  <span className="seg fro" style={{ width: `${froPct}%` }}>
-                    {froPct >= 12 ? `${froPct}%` : ""}
-                  </span>
-                )}
               </div>
               <span className="dist-counts muted small">
-                {nGold ? `${locN} local · ${froN} frontier` : `${locPct}% local · ${froPct}% frontier`}
+                {nGold ? `${locN}/${nGold} local` : `${locPct}% local`}
               </span>
               {qBadge}
             </div>
@@ -100,15 +137,107 @@ function RoutingDist({ fit }: { fit: FitResult }) {
         })}
       </div>
       <div className="dist-legend muted small">
-        <span className="swatch loc" /> routed to local (gpt-oss:20b, cheap) <span className="swatch fro" /> escalated
-        to frontier (opus). Ideal: a learned router near always-frontier's quality while keeping a high local share.
+        <span className="swatch loc" /> kept on local (gpt-oss:20b, cheap). Bar length = share of requests handled
+        locally; the badge is quality retained vs always-Opus.
+        {oracle != null && (
+          <>
+            {" "}
+            A perfect <b>oracle</b> would keep <b>{Math.round(oracle.local_share * 100)}%</b> local at 100% quality.
+          </>
+        )}
       </div>
     </>
   );
 }
 
+// The primary metrics table: the scorecard numbers plus WHY it works (safety,
+// thrift, vs-oracle) and the one cell to minimize (quality leaks). Reference
+// anchors are appended, muted, so the learned routers read against the bounds.
+function PrimaryTable({ leaderboard, anchors, champ }: { leaderboard: LeaderRow[]; anchors: Anchor[]; champ: string }) {
+  return (
+    <div className="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>router</th>
+            {PRIMARY_COLS.map((c) => (
+              <th key={c} className="num">
+                {COL_LABEL[c] ?? c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {leaderboard.map((row) => (
+            <tr key={row.router}>
+              <td className="rname" style={row.router === champ ? { fontWeight: 700, color: "var(--good)" } : undefined}>
+                {row.router}
+              </td>
+              {PRIMARY_COLS.map((m) => (
+                <td key={m} className="num">
+                  {fmtMetric(m, row.metrics[m] as number | null)}
+                </td>
+              ))}
+            </tr>
+          ))}
+          {anchors.map((a) => (
+            <tr key={a.name} style={{ color: "var(--muted)", fontStyle: "italic" }}>
+              <td className="rname">{a.name}</td>
+              <td className="num">{fmtMetric("local_share@thr", a.local_share)}</td>
+              <td className="num">{fmtMetric("qual_retention", a.qual_retention)}</td>
+              <td className="num" colSpan={4}>
+                {a.name === "oracle" ? "perfect router (upper bound)" : "reference"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
+  return (
+    <details className="panel" style={{ marginTop: 12 }}>
+      <summary style={{ cursor: "pointer", color: "var(--muted)" }}>
+        Secondary / diagnostic metrics (AIQ, AUC, ECE, offload_isoq, raw cost)
+      </summary>
+      <div className="tablewrap" style={{ marginTop: 10 }}>
+        <table>
+          <thead>
+            <tr>
+              <th>router</th>
+              {SECONDARY_COLS.map((c) => (
+                <th key={c} className="num">
+                  {COL_LABEL[c] ?? c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {leaderboard.map((row) => (
+              <tr key={row.router}>
+                <td className="rname">{row.router}</td>
+                {SECONDARY_COLS.map((m) => (
+                  <td key={m} className="num">
+                    {fmtMetric(m, row.metrics[m] as number | null)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="muted small" style={{ marginTop: 8 }}>
+        AIQ = $-cost-weighted area under the cost/quality hull. offload_isoq = max local share at exactly-frontier quality
+        (brittle on small gold sets — kept for continuity). AUC/ECE score the escalation signal against "local inadequate".
+      </p>
+    </details>
+  );
+}
+
 export function EvalsTab() {
-  const { fit, ensureFit, runEval } = useConsole();
+  const { fit, routers, ensureFit, runEval } = useConsole();
   const [busy, setBusy] = useState(false);
   const [evalAt, setEvalAt] = useState("");
   const [evalErr, setEvalErr] = useState("");
@@ -132,11 +261,19 @@ export function EvalsTab() {
     }
   };
 
-  const hasGold = !!(fit && !fit.error && fit.has_gold && (fit.leaderboard || []).length);
+  const leaderboard = fit?.leaderboard || [];
+  const anchors = fit?.anchors || [];
+  const hasGold = !!(fit && !fit.error && fit.has_gold && leaderboard.length);
 
-  let best = -1;
-  if (hasGold)
-    (fit!.leaderboard || []).forEach((x) => (best = Math.max(best, (x.metrics[HEADLINE_METRIC] as number) || 0)));
+  // Headline shows only genuinely-LEARNED routers. always-local/always-frontier
+  // are baselines (represented by the anchors) and the stubs are placeholders —
+  // both would muddy the scorecard and skew the vs-oracle numbers. Fall back to
+  // dropping just the two baselines if router metadata hasn't loaded yet.
+  const learnedNames = new Set(routers.filter((r) => r.kind === "learned").map((r) => r.name));
+  const learnedRows = learnedNames.size
+    ? leaderboard.filter((r) => learnedNames.has(r.router))
+    : leaderboard.filter((r) => r.router !== "always-local" && r.router !== "always-frontier");
+  const champ = hasGold ? champion(learnedRows) : "";
 
   return (
     <section className="tab active">
@@ -176,81 +313,41 @@ export function EvalsTab() {
       {hasGold && (
         <>
           <h3>
-            Dual-arm gold leaderboard{" "}
-            <span className="muted">(the only trustworthy absolute anchor)</span>
+            Router scorecard <span className="muted">(the POC goal: keep requests on local without losing quality)</span>
           </h3>
           <p className="muted small">
-            Headline: <b>local offload @ frontier quality</b> — the max share of requests a router keeps on the{" "}
-            <b>local</b> model while still matching always-frontier quality. Higher = more offload at no quality cost;
-            it rises as the local model improves and needs no cost model. (Cost is really the <b>frontier-call rate</b>{" "}
-            — local is ≈ free at the margin; the $/token AIQ is kept as a secondary anchor.)
+            Each router keeps some share of requests on the cheap <b>local</b> model and escalates the rest to{" "}
+            <b>Opus</b>. The win: a <b>high local share</b> at <b>~100% of Opus quality</b>. No cost model needed — this is
+            just fraction-of-requests and achieved quality on the dual-arm gold set.
           </p>
-          <div className="chart">
-            <BarChart
-              items={(fit!.leaderboard || []).map((x) => ({
-                label: x.router,
-                value: (x.metrics[HEADLINE_METRIC] as number) || 0,
-              }))}
-              color="var(--local)"
-              fmtV={(v) => `${(v * 100).toFixed(0)}%`}
-            />
-          </div>
-          <div className="tablewrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>router</th>
-                  {LEADER_COLS.map((c) => (
-                    <th key={c} className="num">
-                      {c}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {(fit!.leaderboard || []).map((row) => (
-                  <tr key={row.router}>
-                    <td className="rname">{row.router}</td>
-                    {LEADER_COLS.map((m) => {
-                      const v = row.metrics[m];
-                      const isBest =
-                        m === HEADLINE_METRIC && v != null && (v as number) > 0 && Math.abs((v as number) - best) < 1e-9;
-                      return (
-                        <td
-                          key={m}
-                          className="num"
-                          style={isBest ? { fontWeight: 700, color: "var(--good)" } : undefined}
-                        >
-                          {v == null ? "" : (v as number).toFixed(3)}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ScoreCard rows={learnedRows} anchors={anchors} nGold={fit!.n_gold || 0} champ={champ} />
+
+          <h3 style={{ marginTop: 22 }}>
+            How it earns that <span className="muted">(safety · thrift · vs the perfect oracle)</span>
+          </h3>
+          <PrimaryTable leaderboard={learnedRows} anchors={anchors} champ={champ} />
           <p
             className="muted small"
             dangerouslySetInnerHTML={{
               __html:
-                "<b>offload_isoq</b> = max local share at frontier-matching quality (headline, highlighted; threshold-independent). " +
-                "<b>local_share@thr</b> = fraction kept local at the operating threshold. <b>qual_retention</b> = quality vs always-frontier (want ~1.0). " +
-                "<b>under_escal_cellB</b> = stayed local but frontier would have passed (the quality-eroding miss; want ~0). " +
-                "AIQ (secondary) = $-cost-weighted area under the cost/quality hull.",
+                "<b>local share</b> = fraction kept local. <b>quality vs Opus</b> = adequacy retained vs always-Opus (want 100%). " +
+                "<b>safety</b> = of prompts where local would fail, the share correctly escalated (protects quality). " +
+                "<b>thrift</b> = of prompts where local would pass, the share kept local (captures savings). " +
+                "<b>vs oracle</b> = local share as a fraction of a perfect router's. <b>quality leaks</b> = stayed local but Opus would've passed (want 0%).",
             }}
           />
 
-          <h3>
-            Routing distribution{" "}
-            <span className="muted">(local vs frontier @ threshold — cost vs quality trade-off)</span>
+          <h3 style={{ marginTop: 22 }}>
+            Cost / quality map <span className="muted">(each router vs the always-local / oracle / always-Opus anchors)</span>
           </h3>
-          <RoutingDist fit={fit!} />
+          <CostQualityPlot leaderboard={learnedRows} anchors={anchors} />
+
+          <SecondaryTable leaderboard={leaderboard} />
         </>
       )}
 
       <h3>
-        Gold rows <span className="muted">(dual-arm executed benchmark — the rows behind the leaderboard)</span>
+        Gold rows <span className="muted">(dual-arm executed benchmark — the rows behind the scorecard)</span>
       </h3>
       <GoldTable />
 
