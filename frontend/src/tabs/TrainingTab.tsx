@@ -3,6 +3,7 @@ import { signed } from "../format";
 import { useConsole } from "../store";
 import { ModelChip } from "../components/chips";
 import { BarChart } from "../components/BarChart";
+import { PairwiseTable, PointwiseTable } from "../components/DatasetTables";
 
 export function TrainingTab() {
   const { routers, fit, fitParams, fitStatus, runFit, ensureFit } = useConsole();
@@ -112,6 +113,16 @@ export function TrainingTab() {
           {fit?.error ? fit.error : "Fit the routers to see IRT ability recovery."}
         </p>
       )}
+
+      <h3>
+        Pointwise rows <span className="muted">(single-arm (model, prompt) → outcome — IRT/kNN training unit)</span>
+      </h3>
+      <PointwiseTable />
+
+      <h3>
+        Pairwise rows <span className="muted">(preference A vs B on the same prompt — logistic router training unit)</span>
+      </h3>
+      <PairwiseTable />
     </section>
   );
 }
