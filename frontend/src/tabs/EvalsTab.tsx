@@ -6,17 +6,22 @@ import { GoldTable } from "../components/DatasetTables";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Headline metrics first (the POC goal: keep requests local without losing
+// quality), then secondary/diagnostic.
 const LEADER_COLS = [
+  "local_share@thr",
+  "qual_retention",
+  "offload_isoq",
+  "under_escal_cellB",
+  "escalation@thr",
+  "quality@thr",
+  "over_escalation",
   "aiq",
   "auc",
   "ece",
-  "escalation@thr",
-  "quality@thr",
-  "qual_retention",
   "cost_vs_local",
-  "under_escal_cellB",
-  "over_escalation",
 ];
+const HEADLINE_METRIC = "offload_isoq";
 
 const EVAL_METHODS: [string, string][] = [
   ["dual-arm-gold", "Both arms' outcomes known → RouterBench-style cost/quality curve, AIQ, and escalation cells. The only trustworthy ABSOLUTE anchor."],
@@ -130,7 +135,8 @@ export function EvalsTab() {
   const hasGold = !!(fit && !fit.error && fit.has_gold && (fit.leaderboard || []).length);
 
   let best = -1;
-  if (hasGold) (fit!.leaderboard || []).forEach((x) => (best = Math.max(best, (x.metrics.aiq as number) || 0)));
+  if (hasGold)
+    (fit!.leaderboard || []).forEach((x) => (best = Math.max(best, (x.metrics[HEADLINE_METRIC] as number) || 0)));
 
   return (
     <section className="tab active">
@@ -171,13 +177,22 @@ export function EvalsTab() {
         <>
           <h3>
             Dual-arm gold leaderboard{" "}
-            <span className="muted">(absolute cost/quality — the only trustworthy anchor)</span>
+            <span className="muted">(the only trustworthy absolute anchor)</span>
           </h3>
+          <p className="muted small">
+            Headline: <b>local offload @ frontier quality</b> — the max share of requests a router keeps on the{" "}
+            <b>local</b> model while still matching always-frontier quality. Higher = more offload at no quality cost;
+            it rises as the local model improves and needs no cost model. (Cost is really the <b>frontier-call rate</b>{" "}
+            — local is ≈ free at the margin; the $/token AIQ is kept as a secondary anchor.)
+          </p>
           <div className="chart">
             <BarChart
-              items={(fit!.leaderboard || []).map((x) => ({ label: x.router, value: (x.metrics.aiq as number) || 0 }))}
-              color="var(--accent)"
-              fmtV={(v) => v.toFixed(3)}
+              items={(fit!.leaderboard || []).map((x) => ({
+                label: x.router,
+                value: (x.metrics[HEADLINE_METRIC] as number) || 0,
+              }))}
+              color="var(--local)"
+              fmtV={(v) => `${(v * 100).toFixed(0)}%`}
             />
           </div>
           <div className="tablewrap">
@@ -198,7 +213,8 @@ export function EvalsTab() {
                     <td className="rname">{row.router}</td>
                     {LEADER_COLS.map((m) => {
                       const v = row.metrics[m];
-                      const isBest = m === "aiq" && v != null && (v as number) > 0 && Math.abs((v as number) - best) < 1e-9;
+                      const isBest =
+                        m === HEADLINE_METRIC && v != null && (v as number) > 0 && Math.abs((v as number) - best) < 1e-9;
                       return (
                         <td
                           key={m}
@@ -218,7 +234,10 @@ export function EvalsTab() {
             className="muted small"
             dangerouslySetInnerHTML={{
               __html:
-                "AIQ = area under the cost/quality hull (higher = more quality per unit cost; best highlighted). under_escal_cellB = stayed local but frontier would have passed (the costly miss). Only these gold numbers are absolute.",
+                "<b>offload_isoq</b> = max local share at frontier-matching quality (headline, highlighted; threshold-independent). " +
+                "<b>local_share@thr</b> = fraction kept local at the operating threshold. <b>qual_retention</b> = quality vs always-frontier (want ~1.0). " +
+                "<b>under_escal_cellB</b> = stayed local but frontier would have passed (the quality-eroding miss; want ~0). " +
+                "AIQ (secondary) = $-cost-weighted area under the cost/quality hull.",
             }}
           />
 

@@ -59,19 +59,25 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 		hull := UpperHull(curve)
 		aiq := AIQ(curve)
 		op := Operating(scores, d.Gold, g.Threshold)
+		offload := LocalOffloadAtFrontierQuality(curve)
 
 		rep.Rows = append(rep.Rows, ReportRow{
 			Router: r.Name(),
 			Metrics: map[string]float64{
-				"auc":               AUC(scores, labels),
-				"ece":               ECE(scores, labels, 10),
-				"aiq":               aiq,
-				"escalation@thr":    op.EscalationRate,
-				"quality@thr":       op.Quality,
+				// headline for this POC: keep as much local as possible WITHOUT
+				// losing quality vs always-frontier.
+				"local_share@thr":   1 - op.EscalationRate,
 				"qual_retention":    op.QualityRetention,
-				"cost_vs_local":     op.CostVsLocal,
+				"offload_isoq":      offload, // max local share while matching frontier quality
 				"under_escal_cellB": op.Cells.UnderEscalation,
-				"over_escalation":   op.Cells.OverEscalation,
+				// secondary / diagnostic
+				"escalation@thr":  op.EscalationRate,
+				"quality@thr":     op.Quality,
+				"over_escalation": op.Cells.OverEscalation,
+				"aiq":             aiq,
+				"auc":             AUC(scores, labels),
+				"ece":             ECE(scores, labels, 10),
+				"cost_vs_local":   op.CostVsLocal,
 			},
 		})
 		details = append(details, goldDetail{Router: r.Name(), Curve: curve, Hull: hull})
