@@ -148,7 +148,7 @@
     {
       "task_id": "gen-bugfix-wordcount",
       "arm": "local",
-      "session_id": "gen-bugfix-wordcount__local__963462c0",
+      "session_id": "gen-bugfix-wordcount__local__8512972e",
       "split": "train",
       "provenance": "synthetic",
       "grounding": "synthetic_repo",
@@ -292,7 +292,7 @@
     {
       "task_id": "swe-mwaskom__seaborn-3069",
       "arm": "local",
-      "session_id": "swe-mwaskom__seaborn-3069__local__963462c0",
+      "session_id": "swe-mwaskom__seaborn-3069__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -310,7 +310,7 @@
     {
       "task_id": "swe-mwaskom__seaborn-3187",
       "arm": "local",
-      "session_id": "swe-mwaskom__seaborn-3187__local__963462c0",
+      "session_id": "swe-mwaskom__seaborn-3187__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -328,7 +328,7 @@
     {
       "task_id": "swe-pallets__flask-5014",
       "arm": "local",
-      "session_id": "swe-pallets__flask-5014__local__963462c0",
+      "session_id": "swe-pallets__flask-5014__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -355,7 +355,7 @@
     {
       "task_id": "swe-psf__requests-1142",
       "arm": "local",
-      "session_id": "swe-psf__requests-1142__local__963462c0",
+      "session_id": "swe-psf__requests-1142__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -382,7 +382,7 @@
     {
       "task_id": "swe-psf__requests-1724",
       "arm": "local",
-      "session_id": "swe-psf__requests-1724__local__963462c0",
+      "session_id": "swe-psf__requests-1724__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -400,7 +400,7 @@
     {
       "task_id": "swe-psf__requests-1766",
       "arm": "local",
-      "session_id": "swe-psf__requests-1766__local__963462c0",
+      "session_id": "swe-psf__requests-1766__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -418,7 +418,7 @@
     {
       "task_id": "swe-psf__requests-1921",
       "arm": "local",
-      "session_id": "swe-psf__requests-1921__local__963462c0",
+      "session_id": "swe-psf__requests-1921__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -436,7 +436,7 @@
     {
       "task_id": "swe-psf__requests-2931",
       "arm": "local",
-      "session_id": "swe-psf__requests-2931__local__963462c0",
+      "session_id": "swe-psf__requests-2931__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -454,7 +454,7 @@
     {
       "task_id": "swe-psf__requests-5414",
       "arm": "local",
-      "session_id": "swe-psf__requests-5414__local__963462c0",
+      "session_id": "swe-psf__requests-5414__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -472,7 +472,7 @@
     {
       "task_id": "swe-pydata__xarray-3151",
       "arm": "local",
-      "session_id": "swe-pydata__xarray-3151__local__963462c0",
+      "session_id": "swe-pydata__xarray-3151__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -490,7 +490,7 @@
     {
       "task_id": "swe-pydata__xarray-3677",
       "arm": "local",
-      "session_id": "swe-pydata__xarray-3677__local__963462c0",
+      "session_id": "swe-pydata__xarray-3677__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -508,7 +508,7 @@
     {
       "task_id": "swe-pydata__xarray-4629",
       "arm": "local",
-      "session_id": "swe-pydata__xarray-4629__local__963462c0",
+      "session_id": "swe-pydata__xarray-4629__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -526,7 +526,7 @@
     {
       "task_id": "swe-pydata__xarray-4966",
       "arm": "local",
-      "session_id": "swe-pydata__xarray-4966__local__963462c0",
+      "session_id": "swe-pydata__xarray-4966__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -544,7 +544,7 @@
     {
       "task_id": "swe-pydata__xarray-6461",
       "arm": "local",
-      "session_id": "swe-pydata__xarray-6461__local__963462c0",
+      "session_id": "swe-pydata__xarray-6461__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -562,7 +562,7 @@
     {
       "task_id": "swe-pydata__xarray-7393",
       "arm": "local",
-      "session_id": "swe-pydata__xarray-7393__local__963462c0",
+      "session_id": "swe-pydata__xarray-7393__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -580,7 +580,7 @@
     {
       "task_id": "swe-pylint-dev__pylint-4661",
       "arm": "local",
-      "session_id": "swe-pylint-dev__pylint-4661__local__963462c0",
+      "session_id": "swe-pylint-dev__pylint-4661__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -598,7 +598,7 @@
     {
       "task_id": "swe-pylint-dev__pylint-4970",
       "arm": "local",
-      "session_id": "swe-pylint-dev__pylint-4970__local__963462c0",
+      "session_id": "swe-pylint-dev__pylint-4970__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -616,7 +616,7 @@
     {
       "task_id": "swe-pylint-dev__pylint-6386",
       "arm": "local",
-      "session_id": "swe-pylint-dev__pylint-6386__local__963462c0",
+      "session_id": "swe-pylint-dev__pylint-6386__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -634,7 +634,7 @@
     {
       "task_id": "swe-pylint-dev__pylint-6903",
       "arm": "local",
-      "session_id": "swe-pylint-dev__pylint-6903__local__963462c0",
+      "session_id": "swe-pylint-dev__pylint-6903__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -652,7 +652,7 @@
     {
       "task_id": "swe-pytest-dev__pytest-10051",
       "arm": "local",
-      "session_id": "swe-pytest-dev__pytest-10051__local__963462c0",
+      "session_id": "swe-pytest-dev__pytest-10051__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -670,7 +670,7 @@
     {
       "task_id": "swe-pytest-dev__pytest-5262",
       "arm": "local",
-      "session_id": "swe-pytest-dev__pytest-5262__local__963462c0",
+      "session_id": "swe-pytest-dev__pytest-5262__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -688,7 +688,7 @@
     {
       "task_id": "swe-pytest-dev__pytest-5809",
       "arm": "local",
-      "session_id": "swe-pytest-dev__pytest-5809__local__963462c0",
+      "session_id": "swe-pytest-dev__pytest-5809__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -706,7 +706,7 @@
     {
       "task_id": "swe-pytest-dev__pytest-7324",
       "arm": "local",
-      "session_id": "swe-pytest-dev__pytest-7324__local__963462c0",
+      "session_id": "swe-pytest-dev__pytest-7324__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -724,7 +724,7 @@
     {
       "task_id": "swe-pytest-dev__pytest-7521",
       "arm": "local",
-      "session_id": "swe-pytest-dev__pytest-7521__local__963462c0",
+      "session_id": "swe-pytest-dev__pytest-7521__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -742,7 +742,7 @@
     {
       "task_id": "swe-pytest-dev__pytest-7982",
       "arm": "local",
-      "session_id": "swe-pytest-dev__pytest-7982__local__963462c0",
+      "session_id": "swe-pytest-dev__pytest-7982__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
