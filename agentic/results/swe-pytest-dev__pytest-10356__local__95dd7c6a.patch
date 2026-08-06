@@ -1,0 +1,13 @@
+diff --git a/src/_pytest/_io/terminalwriter.py b/src/_pytest/_io/terminalwriter.py
+index 379035d85..4bddf8640 100644
+--- a/src/_pytest/_io/terminalwriter.py
++++ b/src/_pytest/_io/terminalwriter.py
+@@ -74,7 +74,7 @@ class TerminalWriter:
+                 file = colorama.AnsiToWin32(file).stream
+                 assert file is not None
+         self._file = file
+-        self.hasmarkup = should_do_markup(file)
++        self.hasmarkup = getattr(file, "hasmarkup", should_do_markup(file))
+         self._current_line = ""
+         self._terminal_width: Optional[int] = None
+         self.code_highlight = True

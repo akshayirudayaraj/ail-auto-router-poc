@@ -1,0 +1,25 @@
+diff --git a/xarray/core/dataarray.py b/xarray/core/dataarray.py
+index 807badde..bbe62661 100644
+--- a/xarray/core/dataarray.py
++++ b/xarray/core/dataarray.py
+@@ -420,7 +420,7 @@ class DataArray(AbstractArray, DataWithCoords):
+         return obj
+ 
+     def _to_temp_dataset(self) -> Dataset:
+-        return self._to_dataset_whole(name=_THIS_ARRAY, shallow_copy=False)
++        return self._to_dataset_whole(name=_THIS_ARRAY, shallow_copy=False, attrs=self.attrs)
+ 
+     def _from_temp_dataset(
+         self, dataset: Dataset, name: Hashable = __default
+@@ -2875,7 +2875,10 @@ class DataArray(AbstractArray, DataWithCoords):
+         ds = self._to_temp_dataset().quantile(
+             q, dim=dim, keep_attrs=keep_attrs, interpolation=interpolation
+         )
+-        return self._from_temp_dataset(ds)
++        out = self._from_temp_dataset(ds)
++        if keep_attrs:
++            out.attrs = self.attrs
++        return out
+ 
+     def rank(
+         self, dim: Hashable, pct: bool = False, keep_attrs: bool = None

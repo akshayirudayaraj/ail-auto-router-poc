@@ -1,0 +1,42 @@
+diff --git a/xarray/core/rolling.py b/xarray/core/rolling.py
+index aef290f6..15f4cc98 100644
+--- a/xarray/core/rolling.py
++++ b/xarray/core/rolling.py
+@@ -270,16 +270,29 @@ class DataArrayRolling(Rolling["DataArray"]):
+     def __iter__(self) -> Iterator[tuple[RollingKey, DataArray]]:
+         if self.ndim > 1:
+             raise ValueError("__iter__ is only supported for 1d-rolling")
+-        stops = np.arange(1, len(self.window_labels) + 1)
+-        starts = stops - int(self.window[0])
+-        starts[: int(self.window[0])] = 0
+-        for (label, start, stop) in zip(self.window_labels, starts, stops):
+-            window = self.obj.isel({self.dim[0]: slice(start, stop)})
++        if not self.center[0]:
++            stops = np.arange(1, len(self.window_labels) + 1)
++            starts = stops - int(self.window[0])
++            starts[: int(self.window[0])] = 0
++            for (label, start, stop) in zip(self.window_labels, starts, stops):
++                window = self.obj.isel({self.dim[0]: slice(start, stop)})
+ 
+-            counts = window.count(dim=self.dim[0])
+-            window = window.where(counts >= self.min_periods)
++                counts = window.count(dim=self.dim[0])
++                window = window.where(counts >= self.min_periods)
+ 
+-            yield (label, window)
++                yield (label, window)
++        else:
++            window_size = int(self.window[0])
++            half_window = (window_size - 1) // 2
++            for i, label in enumerate(self.window_labels):
++                start = max(0, i - half_window)
++                stop = min(len(self.window_labels), i + half_window + 1)
++                window = self.obj.isel({self.dim[0]: slice(start, stop)})
++
++                counts = window.count(dim=self.dim[0])
++                window = window.where(counts >= self.min_periods)
++
++                yield (label, window)
+ 
+     def construct(
+         self,

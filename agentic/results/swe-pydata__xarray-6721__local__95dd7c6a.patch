@@ -1,0 +1,14 @@
+diff --git a/xarray/core/variable.py b/xarray/core/variable.py
+index 2d115ff0..07587605 100644
+--- a/xarray/core/variable.py
++++ b/xarray/core/variable.py
+@@ -1016,6 +1016,9 @@ class Variable(AbstractArray, NdimSizeLenMixin, VariableArithmetic):
+         """
+         if hasattr(self._data, "chunks"):
+             return Frozen({dim: c for dim, c in zip(self.dims, self.data.chunks)})
++        elif hasattr(self._data, "get_array"):
++            arr = self._data.get_array()
++            return Frozen({dim: c for dim, c in zip(self.dims, arr.chunks)})
+         else:
+             return {}
+ 

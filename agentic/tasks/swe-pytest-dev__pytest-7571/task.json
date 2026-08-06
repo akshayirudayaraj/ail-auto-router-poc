@@ -1,0 +1,34 @@
+{
+  "id": "swe-pytest-dev__pytest-7571",
+  "tier": "swe-verified",
+  "issue": "caplog fixture doesn't restore log level after test\nFrom the documentation at https://docs.pytest.org/en/6.0.0/logging.html#caplog-fixture, \"The log levels set are restored automatically at the end of the test\".\r\nIt used to work, but looks broken in new 6.0 release. Minimal example to reproduce:\r\n\r\n```\r\ndef test_foo(caplog):\r\n    caplog.set_level(42)\r\n\r\ndef test_bar(caplog):\r\n    print(caplog.handler.level)\r\n```\r\n\r\nIt prints \"0\" for pytest<6, \"42\" after.\n",
+  "test_cmd": "python -m pytest -q",
+  "fail_to_pass": [
+    "testing/logging/test_fixture.py::test_change_level_undos_handler_level"
+  ],
+  "pass_to_pass": [
+    "testing/logging/test_fixture.py::test_change_level",
+    "testing/logging/test_fixture.py::test_with_statement",
+    "testing/logging/test_fixture.py::test_log_access",
+    "testing/logging/test_fixture.py::test_messages",
+    "testing/logging/test_fixture.py::test_record_tuples",
+    "testing/logging/test_fixture.py::test_unicode",
+    "testing/logging/test_fixture.py::test_clear",
+    "testing/logging/test_fixture.py::test_caplog_captures_for_all_stages",
+    "testing/logging/test_fixture.py::test_fixture_help",
+    "testing/logging/test_fixture.py::test_change_level_undo",
+    "testing/logging/test_fixture.py::test_ini_controls_global_log_level",
+    "testing/logging/test_fixture.py::test_caplog_can_override_global_log_level",
+    "testing/logging/test_fixture.py::test_caplog_captures_despite_exception",
+    "testing/logging/test_fixture.py::test_log_report_captures_according_to_config_option_upon_failure"
+  ],
+  "provenance": "swe_verified",
+  "grounding": "benchmark",
+  "has_executable_oracle": true,
+  "grader": "swebench",
+  "source": "swe-bench-verified",
+  "instance_id": "pytest-dev__pytest-7571",
+  "repo": "pytest-dev/pytest",
+  "base_commit": "422685d0bdc110547535036c1ff398b5e1c44145",
+  "environment_setup_commit": "634cde9506eb1f48dec3ec77974ee8dc952207c6"
+}
