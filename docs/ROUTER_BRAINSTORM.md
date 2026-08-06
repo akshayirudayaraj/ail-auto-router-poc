@@ -100,6 +100,10 @@ Given a session (ordered requests + responses + model), we derive outcome signal
 
 Most `y_mi`s will be proxies, so we owe a human-audited calibration set (a few hundred `(prompt, response, human verdict)` triples) that does double duty: it measures how well the judge tracks ground truth, and anchors the known-difficulty prompts used to fit per-model ability (below).
 
+**Consensus fusion (no oracle).** When there's no executable oracle, the judge and implicit signals fuse into one `consensus` label (`internal/label/fuse.go`). Judge-primary: the judge sets the outcome and implicit modulates confidence — **except** a *strong* behavioral failure cue (pasted stack trace, "that's wrong", retry, or a local→frontier escalation) **vetoes a judge "success" and flips it to inadequate**, since a false "adequate" is the costly routing error (the router under-escalates). Weak implicit defaults (a clean-completing chain, an ambiguous continuation) are treated as noise. The per-signal veto/boost magnitudes are hand-set now and become *measured* reliabilities once the judge has run over the executed-oracle subset.
+
+> **How confidence is used in training:** it's a **per-row sample weight**, not a gate — IRT weights its MLE gradient by it, RouteLLM uses it as the logistic sample weight, kNN scales each neighbor's vote by it. So the fusion's real job is honest *confidence*, not a perfect outcome bit: a wrong-but-low-confidence label barely moves the fit; a wrong-but-high-confidence one is toxic.
+
 ```mermaid
 flowchart TD
     subgraph SRC["i. Data sources — same schema, different shape"]
