@@ -135,7 +135,7 @@ export function EvalsTab() {
   return (
     <section className="tab active">
       <div className="panel">
-        <div className="controls">
+        <div className="controls" style={{ alignItems: "center" }}>
           <button className="primary" onClick={onRunEvals} disabled={busy}>
             {busy ? "running evals…" : "Run evals"}
           </button>
