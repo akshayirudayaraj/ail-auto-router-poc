@@ -1,6 +1,7 @@
 package label
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,11 +12,12 @@ import (
 // repoRoot is two levels up from internal/label.
 func repoRoot() string { return filepath.Join("..", "..") }
 
-// TestEvidencePack_GptOssSWE builds the pack for the committed gpt-oss sample on
-// psf__requests-2931 (where the local arm floundered — edited a test file, never
-// fixed models.py) and asserts the pack captures the signals a judge needs to rule
-// it inadequate. This is the offline engine's first real, non-circular fixture.
-func TestEvidencePack_GptOssSWE(t *testing.T) {
+// TestEvidencePack_RealSample builds the pack for a committed real gpt-oss sample
+// and asserts the STABLE properties: it loads the issue and renders every section.
+// It deliberately does NOT assert on the diff/verification content — that is
+// regenerated whenever the corpus is re-run, so the behavioral assertions live in
+// TestEvidencePack_DetectsTestEditAndFailedVerify against a controlled input.
+func TestEvidencePack_RealSample(t *testing.T) {
 	results := filepath.Join(repoRoot(), "agentic", "results")
 	tasks := filepath.Join(repoRoot(), "agentic", "tasks")
 	const key = "swe-psf__requests-2931__local__963462c0"
@@ -24,32 +26,67 @@ func TestEvidencePack_GptOssSWE(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildFromResults: %v", err)
 	}
-
 	if !strings.Contains(strings.ToLower(p.Issue), "binary payload") {
 		t.Errorf("issue not loaded; got %q", truncate(p.Issue, 80))
 	}
+	rendered := p.Render()
+	for _, want := range []string{"ISSUE:", "CHANGED FILES", "VERIFICATION RUNS", "RUN FLAGS:"} {
+		if !strings.Contains(rendered, want) {
+			t.Errorf("rendered pack missing section %q", want)
+		}
+	}
+	t.Logf("\n----- evidence pack (%s) -----\n%s", key, rendered)
+}
 
-	// It edited the test harness and never touched requests/models.py.
-	var touchedTest, touchedModels bool
+// TestEvidencePack_DetectsTestEditAndFailedVerify drives the pack builder with a
+// controlled diff + event stream — the "floundered" pathology a judge must catch:
+// the agent edited a TEST file (not the source) and its pytest run errored. Using a
+// crafted input keeps this coverage stable across corpus regenerations.
+func TestEvidencePack_DetectsTestEditAndFailedVerify(t *testing.T) {
+	// diff edits a test file and NOT the source module under test.
+	diff := "diff --git a/tests/test_requests.py b/tests/test_requests.py\n" +
+		"--- a/tests/test_requests.py\n" +
+		"+++ b/tests/test_requests.py\n" +
+		"@@ -1,2 +1,2 @@\n" +
+		"-    assert to_native_string(payload) == expected\n" +
+		"+    assert True  # relaxed so the suite passes\n"
+
+	// event stream: a Bash pytest tool_use paired with an errored tool_result,
+	// plus a final assistant self-report (the untrusted claim).
+	events := strings.Join([]string{
+		`{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"Bash","input":{"command":"python -m pytest tests/test_requests.py -q"}}]}}`,
+		`{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","is_error":true,"content":"E   ImportError: cannot import name to_native_string"}]}}`,
+		`{"type":"assistant","message":{"content":[{"type":"text","text":"All tests pass now."}]}}`,
+	}, "\n") + "\n"
+	evPath := filepath.Join(t.TempDir(), "x.events.jsonl")
+	if err := os.WriteFile(evPath, []byte(events), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	p, err := BuildEvidencePack("swe-x", "swe-x__local", "Request with binary payload fails", diff, evPath, PackFlags{})
+	if err != nil {
+		t.Fatalf("BuildEvidencePack: %v", err)
+	}
+
+	var touchedTest, touchedSrc bool
 	for _, cf := range p.ChangedFiles {
 		if strings.Contains(cf.Path, "test_requests.py") {
 			touchedTest = true
 		}
 		if strings.Contains(cf.Path, "requests/models.py") {
-			touchedModels = true
+			touchedSrc = true
 		}
 	}
 	if !touchedTest {
 		t.Errorf("expected the diff to touch test_requests.py; changed=%v", p.ChangedFiles)
 	}
-	if touchedModels {
-		t.Errorf("gpt-oss did NOT touch models.py in this sample; parser is wrong")
+	if touchedSrc {
+		t.Errorf("diff did not touch models.py; parser is wrong")
 	}
 	if !p.Flags.EditedTestFile {
-		t.Errorf("EditedTestFile flag should be set (edited test_requests.py)")
+		t.Errorf("EditedTestFile flag should be set (edited a test file)")
 	}
 
-	// It ran pytest and it errored.
 	var sawErroredPytest bool
 	for _, r := range p.VerificationRuns {
 		if strings.Contains(strings.ToLower(r.Command), "pytest") && r.Errored {
@@ -59,14 +96,11 @@ func TestEvidencePack_GptOssSWE(t *testing.T) {
 	if !sawErroredPytest {
 		t.Errorf("expected an errored pytest verification run; got %+v", p.VerificationRuns)
 	}
-
-	rendered := p.Render()
-	for _, want := range []string{"ISSUE:", "CHANGED FILES", "VERIFICATION RUNS", "RUN FLAGS:"} {
-		if !strings.Contains(rendered, want) {
-			t.Errorf("rendered pack missing section %q", want)
-		}
+	// The final self-report ("All tests pass now") is captured but untrusted — the
+	// observed errored run contradicts it, which is exactly what the judge needs.
+	if !strings.Contains(p.FinalAgentText, "All tests pass") {
+		t.Errorf("final agent text not captured; got %q", p.FinalAgentText)
 	}
-	t.Logf("\n----- evidence pack (%s) -----\n%s", key, rendered)
 }
 
 // TestResolve_StrengthOrdering checks executed beats judge beats implicit, and
