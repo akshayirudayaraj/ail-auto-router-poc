@@ -10,7 +10,7 @@ decides whether it is admissible. For a submitted tasks/<id>/ it asserts:
       _oracle/gold_patch.diff) makes ALL of F2P + P2P pass. This proves the oracle
       is real and executable (reuses the Docker pytest executor — this is
       VALIDATION, not generation grading).
-  (b) the firewall (test_firewall.check): hidden F2P tests absent from repo/,
+  (b) the firewall (firewall_gate.check): hidden F2P tests absent from repo/,
       _oracle/ quarantined, gold fix not pre-applied, and the ISSUE text does not
       embed the fix.
   (c) task.json schema completeness (provenance / grounding / grader set).
@@ -36,7 +36,7 @@ RUNNER = HERE.parent / "runner"
 TASKS_DIR = HERE.parent / "tasks"
 sys.path.insert(0, str(RUNNER))
 from executor import score_checkout  # noqa: E402
-import test_firewall  # noqa: E402
+import firewall_gate  # noqa: E402
 
 REQUIRED_KEYS = ["id", "tier", "issue", "test_cmd", "fail_to_pass", "pass_to_pass",
                  "provenance", "grounding", "has_executable_oracle"]
@@ -100,7 +100,7 @@ def validate(task_id: str) -> bool:
 
     # (b) firewall (raises SystemExit on breach — incl. ISSUE-text leak)
     try:
-        test_firewall.check(task_id)
+        firewall_gate.check(task_id)
     except SystemExit as e:
         print(f"REJECT {task_id}: firewall — {e}")
         return False

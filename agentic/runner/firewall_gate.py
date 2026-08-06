@@ -7,7 +7,7 @@ Asserts the agent-visible repo/ + issue never leaked the hidden oracle:
   * the ISSUE text does not embed the fix (generated tasks add this leak vector:
     a Claude-Max-authored issue could paste the solution).
 
-Run: python3 agentic/runner/test_firewall.py [task_id]
+Run: python3 agentic/runner/firewall_gate.py [task_id]
 Exit 0 = firewall holds. Non-zero = breach.
 """
 
