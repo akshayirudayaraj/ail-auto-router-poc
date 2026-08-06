@@ -1,0 +1,31 @@
+{
+  "by_source": {
+    "implicit": {
+      "source": "implicit",
+      "n": 54,
+      "accuracy": 0.5555555555555556,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 24,
+      "tn": 30
+    },
+    "judge": {
+      "source": "judge",
+      "n": 0,
+      "accuracy": 0,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 0
+    }
+  },
+  "judge_heuristic_agreement": 0,
+  "n_judge_heuristic_pairs": 0,
+  "n_executed": 54
+}
