@@ -1,15 +1,15 @@
 {
   "dataset": "princeton-nlp/SWE-bench_Verified",
-  "requested_n": 26,
-  "selected_n": 26,
-  "per_repo_cap": 6,
+  "requested_n": 62,
+  "selected_n": 62,
+  "per_repo_cap": 22,
   "per_repo_counts": {
-    "pytest-dev/pytest": 6,
-    "pylint-dev/pylint": 6,
-    "pydata/xarray": 6,
-    "psf/requests": 6,
+    "pytest-dev/pytest": 19,
+    "pylint-dev/pylint": 10,
+    "pydata/xarray": 22,
+    "psf/requests": 8,
     "pallets/flask": 1,
-    "mwaskom/seaborn": 1
+    "mwaskom/seaborn": 2
   },
   "selected": [
     {
@@ -153,6 +153,16 @@
       "score": 65.6
     },
     {
+      "instance_id": "pytest-dev__pytest-7432",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 77,
+      "patch_lines": 13,
+      "test_lines": 35,
+      "difficulty": "<15 min fix",
+      "score": 66.4
+    },
+    {
       "instance_id": "pylint-dev__pylint-7080",
       "repo": "pylint-dev/pylint",
       "n_f2p": 1,
@@ -179,6 +189,16 @@
       "n_p2p": 107,
       "patch_lines": 12,
       "test_lines": 18,
+      "difficulty": "<15 min fix",
+      "score": 69.4
+    },
+    {
+      "instance_id": "pytest-dev__pytest-6202",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 72,
+      "patch_lines": 13,
+      "test_lines": 39,
       "difficulty": "<15 min fix",
       "score": 69.4
     },
@@ -223,6 +243,26 @@
       "score": 72.8
     },
     {
+      "instance_id": "pytest-dev__pytest-5631",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 15,
+      "patch_lines": 29,
+      "test_lines": 38,
+      "difficulty": "15 min - 1 hour",
+      "score": 73.0
+    },
+    {
+      "instance_id": "psf__requests-6028",
+      "repo": "psf/requests",
+      "n_f2p": 2,
+      "n_p2p": 185,
+      "patch_lines": 14,
+      "test_lines": 18,
+      "difficulty": "15 min - 1 hour",
+      "score": 75.0
+    },
+    {
       "instance_id": "pylint-dev__pylint-6903",
       "repo": "pylint-dev/pylint",
       "n_f2p": 1,
@@ -253,6 +293,46 @@
       "score": 83.0
     },
     {
+      "instance_id": "psf__requests-2317",
+      "repo": "psf/requests",
+      "n_f2p": 8,
+      "n_p2p": 133,
+      "patch_lines": 21,
+      "test_lines": 15,
+      "difficulty": "<15 min fix",
+      "score": 86.6
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7571",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 14,
+      "patch_lines": 28,
+      "test_lines": 59,
+      "difficulty": "15 min - 1 hour",
+      "score": 92.8
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7236",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 51,
+      "patch_lines": 39,
+      "test_lines": 44,
+      "difficulty": "15 min - 1 hour",
+      "score": 96.2
+    },
+    {
+      "instance_id": "pydata__xarray-6599",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 264,
+      "patch_lines": 23,
+      "test_lines": 18,
+      "difficulty": "15 min - 1 hour",
+      "score": 96.80000000000001
+    },
+    {
       "instance_id": "pylint-dev__pylint-6386",
       "repo": "pylint-dev/pylint",
       "n_f2p": 1,
@@ -271,6 +351,286 @@
       "test_lines": 32,
       "difficulty": "15 min - 1 hour",
       "score": 102.8
+    },
+    {
+      "instance_id": "pytest-dev__pytest-10356",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 79,
+      "patch_lines": 54,
+      "test_lines": 31,
+      "difficulty": "1-4 hours",
+      "score": 103.8
+    },
+    {
+      "instance_id": "pytest-dev__pytest-10081",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 63,
+      "patch_lines": 15,
+      "test_lines": 79,
+      "difficulty": "<15 min fix",
+      "score": 109.6
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7490",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 2,
+      "n_p2p": 78,
+      "patch_lines": 45,
+      "test_lines": 45,
+      "difficulty": "15 min - 1 hour",
+      "score": 111.6
+    },
+    {
+      "instance_id": "pydata__xarray-2905",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 364,
+      "patch_lines": 13,
+      "test_lines": 26,
+      "difficulty": "15 min - 1 hour",
+      "score": 114.8
+    },
+    {
+      "instance_id": "pytest-dev__pytest-7205",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 10,
+      "n_p2p": 16,
+      "patch_lines": 18,
+      "test_lines": 65,
+      "difficulty": "<15 min fix",
+      "score": 116.2
+    },
+    {
+      "instance_id": "mwaskom__seaborn-3187",
+      "repo": "mwaskom/seaborn",
+      "n_f2p": 2,
+      "n_p2p": 248,
+      "patch_lines": 32,
+      "test_lines": 35,
+      "difficulty": "15 min - 1 hour",
+      "score": 122.6
+    },
+    {
+      "instance_id": "pylint-dev__pylint-4604",
+      "repo": "pylint-dev/pylint",
+      "n_f2p": 21,
+      "n_p2p": 0,
+      "patch_lines": 33,
+      "test_lines": 42,
+      "difficulty": "15 min - 1 hour",
+      "score": 138.0
+    },
+    {
+      "instance_id": "pylint-dev__pylint-8898",
+      "repo": "pylint-dev/pylint",
+      "n_f2p": 1,
+      "n_p2p": 18,
+      "patch_lines": 76,
+      "test_lines": 61,
+      "difficulty": "1-4 hours",
+      "score": 143.6
+    },
+    {
+      "instance_id": "pytest-dev__pytest-6197",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 2,
+      "n_p2p": 145,
+      "patch_lines": 54,
+      "test_lines": 58,
+      "difficulty": "1-4 hours",
+      "score": 147.0
+    },
+    {
+      "instance_id": "pytest-dev__pytest-8399",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 1,
+      "n_p2p": 59,
+      "patch_lines": 51,
+      "test_lines": 88,
+      "difficulty": "15 min - 1 hour",
+      "score": 153.8
+    },
+    {
+      "instance_id": "pydata__xarray-3095",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 253,
+      "patch_lines": 112,
+      "test_lines": 15,
+      "difficulty": "15 min - 1 hour",
+      "score": 180.6
+    },
+    {
+      "instance_id": "pydata__xarray-7229",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 280,
+      "patch_lines": 50,
+      "test_lines": 73,
+      "difficulty": "15 min - 1 hour",
+      "score": 182.0
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5840",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 2,
+      "n_p2p": 51,
+      "patch_lines": 86,
+      "test_lines": 82,
+      "difficulty": "15 min - 1 hour",
+      "score": 184.2
+    },
+    {
+      "instance_id": "pydata__xarray-6938",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 430,
+      "patch_lines": 91,
+      "test_lines": 19,
+      "difficulty": "15 min - 1 hour",
+      "score": 199.0
+    },
+    {
+      "instance_id": "pydata__xarray-4094",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 862,
+      "patch_lines": 12,
+      "test_lines": 18,
+      "difficulty": "<15 min fix",
+      "score": 205.4
+    },
+    {
+      "instance_id": "pydata__xarray-4356",
+      "repo": "pydata/xarray",
+      "n_f2p": 8,
+      "n_p2p": 604,
+      "patch_lines": 18,
+      "test_lines": 47,
+      "difficulty": "<15 min fix",
+      "score": 209.8
+    },
+    {
+      "instance_id": "pydata__xarray-4695",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 875,
+      "patch_lines": 12,
+      "test_lines": 20,
+      "difficulty": "15 min - 1 hour",
+      "score": 210.0
+    },
+    {
+      "instance_id": "pydata__xarray-7233",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 189,
+      "patch_lines": 15,
+      "test_lines": 158,
+      "difficulty": "15 min - 1 hour",
+      "score": 213.8
+    },
+    {
+      "instance_id": "pydata__xarray-3305",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 653,
+      "patch_lines": 69,
+      "test_lines": 23,
+      "difficulty": "15 min - 1 hour",
+      "score": 225.6
+    },
+    {
+      "instance_id": "pydata__xarray-4075",
+      "repo": "pydata/xarray",
+      "n_f2p": 2,
+      "n_p2p": 958,
+      "patch_lines": 19,
+      "test_lines": 40,
+      "difficulty": "<15 min fix",
+      "score": 256.6
+    },
+    {
+      "instance_id": "pylint-dev__pylint-6528",
+      "repo": "pylint-dev/pylint",
+      "n_f2p": 4,
+      "n_p2p": 171,
+      "patch_lines": 76,
+      "test_lines": 163,
+      "difficulty": "15 min - 1 hour",
+      "score": 285.2
+    },
+    {
+      "instance_id": "pylint-dev__pylint-4551",
+      "repo": "pylint-dev/pylint",
+      "n_f2p": 10,
+      "n_p2p": 0,
+      "patch_lines": 187,
+      "test_lines": 92,
+      "difficulty": "1-4 hours",
+      "score": 309.0
+    },
+    {
+      "instance_id": "pydata__xarray-6721",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 1405,
+      "patch_lines": 12,
+      "test_lines": 17,
+      "difficulty": "15 min - 1 hour",
+      "score": 313.0
+    },
+    {
+      "instance_id": "pydata__xarray-4687",
+      "repo": "pydata/xarray",
+      "n_f2p": 1,
+      "n_p2p": 1717,
+      "patch_lines": 44,
+      "test_lines": 34,
+      "difficulty": "15 min - 1 hour",
+      "score": 424.40000000000003
+    },
+    {
+      "instance_id": "pydata__xarray-6744",
+      "repo": "pydata/xarray",
+      "n_f2p": 3,
+      "n_p2p": 1815,
+      "patch_lines": 31,
+      "test_lines": 32,
+      "difficulty": "15 min - 1 hour",
+      "score": 435.0
+    },
+    {
+      "instance_id": "pydata__xarray-6992",
+      "repo": "pydata/xarray",
+      "n_f2p": 12,
+      "n_p2p": 945,
+      "patch_lines": 202,
+      "test_lines": 149,
+      "difficulty": ">4 hours",
+      "score": 576.0
+    },
+    {
+      "instance_id": "pydata__xarray-3993",
+      "repo": "pydata/xarray",
+      "n_f2p": 2,
+      "n_p2p": 2398,
+      "patch_lines": 100,
+      "test_lines": 25,
+      "difficulty": "1-4 hours",
+      "score": 610.6
+    },
+    {
+      "instance_id": "pytest-dev__pytest-5787",
+      "repo": "pytest-dev/pytest",
+      "n_f2p": 2,
+      "n_p2p": 123,
+      "patch_lines": 260,
+      "test_lines": 687,
+      "difficulty": "1-4 hours",
+      "score": 977.6
     }
   ],
   "dropped_big_repo": {
@@ -286,6 +646,6 @@
     ]
   },
   "dropped_malformed": [],
-  "skipped_for_repo_cap_count": 8,
+  "skipped_for_repo_cap_count": 0,
   "contamination_note": "SWE-bench Verified is a PUBLIC benchmark; these instances carry contamination risk (models may have seen the fixes in training). Recorded per DATA_PLAN Phase 2A; prefer SWE-bench Pro / held-out later."
 }
