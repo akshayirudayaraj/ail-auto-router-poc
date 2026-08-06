@@ -211,7 +211,7 @@ func assembleResults(cfg config.Config, evalBody string, reports map[string]eval
 		fmt.Fprintf(&b, "Gold set meta:\n```json\n%s\n```\n\n", strings.TrimSpace(goldMeta))
 	}
 	b.WriteString(evalBody)
-	b.WriteString("\n---\n\nSee DECISIONS.md for choices and README.md to reproduce (`make all`).\n")
+	b.WriteString("\n---\n\nSee docs/DECISIONS.md for choices and README.md to reproduce (`make all`).\n")
 
 	return os.WriteFile("RESULTS.md", []byte(b.String()), 0o644)
 }

@@ -26,8 +26,10 @@ code is the real deliverable.**
 
 ## Source of truth & repo map
 
-The authoritative design is **`ROUTER_BRAINSTORM.md`** — this repo is the
-predictive-branch **POC harness of its §6**. The pipeline maps to the code:
+The authoritative design is **`docs/ROUTER_BRAINSTORM.md`** — this repo is the
+predictive-branch **POC harness of its §6**. Design docs live under **`docs/`**
+(`ROUTER_BRAINSTORM`, `DATA_PLAN`, `OFFLINE_ENGINE_PLAN`, `DECISIONS`); `RESULTS.md`
+is generated at the repo root by `make eval`. The pipeline maps to the code:
 
 | ROUTER_BRAINSTORM §6 stage | in this repo |
 |---|---|
@@ -60,29 +62,102 @@ reruns are free and an interrupted overnight run resumes cheaply.
 
 ## Web console
 
-A stdlib-only (`net/http` + embedded SPA, no external deps) UI over everything:
+A web console over everything the pipeline produces. The **Go server is
+stdlib-only** (`net/http` + a JSON API, no external Go deps); the frontend is
+**TypeScript + React, built with Vite** and embedded into the `serve` binary
+(`internal/server/static`), so production stays a single self-contained binary.
 
 ```bash
-make all      # produce the datasets first
-make serve    # then open http://localhost:8080   (AIL_ADDR=:9000 to change port)
+# production — serve the embedded bundle
+make serve                                  # http://localhost:8080  (AIL_ADDR=:9000 to change port)
+AIL_DATA_DIR=data_agentic make serve        # point it at the agentic dataset
+
+# development — hot-module reload
+make serve            # terminal 1: Go JSON API on :8080
+make console-dev      # terminal 2: Vite HMR on :5173 (proxies /api -> :8080)
 ```
 
-Four views:
-- **Traces** — browse raw session logs turn-by-turn, with the served model, the
-  **mined** implicit label/signal per assistant turn, and the **planted truth**
-  side-by-side (so you can see the extractor agreeing/disagreeing).
-- **Labeled data** — the pointwise / pairwise / gold datasets as filterable
-  tables (gold rows tagged by cell: frontier-rescues / both-pass / local-only /
-  both-fail).
-- **Fit & evaluate** — fit all routers on a chosen label source; see IRT ability
-  recovery (planted vs recovered θ) and the live gold leaderboard (AIQ, AUC,
-  cell-B, …).
-- **Route a prompt** — type any prompt; it is embedded live (Ollama) and scored
-  by every fitted router, showing per-router escalation score + decision, the
-  consensus, and the model-free feature vector that drove it.
+Four tabs:
+- **Data** — reconstructed sessions by source (Internal / Semi-synthetic /
+  Synthetic); click a row to open its full trace as a **back-and-forth chat**
+  (thinking, tool calls + results, patch, offline-engine labels, hidden-oracle
+  reveal).
+- **Training** — routing methods; IRT ability recovery (planted vs recovered θ);
+  the **pointwise + pairwise** training rows.
+- **Evals** — dual-arm gold leaderboard (AIQ, AUC, cell-B, …), routing
+  distribution (local vs frontier per strategy), and the **gold rows** behind it.
+- **Route** — type any prompt; it is embedded live (Ollama) and scored by every
+  fitted router, showing per-router decision, consensus, and the model-free
+  feature vector that drove it.
 
 The console reads the same files the CLI stages write and calls the same
-`router`/`eval`/`extract` code — it is a view, not a reimplementation.
+`router`/`eval`/`extract` code — a view, not a reimplementation. Editing the UI
+needs Node (`make frontend-install` once, then `make console-dev` for live edits
+or `make frontend-build` to refresh the embedded bundle); running the prebuilt
+binary does not. See `frontend/README.md`.
+
+---
+
+## Commands
+
+Everything is a `make` target — seeded and idempotent, and the backend
+disk-caches every model call, so reruns are cheap and an interrupted run
+resumes. Every target has a `##` doc line in the `Makefile`.
+
+**Core pipeline** (synthetic default config)
+
+| command | does |
+|---|---|
+| `make all` | `gen → extract → train → eval` end-to-end; writes `RESULTS.md` |
+| `make gen` | generate synthetic CC session logs |
+| `make extract` | raw logs → structured pointwise/pairwise/gold + extractor-quality report |
+| `make train` | fit the candidate routers |
+| `make eval` | run the eval harness → `RESULTS.md` + `eval_report.md` |
+| `make test` | unit tests for the portable Go core |
+| `make build` | compile all binaries into `./bin` |
+| `make clean` / `distclean` | drop build + regenerable data / also drop the backend cache |
+
+**Console**
+
+| command | does |
+|---|---|
+| `make serve` | serve the embedded console on :8080 (`AIL_ADDR`, `AIL_DATA_DIR` env) |
+| `make console-dev` | Vite dev server with hot reload (proxies `/api` to `serve`) |
+| `make frontend-install` | install the console's npm deps (run once) |
+| `make frontend-build` | rebuild the embedded UI bundle after editing `frontend/src` |
+
+**Agentic, execution-grounded track** (real `claude -p` loop, dual-arm)
+
+| command | does |
+|---|---|
+| `make agentic-smoke` | 1 task, both arms, tool-call fidelity smoke |
+| `make agentic-swe SWE_N=20` | materialize N SWE-bench Verified instances, build images, run both arms in-container |
+| `make agentic-generate` | run both arms over all materialized tasks (log-first, no grading) + write the split |
+| `make agentic-proxy` / `agentic-proxy-stop` | start / stop the Anthropic→Ollama proxy for the local arm |
+
+**Offline label engine** (turn log-first sessions into labels → datasets)
+
+| command | does | needs |
+|---|---|---|
+| `make agentic-heuristics` | mine implicit labels from sim-user reactions | — (deterministic) |
+| `make agentic-grade` | executed-oracle: run hidden tests on each patch → `executed.jsonl` | Docker / swebench venv |
+| `make agentic-calibrate` | score weak labels vs executed truth + judge-primary fuse → `resolved.jsonl` | — |
+| `make agentic-materialize` | fused labels → `pointwise/pairwise/gold` for train + eval | — |
+| `make agentic-train` / `agentic-eval` / `agentic-fit-eval` | fit / eval / (materialize→fit→eval) on the agentic corpus | — |
+
+The offline engine runs **after** generation, in this order:
+
+```bash
+make agentic-heuristics    # weak implicit labels (no model, no grading)
+make agentic-grade         # executed truth where the oracle env exists (Docker/swebench)
+make agentic-calibrate     # fuse weak + executed -> labels/resolved.jsonl (judge-primary)
+make agentic-materialize   # resolved.jsonl -> data_agentic/{pointwise,pairwise,gold}.jsonl
+AIL_DATA_DIR=data_agentic make serve   # inspect the result in the console
+```
+
+`materialize` reads `resolved.jsonl`, so `agentic-calibrate` must run before it;
+gold rows require **both arms executed** on a holdout task, so oracle-bearing
+sessions that were never graded are **quarantined** (never fabricated as truth).
 
 ## Agentic, execution-grounded track
 
@@ -164,11 +239,14 @@ Package layout:
 | `internal/extract` | Pillar 1b extraction + 1c quality report |
 | `internal/router` | Pillar 2 routers + interface |
 | `internal/eval` | Pillar 3 harness, metrics, policy |
-| `internal/server` | web console (stdlib `net/http` + embedded SPA); **Corpus** tab browses agentic logs |
+| `internal/server` | web console backend: stdlib `net/http` JSON API + embedded (built) React bundle under `static/` |
 | `cmd/{gen,extract,train,eval}` | stage entrypoints |
 | `cmd/serve` | web console server (`make serve`) |
+| `cmd/{label,materialize}` | offline label engine + O6 dataset materializer |
+| `frontend/` | TypeScript + React + Vite console source (built into `internal/server/static`) |
 | `agentic/` | **non-portable** log-first generation: `claude -p` dual-arm runner + Anthropic→Ollama proxy + SWE materializer + synth gate + sim-user |
 | `python/` | **non-portable** encoder + SLM-head training |
+| `docs/` | design docs: `ROUTER_BRAINSTORM`, `DATA_PLAN`, `OFFLINE_ENGINE_PLAN`, `DECISIONS` (+ `archive/`) |
 
 ### Data sources & the one serving path (DATA_PLAN)
 
@@ -204,8 +282,8 @@ The portable core will be ported into a **stdlib-only Go gateway**, so:
   them as a `Router` interface with a working stub; `python/` holds the real
   training and writes artifacts the Go side can consume.
 
-Any non-stdlib Go dependency would be isolated and justified in DECISIONS.md.
-There are currently **none**.
+Any non-stdlib Go dependency would be isolated and justified in
+`docs/DECISIONS.md`. There are currently **none**.
 
 ---
 
@@ -316,4 +394,4 @@ on logs) or a target quality (gold only), and a frontier **quota gate**.
 - Implicit signals are **noisy features anchored by the judge**, not clean
   labels. See Pillar 1c.
 
-See `DECISIONS.md` for every choice, and `RESULTS.md` for the latest run.
+See `docs/DECISIONS.md` for every choice, and `RESULTS.md` for the latest run.

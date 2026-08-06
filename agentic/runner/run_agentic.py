@@ -20,7 +20,7 @@ For each (task, arm) it:
      (UI trace + fidelity), plus the `.patch` and a run-record JSON.
 
 It does NOT run tests or a judge and writes NO `resolved`/`outcome` field: all
-grading is the deferred offline engine's job (DATA_PLAN.md, invariant "no grading
+grading is the deferred offline engine's job (docs/DATA_PLAN.md, invariant "no grading
 during generation"). The base `repo/` + `_oracle/` are preserved so the offline
 engine can grade later from (base repo + agent diff + test_patch).
 
