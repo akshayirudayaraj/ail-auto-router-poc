@@ -34,6 +34,14 @@ type goldDetail struct {
 	Hull   []CQPoint `json:"hull"`
 }
 
+// GoldReportDetail is the structured Detail attached to the gold report: the
+// per-router cost/quality curves plus the reference anchors (always-local,
+// oracle, always-frontier) that bound the achievable region.
+type GoldReportDetail struct {
+	Curves  []goldDetail `json:"curves"`
+	Anchors []Baseline   `json:"anchors"`
+}
+
 func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 	rep := Report{Method: g.Name()}
 	if len(d.Gold) == 0 {
@@ -49,6 +57,8 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 		}
 	}
 
+	anchors, oracleLocalShare := GoldBaselines(d.Gold)
+
 	var details []goldDetail
 	for _, r := range routers {
 		if err := r.Fit(td); err != nil {
@@ -60,17 +70,27 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 		aiq := AIQ(curve)
 		op := Operating(scores, d.Gold, g.Threshold)
 		offload := LocalOffloadAtFrontierQuality(curve)
+		localShare := 1 - op.EscalationRate
+		savingsCapture := 0.0
+		if oracleLocalShare > 0 {
+			savingsCapture = localShare / oracleLocalShare
+		}
 
 		rep.Rows = append(rep.Rows, ReportRow{
 			Router: r.Name(),
 			Metrics: map[string]float64{
-				// headline for this POC: keep as much local as possible WITHOUT
-				// losing quality vs always-frontier.
-				"local_share@thr":   1 - op.EscalationRate,
-				"qual_retention":    op.QualityRetention,
-				"offload_isoq":      offload, // max local share while matching frontier quality
+				// headline scorecard for this POC: keep as much local as possible
+				// WITHOUT losing quality vs always-frontier.
+				"local_share@thr": localShare,
+				"qual_retention":  op.QualityRetention,
+				// why it works: caught the hard ones (safety), kept the easy ones
+				// local (thrift), and how close to the oracle's safe offload.
+				"safety":            op.Safety,
+				"thrift":            op.Thrift,
+				"savings_capture":   savingsCapture,
 				"under_escal_cellB": op.Cells.UnderEscalation,
 				// secondary / diagnostic
+				"offload_isoq":    offload, // max local share while matching frontier quality
 				"escalation@thr":  op.EscalationRate,
 				"quality@thr":     op.Quality,
 				"over_escalation": op.Cells.OverEscalation,
@@ -82,12 +102,13 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 		})
 		details = append(details, goldDetail{Router: r.Name(), Curve: curve, Hull: hull})
 	}
-	rep.Detail = details
+	rep.Detail = GoldReportDetail{Curves: details, Anchors: anchors}
 	rep.Notes = append(rep.Notes,
-		fmt.Sprintf("Operating threshold = %.2f. AIQ is threshold-independent (area under the cost/quality hull).", g.Threshold),
-		"cell-B (under_escal) = stayed local but frontier would have passed — the costly miss.",
-		"Gold outcomes are a strictly stronger label source than the training labels (no circularity).",
-		"Only the gold set (and later online A/B) give trustworthy ABSOLUTE numbers.",
+		fmt.Sprintf("Headline @ threshold %.2f: keep local_share@thr of requests on local while holding qual_retention ≈ 1.0 (matching always-frontier).", g.Threshold),
+		"safety = of prompts where local fails, the share correctly escalated (protects quality). thrift = of prompts where local passes, the share kept local (captures savings).",
+		"savings_capture = local share as a fraction of the oracle's (a perfect router escalates iff local would fail). cell-B (under_escal) = stayed local but frontier would have passed — the quality leak to minimize.",
+		"Anchors: always-local / oracle / always-frontier bound the achievable region. AIQ (secondary) is threshold-independent.",
+		"Gold outcomes are a strictly stronger label source than the training labels (no circularity). Only the gold set (and later online A/B) give trustworthy ABSOLUTE numbers.",
 	)
 	return rep, nil
 }

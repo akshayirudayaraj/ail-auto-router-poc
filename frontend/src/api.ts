@@ -73,6 +73,15 @@ export interface LeaderRow {
   metrics: Record<string, number | null>;
 }
 
+// Reference operating point on the gold set (always-local / oracle /
+// always-frontier) that bounds the achievable cost/quality region.
+export interface Anchor {
+  name: string;
+  local_share: number;
+  qual_retention: number;
+  cost_vs_local: number;
+}
+
 export interface FitResult {
   error?: string;
   n_pointwise?: number;
@@ -82,6 +91,7 @@ export interface FitResult {
   abilities?: Ability[];
   has_gold?: boolean;
   leaderboard?: LeaderRow[];
+  anchors?: Anchor[];
   data_summary?: DataSummary;
   training?: Record<string, TrainedOn>;
 }
@@ -94,6 +104,7 @@ export interface EvalResult {
   threshold?: number;
   n_gold?: number;
   leaderboard?: LeaderRow[];
+  anchors?: Anchor[];
   notes?: string[];
 }
 

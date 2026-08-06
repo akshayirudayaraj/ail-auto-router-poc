@@ -436,11 +436,15 @@ func (s *Server) fitReport(thr float64) map[string]any {
 
 	// gold leaderboard (only if gold present)
 	var leaderboard []eval.ReportRow
+	var anchors []eval.Baseline
 	if len(s.gold) > 0 {
 		data := eval.Data{Cfg: s.cfg, Pointwise: s.pointwise, Pairwise: s.pairwise, Gold: s.gold}
 		ge := &eval.GoldEval{Threshold: thr, TrainSource: s.fitSource}
 		if rep, err := ge.Run(router.Registry(), data); err == nil {
 			leaderboard = rep.Rows
+			if det, ok := rep.Detail.(eval.GoldReportDetail); ok {
+				anchors = det.Anchors
+			}
 		}
 	}
 
@@ -478,6 +482,7 @@ func (s *Server) fitReport(thr float64) map[string]any {
 		"n_pairwise":   len(s.pairwise),
 		"abilities":    abRows,
 		"leaderboard":  leaderboard,
+		"anchors":      anchors,
 		"has_gold":     len(s.gold) > 0,
 		"n_gold":       len(s.gold),
 		"data_summary": s.dataSummary(),
@@ -520,12 +525,17 @@ func (s *Server) handleEval(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 400, map[string]any{"error": err.Error()})
 		return
 	}
+	var anchors []eval.Baseline
+	if det, ok := rep.Detail.(eval.GoldReportDetail); ok {
+		anchors = det.Anchors
+	}
 	writeJSON(w, 200, map[string]any{
 		"method":       rep.Method,
 		"train_source": srcLabel(src),
 		"threshold":    thr,
 		"n_gold":       len(gold),
 		"leaderboard":  rep.Rows,
+		"anchors":      anchors,
 		"notes":        rep.Notes,
 	})
 }

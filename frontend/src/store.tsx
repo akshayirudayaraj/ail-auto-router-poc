@@ -145,7 +145,9 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const runEval = useCallback(async () => {
     const res = await apiPost<EvalResult>("/api/eval", {});
     if (!res.error && res.leaderboard) {
-      setFit((prev) => (prev ? { ...prev, leaderboard: res.leaderboard, has_gold: true } : prev));
+      setFit((prev) =>
+        prev ? { ...prev, leaderboard: res.leaderboard, anchors: res.anchors ?? prev.anchors, has_gold: true } : prev,
+      );
     }
     return res;
   }, []);
