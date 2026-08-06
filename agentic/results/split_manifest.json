@@ -2,10 +2,10 @@
   "seed": 1337,
   "holdout_frac": 0.3,
   "policy": "by_task",
-  "n_tasks": 14,
-  "n_sessions": 30,
-  "n_holdout_tasks": 3,
-  "n_train_tasks": 11,
+  "n_tasks": 37,
+  "n_sessions": 78,
+  "n_holdout_tasks": 11,
+  "n_train_tasks": 26,
   "task_split": {
     "easy-01-reverse-words": "train",
     "easy-02-is-even": "holdout",
@@ -20,7 +20,30 @@
     "med-03-interval-merge": "holdout",
     "med-04-lru-cache": "train",
     "swe-mwaskom__seaborn-3069": "train",
-    "swe-psf__requests-1142": "holdout"
+    "swe-mwaskom__seaborn-3187": "holdout",
+    "swe-pallets__flask-5014": "holdout",
+    "swe-psf__requests-1142": "holdout",
+    "swe-psf__requests-1724": "train",
+    "swe-psf__requests-1766": "holdout",
+    "swe-psf__requests-1921": "train",
+    "swe-psf__requests-2931": "holdout",
+    "swe-psf__requests-5414": "train",
+    "swe-pydata__xarray-3151": "holdout",
+    "swe-pydata__xarray-3677": "train",
+    "swe-pydata__xarray-4629": "holdout",
+    "swe-pydata__xarray-4966": "train",
+    "swe-pydata__xarray-6461": "train",
+    "swe-pydata__xarray-7393": "train",
+    "swe-pylint-dev__pylint-4661": "holdout",
+    "swe-pylint-dev__pylint-4970": "train",
+    "swe-pylint-dev__pylint-6386": "train",
+    "swe-pylint-dev__pylint-6903": "train",
+    "swe-pytest-dev__pytest-10051": "train",
+    "swe-pytest-dev__pytest-5262": "train",
+    "swe-pytest-dev__pytest-5809": "train",
+    "swe-pytest-dev__pytest-7324": "train",
+    "swe-pytest-dev__pytest-7521": "train",
+    "swe-pytest-dev__pytest-7982": "holdout"
   },
   "items": [
     {
@@ -276,6 +299,51 @@
       "has_executable_oracle": true
     },
     {
+      "task_id": "swe-mwaskom__seaborn-3187",
+      "arm": "frontier",
+      "session_id": "swe-mwaskom__seaborn-3187__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-mwaskom__seaborn-3187",
+      "arm": "local",
+      "session_id": "swe-mwaskom__seaborn-3187__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pallets__flask-5014",
+      "arm": "frontier",
+      "session_id": "swe-pallets__flask-5014__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pallets__flask-5014",
+      "arm": "local",
+      "session_id": "swe-pallets__flask-5014__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-1142",
+      "arm": "frontier",
+      "session_id": "swe-psf__requests-1142__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
       "task_id": "swe-psf__requests-1142",
       "arm": "frontier",
       "session_id": "swe-psf__requests-1142__frontier",
@@ -287,11 +355,398 @@
     {
       "task_id": "swe-psf__requests-1142",
       "arm": "local",
+      "session_id": "swe-psf__requests-1142__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-1142",
+      "arm": "local",
       "session_id": "swe-psf__requests-1142__local",
       "split": "holdout",
       "provenance": null,
       "grounding": null,
       "has_executable_oracle": null
+    },
+    {
+      "task_id": "swe-psf__requests-1724",
+      "arm": "frontier",
+      "session_id": "swe-psf__requests-1724__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-1724",
+      "arm": "local",
+      "session_id": "swe-psf__requests-1724__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-1766",
+      "arm": "frontier",
+      "session_id": "swe-psf__requests-1766__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-1766",
+      "arm": "local",
+      "session_id": "swe-psf__requests-1766__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-1921",
+      "arm": "frontier",
+      "session_id": "swe-psf__requests-1921__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-1921",
+      "arm": "local",
+      "session_id": "swe-psf__requests-1921__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-2931",
+      "arm": "frontier",
+      "session_id": "swe-psf__requests-2931__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-2931",
+      "arm": "local",
+      "session_id": "swe-psf__requests-2931__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-5414",
+      "arm": "frontier",
+      "session_id": "swe-psf__requests-5414__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-psf__requests-5414",
+      "arm": "local",
+      "session_id": "swe-psf__requests-5414__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-3151",
+      "arm": "frontier",
+      "session_id": "swe-pydata__xarray-3151__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-3151",
+      "arm": "local",
+      "session_id": "swe-pydata__xarray-3151__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-3677",
+      "arm": "frontier",
+      "session_id": "swe-pydata__xarray-3677__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-3677",
+      "arm": "local",
+      "session_id": "swe-pydata__xarray-3677__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-4629",
+      "arm": "frontier",
+      "session_id": "swe-pydata__xarray-4629__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-4629",
+      "arm": "local",
+      "session_id": "swe-pydata__xarray-4629__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-4966",
+      "arm": "frontier",
+      "session_id": "swe-pydata__xarray-4966__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-4966",
+      "arm": "local",
+      "session_id": "swe-pydata__xarray-4966__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-6461",
+      "arm": "frontier",
+      "session_id": "swe-pydata__xarray-6461__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-6461",
+      "arm": "local",
+      "session_id": "swe-pydata__xarray-6461__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-7393",
+      "arm": "frontier",
+      "session_id": "swe-pydata__xarray-7393__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pydata__xarray-7393",
+      "arm": "local",
+      "session_id": "swe-pydata__xarray-7393__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-4661",
+      "arm": "frontier",
+      "session_id": "swe-pylint-dev__pylint-4661__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-4661",
+      "arm": "local",
+      "session_id": "swe-pylint-dev__pylint-4661__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-4970",
+      "arm": "frontier",
+      "session_id": "swe-pylint-dev__pylint-4970__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-4970",
+      "arm": "local",
+      "session_id": "swe-pylint-dev__pylint-4970__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-6386",
+      "arm": "frontier",
+      "session_id": "swe-pylint-dev__pylint-6386__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-6386",
+      "arm": "local",
+      "session_id": "swe-pylint-dev__pylint-6386__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-6903",
+      "arm": "frontier",
+      "session_id": "swe-pylint-dev__pylint-6903__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pylint-dev__pylint-6903",
+      "arm": "local",
+      "session_id": "swe-pylint-dev__pylint-6903__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-10051",
+      "arm": "frontier",
+      "session_id": "swe-pytest-dev__pytest-10051__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-10051",
+      "arm": "local",
+      "session_id": "swe-pytest-dev__pytest-10051__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-5262",
+      "arm": "frontier",
+      "session_id": "swe-pytest-dev__pytest-5262__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-5262",
+      "arm": "local",
+      "session_id": "swe-pytest-dev__pytest-5262__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-5809",
+      "arm": "frontier",
+      "session_id": "swe-pytest-dev__pytest-5809__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-5809",
+      "arm": "local",
+      "session_id": "swe-pytest-dev__pytest-5809__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-7324",
+      "arm": "frontier",
+      "session_id": "swe-pytest-dev__pytest-7324__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-7324",
+      "arm": "local",
+      "session_id": "swe-pytest-dev__pytest-7324__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-7521",
+      "arm": "frontier",
+      "session_id": "swe-pytest-dev__pytest-7521__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-7521",
+      "arm": "local",
+      "session_id": "swe-pytest-dev__pytest-7521__local__963462c0",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-7982",
+      "arm": "frontier",
+      "session_id": "swe-pytest-dev__pytest-7982__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-pytest-dev__pytest-7982",
+      "arm": "local",
+      "session_id": "swe-pytest-dev__pytest-7982__local__963462c0",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
     }
   ]
 }

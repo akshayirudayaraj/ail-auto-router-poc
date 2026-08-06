@@ -1,0 +1,25 @@
+diff --git a/pylint/checkers/similar.py b/pylint/checkers/similar.py
+index c65b1c89..e1b1d33d 100644
+--- a/pylint/checkers/similar.py
++++ b/pylint/checkers/similar.py
+@@ -396,6 +396,10 @@ class Similar:
+         """compute similarities in appended files"""
+         no_duplicates: Dict[int, List[Set[LinesChunkLimits_T]]] = defaultdict(list)
+ 
++        # If ``min_lines`` is set to 0, then no duplicate code checking should be performed.
++        if self.min_lines == 0:
++            return []
++
+         for commonality in self._iter_sims():
+             num = commonality.cmn_lines_nb
+             lineset1 = commonality.fst_lset
+@@ -739,7 +743,8 @@ class SimilarChecker(BaseChecker, Similar, MapReduceMixin):
+                 "default": DEFAULT_MIN_SIMILARITY_LINE,
+                 "type": "int",
+                 "metavar": "<int>",
+-                "help": "Minimum lines number of a similarity.",
++                "help": "Minimum lines number of a similarity. This check is "
++                "disabled if the value is set to 0.",
+             },
+         ),
+         (

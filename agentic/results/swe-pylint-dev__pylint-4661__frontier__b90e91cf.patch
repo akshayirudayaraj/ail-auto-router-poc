@@ -1,0 +1,74 @@
+diff --git a/doc/faq.rst b/doc/faq.rst
+index c817855f..9563282b 100644
+--- a/doc/faq.rst
++++ b/doc/faq.rst
+@@ -93,10 +93,12 @@ localized using the following rules:
+ 
+ * value of the PYLINTHOME environment variable if set
+ 
+-* ".pylint.d" subdirectory of the user's home directory if it is found
+-	(not always findable on Windows platforms)
++* the current user's cache directory following the XDG Base Directory
++	Specification, e.g. "~/.cache/pylint" on Linux (computed with the
++	``appdirs`` library, so it is platform appropriate)
+ 
+-* ".pylint.d" directory in the current directory
++* ".pylint.d" directory in the current directory if the home directory
++	cannot be determined
+ 
+ 3.3 How do I find the option name (for pylintrc) corresponding to a specific command line option?
+ --------------------------------------------------------------------------------------------------------
+diff --git a/pylint/config/__init__.py b/pylint/config/__init__.py
+index 84774d0e..17a270c6 100644
+--- a/pylint/config/__init__.py
++++ b/pylint/config/__init__.py
+@@ -36,6 +36,8 @@ import os
+ import pickle
+ import sys
+ 
++import appdirs
++
+ from pylint.config.configuration_mixin import ConfigurationMixIn
+ from pylint.config.find_default_config_files import find_default_config_files
+ from pylint.config.man_help_formatter import _ManHelpFormatter
+@@ -63,7 +65,15 @@ if "PYLINTHOME" in os.environ:
+ elif USER_HOME == "~":
+     PYLINT_HOME = ".pylint.d"
+ else:
+-    PYLINT_HOME = os.path.join(USER_HOME, ".pylint.d")
++    PYLINT_HOME = appdirs.user_cache_dir("pylint")
++
++    old_home = os.path.join(USER_HOME, ".pylint.d")
++    if os.path.exists(old_home):
++        print(
++            f"PYLINTHOME is now '{PYLINT_HOME}' but obsolescent '{old_home}' is found; "
++            "you can safely remove the latter",
++            file=sys.stderr,
++        )
+ 
+ 
+ def _get_pdata_path(base_name, recurs):
+@@ -110,8 +120,9 @@ ENV_HELP = (
+ The following environment variables are used:
+     * PYLINTHOME
+     Path to the directory where persistent data for the run will be stored. If
+-not found, it defaults to ~/.pylint.d/ or .pylint.d (in the current working
+-directory).
++not found, it defaults to the current working directory. Its value is used by
++default as the cache directory (following the XDG Base Directory
++Specification, e.g. ~/.cache/pylint on Linux).
+     * PYLINTRC
+     Path to the configuration file. See the documentation for the method used
+ to search for configuration file.
+diff --git a/setup.cfg b/setup.cfg
+index 62a3fd7a..fe5f747f 100644
+--- a/setup.cfg
++++ b/setup.cfg
+@@ -46,6 +46,7 @@ install_requires =
+     isort>=4.2.5,<6
+     mccabe>=0.6,<0.7
+     toml>=0.7.1
++    appdirs>=1.4.0
+     colorama;sys_platform=="win32"
+ python_requires = ~=3.6
+ 
