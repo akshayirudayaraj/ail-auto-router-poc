@@ -131,8 +131,20 @@ th, td { text-align: left; padding: 10px 13px; border-bottom: 1px solid var(--li
 tbody tr:last-child td { border-bottom: none; }
 th { position: sticky; top: 0; background: var(--sunken); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; z-index: 1; }
 td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+/* header "?" help affordance — reveals the metric one-liner on hover */
+.th-help { display: inline-flex; align-items: center; gap: 5px; }
+th.num .th-help { justify-content: flex-end; }
+.qmark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; border-radius: 50%; cursor: help; flex: 0 0 auto;
+  font-size: 9px; font-weight: 700; font-family: var(--sans); text-transform: none; letter-spacing: 0;
+  color: var(--muted); background: var(--chip); border: 1px solid var(--line-2);
+}
+.qmark:hover { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
 td.wrap { white-space: normal; max-width: 420px; }
 tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: color-mix(in srgb, var(--accent) 7%, transparent); }
 
 /* ---- panels + controls ---- */
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 18px; margin-bottom: 18px; box-shadow: var(--sh-1); }

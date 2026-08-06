@@ -66,6 +66,22 @@ function fmtMetric(key: string, v: number | null | undefined): string {
   return PCT_METRICS.has(key) ? `${(v * 100).toFixed(0)}%` : v.toFixed(3);
 }
 
+// A column header with an inline "?" that reveals the metric's one-liner on hover.
+function MetricTh({ col, num }: { col: string; num?: boolean }) {
+  return (
+    <th className={num ? "num" : undefined}>
+      <span className="th-help">
+        {COL_LABEL[col] ?? col}
+        {COL_HELP[col] && (
+          <span className="qmark" title={COL_HELP[col]} aria-label={COL_HELP[col]}>
+            ?
+          </span>
+        )}
+      </span>
+    </th>
+  );
+}
+
 const EVAL_METHODS: [string, string][] = [
   ["dual-arm-gold", "Both arms' outcomes known → RouterBench-style cost/quality curve, AIQ, and escalation cells. The only trustworthy ABSOLUTE anchor."],
   ["temporal-backtest", "Splits logs by session+time and RANKS routers on held-out future. Enforces eval labels be a strictly-stronger source than train (no circularity)."],
@@ -176,11 +192,9 @@ function PrimaryTable({ leaderboard, anchors, champ }: { leaderboard: LeaderRow[
       <table>
         <thead>
           <tr>
-            <th title={COL_HELP.router} style={{ cursor: "help" }}>router</th>
+            <MetricTh col="router" />
             {PRIMARY_COLS.map((c) => (
-              <th key={c} className="num" title={COL_HELP[c]} style={{ cursor: "help" }}>
-                {COL_LABEL[c] ?? c}
-              </th>
+              <MetricTh key={c} col={c} num />
             ))}
           </tr>
         </thead>
@@ -223,11 +237,9 @@ function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
         <table>
           <thead>
             <tr>
-              <th title={COL_HELP.router} style={{ cursor: "help" }}>router</th>
+              <MetricTh col="router" />
               {SECONDARY_COLS.map((c) => (
-                <th key={c} className="num" title={COL_HELP[c]} style={{ cursor: "help" }}>
-                  {COL_LABEL[c] ?? c}
-                </th>
+                <MetricTh key={c} col={c} num />
               ))}
             </tr>
           </thead>
@@ -245,10 +257,6 @@ function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
           </tbody>
         </table>
       </div>
-      <p className="muted small" style={{ marginTop: 8 }}>
-        AIQ = $-cost-weighted area under the cost/quality hull. offload_isoq = max local share at exactly-frontier quality
-        (brittle on small gold sets — kept for continuity). AUC/ECE score the escalation signal against "local inadequate".
-      </p>
     </details>
   );
 }
@@ -343,16 +351,6 @@ export function EvalsTab() {
             How it earns that <span className="muted">(safety · thrift · vs the perfect oracle)</span>
           </h3>
           <PrimaryTable leaderboard={learnedRows} anchors={anchors} champ={champ} />
-          <p
-            className="muted small"
-            dangerouslySetInnerHTML={{
-              __html:
-                "<b>local share</b> = fraction kept local. <b>quality vs Opus</b> = adequacy retained vs always-Opus (want 100%). " +
-                "<b>safety</b> = of prompts where local would fail, the share correctly escalated (protects quality). " +
-                "<b>thrift</b> = of prompts where local would pass, the share kept local (captures savings). " +
-                "<b>vs oracle</b> = local share as a fraction of a perfect router's. <b>quality leaks</b> = stayed local but Opus would've passed (want 0%).",
-            }}
-          />
 
           <h3 style={{ marginTop: 22 }}>
             Cost / quality map <span className="muted">(each router vs the always-local / oracle / always-Opus anchors)</span>
