@@ -16,56 +16,34 @@
       </div>
     </div>
     <nav id="tabs">
-      <button data-tab="overview" class="active">Overview</button>
-      <button data-tab="corpus">Corpus</button>
-      <button data-tab="traces">Traces</button>
-      <button data-tab="data">Labeled data</button>
-      <button data-tab="fit">Fit &amp; evaluate</button>
-      <button data-tab="route">Route a prompt</button>
+      <button data-tab="data" class="active">Data</button>
+      <button data-tab="training">Training</button>
+      <button data-tab="evals">Evals</button>
+      <button data-tab="route">Route</button>
     </nav>
     <div id="backend-pill" class="pill">…</div>
   </header>
 
+  <div id="statbar" class="statbar"></div>
+
   <main>
-    <!-- OVERVIEW -->
-    <section id="overview" class="tab active">
-      <div id="overview-cards" class="cards"></div>
-      <div id="overview-note" class="note"></div>
-    </section>
-
-    <!-- CORPUS (agentic generated data browser) -->
-    <section id="corpus" class="tab">
-      <div class="toolbar" id="corpus-toolbar"></div>
-      <div id="corpus-calib"></div>
-      <div class="tablewrap"><table id="corpus-table"></table></div>
-      <div class="detail" id="corpus-detail">
-        <p class="muted">Select a session row to view its full agentic trace (turns, tool calls, diff).</p>
+    <!-- DATA: raw sessions (reconstructed), by source category -->
+    <section id="data" class="tab active">
+      <div class="subtabs" id="data-cats">
+        <button data-cat="internal">Internal logs</button>
+        <button data-cat="semi" class="active">Semi-synthetic</button>
+        <button data-cat="synth">Synthetic</button>
       </div>
-    </section>
-
-    <!-- TRACES -->
-    <section id="traces" class="tab">
-      <div class="split">
-        <aside class="list" id="trace-list"></aside>
-        <div class="detail" id="trace-detail">
-          <p class="muted">Select a session to view its trace.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- DATA -->
-    <section id="data" class="tab">
-      <div class="subtabs" id="data-subtabs">
-        <button data-ds="pointwise" class="active">Pointwise</button>
-        <button data-ds="pairwise">Pairwise</button>
-        <button data-ds="gold">Gold (dual-arm)</button>
-      </div>
+      <div id="data-desc" class="note"></div>
       <div class="toolbar" id="data-toolbar"></div>
       <div class="tablewrap"><table id="data-table"></table></div>
+      <div class="detail" id="data-detail">
+        <p class="muted">Select a session row to reconstruct its full trace (turns, tool calls, labels, diff).</p>
+      </div>
     </section>
 
-    <!-- FIT -->
-    <section id="fit" class="tab">
+    <!-- TRAINING: routing methods + IRT recovery -->
+    <section id="training" class="tab">
       <div class="panel">
         <div class="controls">
           <label>Train label source
@@ -81,20 +59,35 @@
           <span id="fit-status" class="muted"></span>
         </div>
       </div>
-      <h3>IRT ability recovery <span class="muted">(θ, reference-centered)</span></h3>
-      <div class="tablewrap"><table id="fit-abilities"></table></div>
-      <h3>Gold leaderboard <span class="muted">(dual-arm; absolute numbers)</span></h3>
-      <div class="tablewrap"><table id="fit-leaderboard"></table></div>
-      <p class="muted small" id="fit-legend"></p>
+      <h3>Routing methods</h3>
+      <div id="training-methods" class="methods"></div>
+      <h3>IRT ability recovery <span class="muted">(θ, reference-centered — higher = more capable)</span></h3>
+      <div id="training-ability-chart" class="chart"></div>
+      <div class="tablewrap"><table id="training-abilities"></table></div>
+      <p class="muted small" id="training-note"></p>
     </section>
 
-    <!-- ROUTE -->
+    <!-- EVALS: gold leaderboard + harness reports -->
+    <section id="evals" class="tab">
+      <div id="evals-empty" class="note"></div>
+      <h3>Dual-arm gold leaderboard <span class="muted">(absolute cost/quality — the only trustworthy anchor)</span></h3>
+      <div id="evals-aiq-chart" class="chart"></div>
+      <div class="tablewrap"><table id="evals-leaderboard"></table></div>
+      <p class="muted small" id="evals-legend"></p>
+      <h3>Harness methods</h3>
+      <div id="evals-methods"></div>
+    </section>
+
+    <!-- ROUTE: live routing of a new prompt, selectable algorithm -->
     <section id="route" class="tab">
       <div class="panel route-panel">
         <label class="block">New prompt
           <textarea id="route-prompt" rows="5" placeholder="e.g. Implement a thread-safe LRU cache in Go with O(1) Get/Put."></textarea>
         </label>
         <div class="controls">
+          <label>Routing algorithm
+            <select id="route-router"><option value="">all (majority vote)</option></select>
+          </label>
           <label>Turn type
             <select id="route-turntype">
               <option value="open">open</option>

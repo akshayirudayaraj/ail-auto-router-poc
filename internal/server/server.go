@@ -83,6 +83,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/reports", s.handleReports)
 	mux.HandleFunc("/api/fit", s.handleFit)
 	mux.HandleFunc("/api/route", s.handleRoute)
+	mux.HandleFunc("/api/routers", s.handleRouters)
 	mux.HandleFunc("/api/agentic/session", s.handleAgenticSession)
 	mux.HandleFunc("/api/agentic", s.handleAgentic)
 	mux.HandleFunc("/api/labels", s.handleLabels)
