@@ -23,6 +23,10 @@ python/__pycache__/
 # agentic track runtime artifacts
 agentic/checkouts/
 agentic/tasks/*/checkout/
+# Materialized SWE-bench repo checkouts are large (~150M) and regenerable from
+# the dataset via materialize_swe.py + tasks/swe_selection.json. Keep the small
+# task.json + _oracle (the durable task definition) tracked; ignore the big repo.
+agentic/tasks/swe-*/repo/
 *.pyc
 __pycache__/
 
@@ -31,3 +35,14 @@ data_agentic/cache/
 agentic/results/logs/
 agentic/results/pred_*.jsonl
 agentic/results/*.step1_*.json
+
+# containerized-agent toolbox (built node+claude blob) + any local token file
+agentic/.claude_toolbox/
+*.oauth.env
+.claude_oauth.env
+
+# swebench image-build logs (noise, regenerable)
+logs/build_images/
+
+# report.py narrative — local artifact; canonical agentic results are data_agentic/RESULTS.md
+RESULTS_AGENTIC.md

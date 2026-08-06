@@ -24,6 +24,22 @@ code is the real deliverable.**
 
 ---
 
+## Source of truth & repo map
+
+The authoritative design is **`ROUTER_BRAINSTORM.md`** — this repo is the
+predictive-branch **POC harness of its §6**. The pipeline maps to the code:
+
+| ROUTER_BRAINSTORM §6 stage | in this repo |
+|---|---|
+| ① Data sources (logs / semi-synthetic / synthetic) | `agentic/` (real execution-grounded generation) · `internal/generate` (templated CI fixture, never signal) |
+| ② Parse → training labels (firewall, reconstruct, split, implicit/judge) | `internal/extract`, `agentic/runner/{firewall_gate,split}.py` |
+| ③ Per-router shapes (pointwise / pairwise) | `internal/schema` |
+| ④ Fit routers (RouteLLM / IRT / kNN / encoder-MLP·SLM) | `internal/router` (last two are Go stubs + `python/`) |
+| ⑤ Non-circular eval (gold / backtest / off-policy / guardrail) | `internal/eval` |
+| Gold lane (execution oracle, dual-arm) | `agentic/` + the deferred offline label engine |
+
+---
+
 ## Quick start
 
 ```bash
@@ -82,12 +98,12 @@ the repo's hidden tests** (a non-circular oracle) — filling the
 
 ```bash
 make agentic-smoke   # 1 task, BOTH arms, tool-call fidelity smoke
-make agentic         # full pipeline (resumable/cached) -> RESULTS_AGENTIC.md
+make agentic         # full pipeline (resumable/cached) -> data_agentic/RESULTS.md
 ```
 
 The local arm reaches the harness through an **Anthropic→Ollama proxy**
 (`agentic/proxy/`) so it drives the exact same `tool_use`/`tool_result` protocol
-as frontier. See `agentic/README.md`, `RESULTS_AGENTIC.md`, and DECISIONS
+as frontier. See `agentic/README.md`, `data_agentic/RESULTS.md`, and DECISIONS
 D11-ag/D12–D15. This track keeps the Go/Python boundary: the schema, gold
 assembly (`internal/agentic`, `cmd/agentic`) and eval harness stay portable Go;
 the harness-driving glue and Docker execution live under `agentic/` (Python).
@@ -144,14 +160,33 @@ Package layout:
 | `internal/backend` | Embed / Generate / Judge, cache, concurrency, caps |
 | `internal/numerics` | dot/cosine, logistic regression (GD), Newton helpers |
 | `internal/feature` | prompt → structural `Features` |
-| `internal/generate` | Pillar 1a synthetic log generator |
+| `internal/generate` | **QUARANTINED** templated log generator — CI/plumbing fixture only (`provenance=templated`, never signal) |
 | `internal/extract` | Pillar 1b extraction + 1c quality report |
 | `internal/router` | Pillar 2 routers + interface |
 | `internal/eval` | Pillar 3 harness, metrics, policy |
-| `internal/server` | web console (stdlib `net/http` + embedded SPA) |
+| `internal/server` | web console (stdlib `net/http` + embedded SPA); **Corpus** tab browses agentic logs |
 | `cmd/{gen,extract,train,eval}` | stage entrypoints |
 | `cmd/serve` | web console server (`make serve`) |
+| `agentic/` | **non-portable** log-first generation: `claude -p` dual-arm runner + Anthropic→Ollama proxy + SWE materializer + synth gate + sim-user |
 | `python/` | **non-portable** encoder + SLM-head training |
+
+### Data sources & the one serving path (DATA_PLAN)
+
+All trustworthy data now comes from **one serving path** — an agentic `claude -p`
+run across both rungs (`local=gpt-oss:20b` via the proxy, `frontier=opus` via the
+subscription), producing a log-first artifact set (RawTurn `.session.jsonl` + raw
+`.events.jsonl` + `.patch` + a grade-free run record). **No grading happens during
+generation** — outcomes are the deferred offline engine's job.
+
+| Source | Origin | Runner | Grading |
+|---|---|---|---|
+| **2 — semi-synthetic** | SWE-bench Verified (given) | `run_agentic.py` (`make agentic-swe`) | offline (swebench harness) |
+| **3 — generated** | authored in a Claude session, OSS-grounded; gated by `agentic/synth/validate_task.py` | `run_agentic.py` | offline (docker pytest) |
+| ~~templated~~ | `internal/generate` | — | **quarantined; never signal** |
+
+The corpus is deterministically split into train/held-out (`agentic/runner/split.py`
+→ `split_manifest.json`) *before* any labeling. Off-policy propensities stay null by
+construction (every task runs on every rung deterministically — no logging policy).
 
 ---
 

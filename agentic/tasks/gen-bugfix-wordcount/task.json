@@ -1,0 +1,14 @@
+{
+  "id": "gen-bugfix-wordcount",
+  "tier": "gen-easy",
+  "issue": "word_count(text) should count words separated by any whitespace, collapsing runs of spaces and ignoring leading/trailing spaces. Currently word_count('  a   b  ') returns the wrong number because it splits on a single space and counts empty strings between them. It must return 2, while word_count('a b c') must still return 3.",
+  "test_cmd": "python -m pytest -q",
+  "fail_to_pass": ["tests/test_counter.py::test_word_count_extra_spaces"],
+  "pass_to_pass": ["tests/test_counter.py::test_word_count_basic"],
+  "provenance": "synthetic",
+  "grounding": "synthetic_repo",
+  "has_executable_oracle": true,
+  "grader": "docker_pytest",
+  "archetype": "bug-fix",
+  "language": "python"
+}

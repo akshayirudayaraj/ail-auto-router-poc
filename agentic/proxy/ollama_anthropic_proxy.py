@@ -32,6 +32,7 @@ import sys
 import time
 import uuid
 import urllib.request
+import urllib.error
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -155,27 +156,56 @@ def anthropic_tools_to_ollama(tools: Any) -> list[dict]:
 # Ollama call
 # --------------------------------------------------------------------------
 def call_ollama(messages: list[dict], tools: list[dict], max_tokens: int) -> dict:
-    payload = {
-        "model": OLLAMA_MODEL,
-        "messages": messages,
-        "stream": False,
-        "keep_alive": KEEP_ALIVE,
-        "options": {
-            "num_ctx": NUM_CTX,
-            "num_predict": min(max_tokens, NUM_PREDICT) if max_tokens else NUM_PREDICT,
-            "temperature": TEMPERATURE,
-        },
-    }
-    if tools:
-        payload["tools"] = tools
-    req = urllib.request.Request(
-        OLLAMA_URL + "/api/chat",
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
-        return json.loads(resp.read().decode())
+    def build(with_tools: bool) -> bytes:
+        p = {
+            "model": OLLAMA_MODEL,
+            "messages": messages,
+            "stream": False,
+            "keep_alive": KEEP_ALIVE,
+            "options": {
+                "num_ctx": NUM_CTX,
+                "num_predict": min(max_tokens, NUM_PREDICT) if max_tokens else NUM_PREDICT,
+                "temperature": TEMPERATURE,
+            },
+        }
+        if with_tools and tools:
+            p["tools"] = tools
+        return json.dumps(p).encode()
+
+    # Two recoverable Ollama failures, both surfacing as HTTP 500:
+    #  1. transient cold load / GPU contention -> retry the same request;
+    #  2. "error parsing tool call" -> Ollama's own gpt-oss tool-call parser chokes
+    #     on the model's output (deterministic; retrying with tools re-fails). Fall
+    #     back to a NO-TOOLS request so Ollama returns the model's raw text, which
+    #     the rescue path (build_anthropic_blocks -> rescue_tool_calls) lifts the
+    #     tool call from. Turns a turn-killing 500 into a rescued tool call.
+    last = None
+    drop_tools = False
+    for attempt in range(4):
+        req = urllib.request.Request(
+            OLLAMA_URL + "/api/chat", data=build(not drop_tools),
+            headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=OLLAMA_TIMEOUT) as resp:
+                d = json.loads(resp.read().decode())
+                if drop_tools and tools:
+                    _log({"event": "tool_parse_recovered"})  # dropped tools; rescue parses
+                return d
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode()[:1000]
+            except Exception:
+                body = ""
+            last = RuntimeError(f"ollama HTTP {e.code}: {body}")
+            if "parsing tool call" in body.lower() and tools and not drop_tools:
+                drop_tools = True
+                _log({"event": "tool_parse_500_fallback", "detail": body[:200]})
+                continue  # immediate retry WITHOUT native tools
+            if 500 <= e.code < 600 and attempt < 3:
+                time.sleep(2 * (attempt + 1))
+                continue
+            raise last from e
+    raise last
 
 
 # --------------------------------------------------------------------------

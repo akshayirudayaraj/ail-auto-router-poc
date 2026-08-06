@@ -7,19 +7,22 @@ import (
 	"github.com/akshayirudayaraj/ail-routing-test/internal/config"
 )
 
+func bp(b bool) *bool { return &b }
+
 // TestBuildGoldPairsArms verifies that local+frontier results for a task collapse
 // into one dual-arm GoldRow with executed outcomes, billable-token costs, and
-// Executable=true — and that a frontier-only task still yields a row.
+// Executable=true — and that a frontier-only task still yields a row. Records here
+// are GRADED (Resolved set), as they will be once the offline engine has run.
 func TestBuildGoldPairsArms(t *testing.T) {
 	results := []Result{
 		// task A: local FAIL, frontier PASS -> the cell-B case
-		{TaskID: "A", Arm: "local", Resolved: false, InputTokens: 100, OutputTokens: 20},
-		{TaskID: "A", Arm: "frontier", Resolved: true, InputTokens: 200, OutputTokens: 40},
+		{TaskID: "A", Arm: "local", Resolved: bp(false), InputTokens: 100, OutputTokens: 20},
+		{TaskID: "A", Arm: "frontier", Resolved: bp(true), InputTokens: 200, OutputTokens: 40},
 		// task B: both PASS
-		{TaskID: "B", Arm: "local", Resolved: true, InputTokens: 50, OutputTokens: 10},
-		{TaskID: "B", Arm: "frontier", Resolved: true, InputTokens: 60, OutputTokens: 10},
+		{TaskID: "B", Arm: "local", Resolved: bp(true), InputTokens: 50, OutputTokens: 10},
+		{TaskID: "B", Arm: "frontier", Resolved: bp(true), InputTokens: 60, OutputTokens: 10},
 		// task C: frontier only (local arm blocked)
-		{TaskID: "C", Arm: "frontier", Resolved: true, InputTokens: 30, OutputTokens: 5},
+		{TaskID: "C", Arm: "frontier", Resolved: bp(true), InputTokens: 30, OutputTokens: 5},
 	}
 	tasks := map[string]Task{
 		"A": {ID: "A", Tier: "hard", Issue: "fix the parser precedence bug"},
@@ -77,10 +80,25 @@ func TestBuildGoldPairsArms(t *testing.T) {
 // TestBuildGoldRequiresFrontier verifies a local-only task is skipped (a dual-arm
 // row needs at least the frontier outcome).
 func TestBuildGoldRequiresFrontier(t *testing.T) {
-	results := []Result{{TaskID: "X", Arm: "local", Resolved: true, InputTokens: 10, OutputTokens: 2}}
+	results := []Result{{TaskID: "X", Arm: "local", Resolved: bp(true), InputTokens: 10, OutputTokens: 2}}
 	tasks := map[string]Task{"X": {ID: "X", Issue: "y"}}
 	_, _, err := BuildGold(context.Background(), config.Default(), results, tasks, nil)
 	if err == nil {
 		t.Fatalf("expected error when no frontier arm present")
+	}
+}
+
+// TestBuildGoldGuardsUngraded locks in the correctness landmine fix: an
+// oracle-bearing record with NO outcome (log-first runner emits no `resolved`)
+// must ERROR loudly, not be silently scored as a 0/failure.
+func TestBuildGoldGuardsUngraded(t *testing.T) {
+	results := []Result{
+		{TaskID: "A", Arm: "local", HasExecutableOracle: true, Resolved: nil},     // ungraded
+		{TaskID: "A", Arm: "frontier", HasExecutableOracle: true, Resolved: nil},  // ungraded
+	}
+	tasks := map[string]Task{"A": {ID: "A", Issue: "z"}}
+	_, _, err := BuildGold(context.Background(), config.Default(), results, tasks, nil)
+	if err == nil {
+		t.Fatalf("expected an error for ungraded oracle-bearing records, got nil (would have fabricated 0 outcomes)")
 	}
 }

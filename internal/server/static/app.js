@@ -32,8 +32,134 @@ $$("#tabs button").forEach((b) =>
     $("#" + b.dataset.tab).classList.add("active");
     if (b.dataset.tab === "traces" && !tracesLoaded) loadTraces();
     if (b.dataset.tab === "data" && !dataLoaded) loadData("pointwise");
+    if (b.dataset.tab === "corpus" && !corpusLoaded) loadCorpus();
   })
 );
+
+// ---- corpus (agentic generated data) ----
+let corpusLoaded = false, corpusRows = [], corpusFilters = {};
+const CORPUS_FACETS = ["source", "arm", "split", "has_executable_oracle"];
+const CORPUS_COLS = [
+  ["task_id", "wrap"], ["arm", ""], ["served_model", ""], ["source", ""],
+  ["grounding", ""], ["tier", ""], ["split", ""], ["has_executable_oracle", ""],
+  ["num_turns", "num"], ["tools", "num"], ["total_tokens", "num"],
+  ["wall_s", "num"], ["timed_out", ""], ["empty_patch", ""],
+];
+async function loadCorpus() {
+  corpusLoaded = true;
+  const r = await api("/api/agentic");
+  corpusRows = r.rows || [];
+  const tb = $("#corpus-toolbar"); tb.innerHTML = "";
+  if (!corpusRows.length) {
+    tb.append(el("span", { class: "muted" }, "No agentic sessions yet — run `make agentic-generate` (or `make agentic-swe`)."));
+    $("#corpus-table").innerHTML = "";
+    return;
+  }
+  // facet filters
+  CORPUS_FACETS.forEach((f) => {
+    const vals = [...new Set(corpusRows.map((x) => String(x[f])))].sort();
+    const sel = el("select", { onchange: (e) => { corpusFilters[f] = e.target.value; renderCorpus(); } },
+      el("option", { value: "" }, f + ": all"));
+    vals.forEach((v) => sel.append(el("option", { value: v }, v)));
+    tb.append(sel);
+  });
+  tb.append(el("span", { id: "corpus-count", class: "muted" }));
+  renderCorpus();
+}
+function renderCorpus() {
+  const rows = corpusRows.filter((row) =>
+    CORPUS_FACETS.every((f) => !corpusFilters[f] || String(row[f]) === corpusFilters[f]));
+  $("#corpus-count").textContent = rows.length + " / " + corpusRows.length + " sessions";
+  const t = $("#corpus-table"); t.innerHTML = "";
+  const thead = el("tr");
+  CORPUS_COLS.forEach(([c, cls]) => thead.append(el("th", { class: cls }, c)));
+  t.append(el("thead", {}, thead));
+  const tb = el("tbody");
+  rows.forEach((row) => {
+    const tr = el("tr", { class: "clickable", onclick: () => selectCorpus(row.session_id) });
+    CORPUS_COLS.forEach(([c, cls]) => {
+      if (c === "arm" || c === "served_model")
+        return tr.append(el("td", {}, modelChip(c === "arm" ? row.served_model : row[c])));
+      if (c === "tools")
+        return tr.append(el("td", { class: cls }, `${row.native_tool_calls}/${row.rescued_tool_calls}`));
+      if (c === "split")
+        return tr.append(el("td", {}, el("span", { class: "chip " + (row.split === "holdout" ? "warn" : "") }, row.split || "—")));
+      if (c === "timed_out" || c === "empty_patch")
+        return tr.append(el("td", {}, row[c] ? el("span", { class: "chip bad" }, "yes") : el("span", { class: "muted" }, "—")));
+      if (c === "has_executable_oracle")
+        return tr.append(el("td", {}, row[c] ? el("span", { class: "chip ok" }, "✓") : ""));
+      tr.append(el("td", { class: cls }, row[c] == null ? "" : String(fmt(row[c]))));
+    });
+    tb.append(tr);
+  });
+  t.append(tb);
+}
+async function selectCorpus(sid, reveal) {
+  const d = $("#corpus-detail"); d.innerHTML = "";
+  d.append(el("p", { class: "muted" }, "loading " + sid + " …"));
+  const r = await api("/api/agentic/session?id=" + encodeURIComponent(sid) + (reveal ? "&reveal=1" : ""));
+  d.innerHTML = "";
+  if (r.error) { d.append(el("p", { class: "muted" }, r.error)); return; }
+  const rec = r.record || {};
+  const head = el("div", { class: "head" },
+    el("span", { class: "role" }, rec.task_id + " · " + rec.arm),
+    modelChip(rec.served_model));
+  [["prov", rec.provenance], ["ground", rec.grounding], ["split", rec.split],
+   ["turns", rec.num_turns], ["native/rescued", `${rec.native_tool_calls}/${rec.rescued_tool_calls}`],
+   ["tok", rec.total_tokens], ["wall", rec.wall_clock_s + "s"]].forEach(([k, v]) =>
+    head.append(el("span", { class: "chip" }, k + ": " + (v == null ? "—" : v))));
+  if (rec.timed_out) head.append(el("span", { class: "chip bad" }, "timed_out"));
+  if (rec.empty_patch) head.append(el("span", { class: "chip bad" }, "empty_patch"));
+  d.append(head);
+
+  // Issue
+  if (r.issue) d.append(el("details", {}, el("summary", {}, "ISSUE"), el("pre", { class: "content" }, r.issue)));
+
+  // RawTurn session (the flat log)
+  d.append(el("h3", {}, "Session (RawTurn)"));
+  (r.turns || []).forEach((t) => {
+    const h = el("div", { class: "head" }, el("span", { class: "role" }, t.role));
+    if (t.served_model) h.append(modelChip(t.served_model));
+    d.append(el("div", { class: "turn " + t.role }, h, el("div", { class: "content" }, t.content || "")));
+  });
+
+  // Rich event trace (tool_use / tool_result)
+  d.append(el("h3", {}, "Tool trace (CC events)"));
+  const ev = el("div", { class: "panel" });
+  (r.events || []).forEach((e) => {
+    if (e.type === "assistant") {
+      (e.message?.content || []).forEach((b) => {
+        if (b.type === "text" && b.text) ev.append(el("div", { class: "turn assistant" }, el("div", { class: "content" }, b.text)));
+        if (b.type === "tool_use") ev.append(el("div", { class: "toolcall" },
+          el("span", { class: "chip" }, "→ " + b.name),
+          el("span", { class: "content mono" }, JSON.stringify(b.input).slice(0, 300))));
+      });
+    } else if (e.type === "user") {
+      (e.message?.content || []).forEach((b) => {
+        if (b.type === "tool_result") {
+          let c = b.content;
+          if (Array.isArray(c)) c = c.map((x) => x.text || "").join(" ");
+          ev.append(el("div", { class: "toolcall" },
+            el("span", { class: "chip " + (b.is_error ? "bad" : "ok") }, b.is_error ? "✗ result" : "✓ result"),
+            el("span", { class: "content mono" }, String(c || "").slice(0, 300))));
+        }
+      });
+    }
+  });
+  d.append(ev);
+
+  // Patch
+  d.append(el("h3", {}, "Patch (git diff)"));
+  d.append(el("pre", { class: "content mono" }, r.patch || "(empty)"));
+
+  // Oracle reveal (hidden by default — never shown unless explicitly requested)
+  if (Object.keys(r.oracle || {}).length) {
+    d.append(el("h3", { class: "warn-text" }, "⚠ Oracle (hidden ground truth)"));
+    for (const [k, v] of Object.entries(r.oracle)) d.append(el("details", {}, el("summary", {}, k), el("pre", { class: "content mono" }, v)));
+  } else {
+    d.append(el("button", { class: "reveal", onclick: () => selectCorpus(sid, true) }, "Reveal oracle (test_patch + gold_patch)"));
+  }
+}
 
 // ---- overview ----
 async function loadOverview() {

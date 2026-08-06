@@ -2,7 +2,7 @@
 
 > Handoff doc for the next agent/session. Written 2026-08-05. Owner: Akshay.
 > Read this top-to-bottom before touching code. Then read, in order:
-> `STEP1_PLAN.md` (what "Step 1" already delivered), `ROUTER_BRAINSTORM.md`
+> `docs/archive/STEP1_PLAN.md` (what "Step 1" already delivered), `ROUTER_BRAINSTORM.md`
 > **§2A** (the data-source definitions this plan implements), and `DECISIONS.md`
 > **D11-ag–D16** (the agentic track's existing choices).
 

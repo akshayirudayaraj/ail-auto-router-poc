@@ -89,6 +89,10 @@ func main() {
 	printSummary(lg, results)
 }
 
+// res derefs a graded outcome (nil → false). Only reached after BuildGold's guard
+// has confirmed all oracle-bearing records are graded, so nil here is benign.
+func res(r agentic.Result) bool { return r.Resolved != nil && *r.Resolved }
+
 func printSummary(lg *log.Logger, results []agentic.Result) {
 	byTask := map[string]map[string]agentic.Result{}
 	for _, r := range results {
@@ -111,18 +115,19 @@ func printSummary(lg *log.Logger, results []agentic.Result) {
 			localNative += l.NativeToolCalls
 			localRescued += l.RescuedToolCalls
 			localToolCalls += l.ToolCallsAttempted
+			lRes, fRes := res(l), res(f)
 			switch {
-			case !l.Resolved && f.Resolved:
+			case !lRes && fRes:
 				cellB++
-			case l.Resolved && f.Resolved:
+			case lRes && fRes:
 				bothPass++
-			case !l.Resolved && !f.Resolved:
+			case !lRes && !fRes:
 				bothFail++
-			case l.Resolved && !f.Resolved:
+			case lRes && !fRes:
 				localOnlyPass++
 			}
 			// perfect router: use local when local passes, else frontier
-			if l.Resolved {
+			if lRes {
 				perfectCost += float64(l.InputTokens+l.OutputTokens) * 1.0
 			} else {
 				perfectCost += float64(f.InputTokens+f.OutputTokens) * 15.0

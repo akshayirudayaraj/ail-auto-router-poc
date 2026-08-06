@@ -266,3 +266,151 @@ end-to-end. What changed, and what deliberately did not:
 
 - **RTX-6000 / Gemma environment: NOT touched.** All local serving used throwaway Ollama
   (gpt-oss:20b) on the dev box. The sensitive box + gateway remain a later step (D14/Step 4).
+
+## D17 — DATA_PLAN: log-first agentic generation (no grading during generation)
+
+Executing DATA_PLAN.md. The agentic dual-arm runner becomes the ONE generation
+engine and stops grading; grading/judging/scoring all move to a deferred offline
+engine. Choices made in Phase 1:
+
+- **One serving path, no grading during generation.** `run_agentic.py:run_one`
+  no longer calls `score_checkout` (removed the `executor` import); `run_swe_arm.py`
+  no longer calls `grade()` on the generation path (the swebench wrapper is parked,
+  documented OFFLINE-ENGINE-ONLY). Run records carry NO `resolved`/`fail_to_pass_ok`/
+  `per_node`. The base `repo/` + `_oracle/` are preserved so the offline executed
+  oracle can grade later from (base repo + agent diff + test_patch).
+
+- **Two log artifacts per (task, arm), plus the record.** `run_one` now emits a
+  portable RawTurn `<...>.session.jsonl` (user prompt + concatenated assistant turn;
+  `served_model` set; `propensity` null — every task runs on every rung
+  deterministically, so there is no logging policy and no propensity) which
+  `internal/extract` consumes unchanged, and the raw CC `<...>.events.jsonl` event
+  stream (tool_use/tool_result, native/rescued, usage) for the UI trace + fidelity.
+
+- **Configurable roster keyed on `served_model`.** `ARM_MODELS` is an ordered
+  cheap→expensive list; frontier default swapped `sonnet`→**`opus`** (subscription),
+  local = **gpt-oss:20b** via the proxy. Adding a mid-rung = adding an arm.
+
+- **Latency ≠ capability.** `timed_out` / `hit_turn_cap` stay first-class on the
+  record; a timeout is a routing signal, never a capability outcome.
+
+- **Frontier Max rate-limit backstop.** A frontier usage-limit is a TRANSIENT: the
+  `(task, arm)` is neither written nor cached (free resume), with bounded backoff.
+  Detection is FRONTIER-ONLY (a local Ollama arm can never be Max-rate-limited) and
+  scans only an ERRORED result's human-text fields + stderr — never the full raw
+  stream, whose ever-present `anthropic-ratelimit-*` / `usage` metadata otherwise
+  false-matches `429`/`rate_limit` on successful runs (a bug caught and fixed on the
+  first Opus smoke). Verified: local gpt-oss:20b 9/9 native, 0 rescued, non-empty
+  patch; Opus 18 turns, non-empty patch, no false positive.
+
+- **Proxy hardening.** `call_ollama` now surfaces Ollama's actual error body (not the
+  opaque HTTP status) and retries transient 5xx (a cold gpt-oss:20b load under GPU
+  contention can 500 on the first request).
+
+- **Cost under subscription.** `reported_cost_usd` (from the stream-json result event)
+  is a THEORETICAL dollar figure the CLI reports even on the subscription — a useful
+  throttle, but the real Max constraint is a rate limit, not $. Logged as such.
+
+## D18 — DATA_PLAN Phases 2A–6: sources, gate, split, UI, quarantine
+
+- **Source 2 at scale (Phase 2A).** `materialize_swe.py` scaled 1→N: selects N
+  SWE-bench Verified instances biased to small repos + small F2P/P2P, diversified
+  with a per-repo cap, logging every pick and drop to `swe_selection.json` (no
+  silent truncation) with a contamination note (Verified is public). 26 instances
+  materialized firewall-green. The large `repo/` checkouts are gitignored
+  (regenerable from the dataset); `task.json` + `_oracle/` are the durable record.
+
+- **Firewall correctness.** The "hidden test absent" check keys off the LINES
+  test_patch ADDS (`firewall_util.hidden_test_leak`), not F2P method names — many
+  SWE F2P tests MODIFY tests that already exist at base_commit, so a name-based
+  check false-breaches them. A leak = a strong majority of substantive added test
+  lines already present in repo/. The "gold-already-applied" check is skipped for
+  `swe_verified` (base is base_commit by construction; the substring heuristic
+  false-positives on small real patches). Extended with an ISSUE-text leak scan
+  (generated tasks add the issue as a new leak vector).
+
+- **Source 3 gate (Phase 2B).** Generated tasks are AUTHORED in a Claude session
+  (the repo ships the spec `TASK_SPEC.md` + gate, not an API generator).
+  `agentic/synth/validate_task.py` admits a task only on schema completeness +
+  firewall (incl. issue leak) + fail-before/pass-after via the Docker executor
+  (validation, not generation grading). `oss_repos.md` is the permissive-repo
+  allowlist for grounded tasks.
+
+- **Simulated user (Phase 3).** `sim_session.py` drives multi-turn `claude -p`
+  via `--resume`; a scripted, seeded, deterministic sim-user reacts to IN-SESSION
+  cues only (visible test fails / done / stuck), including a real local→frontier
+  escalation. Emits RawTurn `.session.jsonl` that `internal/extract` ingests
+  unchanged (spot-checked by `TestLoadRawSimSession`).
+
+- **Split (Phase 4).** `split.py` partitions BY TASK, seeded/deterministic
+  (sha1(seed:task_id), not process-salted hash()), zero cross-split leakage
+  (asserted), byte-identical re-run. Writes `split_manifest.json`
+  {split, provenance, grounding, has_executable_oracle} per session.
+
+- **UI (Phase 5).** Stdlib-only `/api/agentic` (facet-filterable table, one row
+  per (task,arm)) + `/api/agentic/session` (full trace: RawTurn turns, CC tool
+  events, diff, issue; oracle hidden behind an explicit reveal). New Corpus tab.
+  No scoring shown — the offline engine's labels surface here once it exists.
+
+- **Quarantine (Phase 6).** `internal/generate` is marked plumbing/CI-fixture
+  only (`provenance=templated`, never signal) in its package doc + README; its
+  data lives in `data/`, agentic data in `data_agentic/` + `agentic/results/`.
+  The Go `cmd/agentic` gold assembler (reads `.resolved`) is now offline-engine
+  work — NOT invoked on the generation path.
+
+## D19 — Agent runs INSIDE the SWE-bench per-instance container (not the host)
+
+Correcting a real gap: SWE-bench tasks were generated with the agent on the HOST
+(host Python 3.13, no instance deps), so `pytest` failed outright — the agent
+never ran the real suite, authored patches blind, and polluted the host pyenv.
+Fix: run `claude -p` INSIDE the official swebench per-instance image so the agent
+operates in the REAL env (correct Python + pinned deps + repo@base at /testbed),
+can run the tests and iterate, and generation env == grading env.
+
+- **Images = the harness's own.** `build_swe_images.py` builds base→env→instance
+  via swebench (`build_env_images`/`build_instance_images`, tags "latest").
+  x86_64 images run under emulation on this arm64 Mac (slower but correct).
+  `make agentic-swe-images`.
+- **claude in a Linux container.** The host `claude` is a macOS arm64 Mach-O
+  binary — unusable in Linux. So a shared "toolbox" (`agentic/.claude_toolbox/`,
+  gitignored) holds a Linux node + the `@anthropic-ai/claude-code` npm build,
+  built once and bind-mounted read-only into each instance container; `claude`
+  runs there. Proven: node v20 + claude 2.1.x execute in the emulated container.
+- **`IS_SANDBOX=1`.** swebench containers run as root; `claude -p
+  --permission-mode bypassPermissions` refuses root without this. Set it.
+- **Auth per arm.** local → `ANTHROPIC_BASE_URL=http://host.docker.internal:8790`
+  reaches the host proxy (fidelity still logged host-side); frontier → the Max
+  SUBSCRIPTION via `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`) delivered by
+  `--env-file ~/.claude_oauth.env` so the plaintext credential is never handled
+  by the runner (macOS Keychain can't cross into Linux).
+- **Routing.** `run_agentic.is_swe_container_task` sends swe_verified/swebench
+  instances through `container_exec`; self-contained (pure-Python) tasks stay on
+  host (they run correctly there). `AGENT_FORCE_HOST=1` overrides for debug.
+- **Patch capture** from /testbed inside the container (`git add -A && git diff
+  --cached`); repo is at base_commit with .git, test_patch applied only at grade.
+
+## D20 — De-confound the local arm: 64k context, drop --bare, harden tool-parse
+
+Investigation of the in-container batch found local (gpt-oss:20b) produced empty
+patches on 21/25 SWE tasks — but 21/21 NEVER attempted an Edit/Write, 0 timed out,
+and only 4 hit the turn cap. The failure was harness, not (mostly) capability:
+
+- **Context truncation.** The proxy ran at num_ctx=8192, but agentic SWE
+  conversations grow to 25k–145k tokens (CC resends the whole transcript each
+  turn). Frontier (opus) needed up to ~46k peak single-turn context; 8k truncated
+  100% of local runs, so gpt-oss lost the issue + its own exploration and wandered.
+  → `PROXY_NUM_CTX` default 8192 → **65536** (frontier max ~46k; gpt-oss supports 128k).
+- **--bare.** Stripping CC's agentic system prompt made gpt-oss treat tasks as
+  Q&A — final turns were explanations ("The fixture is wrong…"), not edits.
+  --bare was a tractability workaround for slow qwen; gpt-oss:20b + 64k fits the
+  ~20k system prompt. → local `bare` default True → **False** (LOCAL_BARE=1 to restore).
+- **Tool-parse 500s.** 59 "error parsing tool call" HTTP 500s during the batch —
+  Ollama's own gpt-oss tool-call parser choking (deterministic; retry re-fails).
+  → proxy `call_ollama` now falls back to a NO-TOOLS request on that error, so the
+  model's text returns and the existing rescue path lifts the tool call.
+
+Validated on requests-2931 (previously empty): empty_patch True→False, Edit/Write
+0→4, and a correct fix to requests/models.py. Note: it now hits the 20-turn cap,
+so LOCAL_MAX_TURNS is the next binding constraint.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
