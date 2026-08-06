@@ -8,7 +8,10 @@ URL="http://127.0.0.1:${PORT}"
 PIDFILE="/tmp/agentic_proxy.pid"
 export PROXY_PORT="$PORT"
 export PROXY_LOG="${PROXY_LOG:-/tmp/agentic_proxy.log}"
-export PROXY_NUM_CTX="${PROXY_NUM_CTX:-8192}"
+# 64k: frontier (opus) needed up to ~46k peak single-turn context on real SWE
+# tasks, and 8k truncated 100% of local runs (the model lost the issue + its own
+# exploration and wandered). gpt-oss:20b supports up to 128k.
+export PROXY_NUM_CTX="${PROXY_NUM_CTX:-65536}"
 export PROXY_NUM_PREDICT="${PROXY_NUM_PREDICT:-1024}"
 export PROXY_KEEP_ALIVE="${PROXY_KEEP_ALIVE:-60m}"
 export PROXY_OLLAMA_MODEL="${PROXY_OLLAMA_MODEL:-qwen2.5-coder:14b}"

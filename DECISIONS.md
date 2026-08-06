@@ -388,3 +388,29 @@ can run the tests and iterate, and generation env == grading env.
   host (they run correctly there). `AGENT_FORCE_HOST=1` overrides for debug.
 - **Patch capture** from /testbed inside the container (`git add -A && git diff
   --cached`); repo is at base_commit with .git, test_patch applied only at grade.
+
+## D20 — De-confound the local arm: 64k context, drop --bare, harden tool-parse
+
+Investigation of the in-container batch found local (gpt-oss:20b) produced empty
+patches on 21/25 SWE tasks — but 21/21 NEVER attempted an Edit/Write, 0 timed out,
+and only 4 hit the turn cap. The failure was harness, not (mostly) capability:
+
+- **Context truncation.** The proxy ran at num_ctx=8192, but agentic SWE
+  conversations grow to 25k–145k tokens (CC resends the whole transcript each
+  turn). Frontier (opus) needed up to ~46k peak single-turn context; 8k truncated
+  100% of local runs, so gpt-oss lost the issue + its own exploration and wandered.
+  → `PROXY_NUM_CTX` default 8192 → **65536** (frontier max ~46k; gpt-oss supports 128k).
+- **--bare.** Stripping CC's agentic system prompt made gpt-oss treat tasks as
+  Q&A — final turns were explanations ("The fixture is wrong…"), not edits.
+  --bare was a tractability workaround for slow qwen; gpt-oss:20b + 64k fits the
+  ~20k system prompt. → local `bare` default True → **False** (LOCAL_BARE=1 to restore).
+- **Tool-parse 500s.** 59 "error parsing tool call" HTTP 500s during the batch —
+  Ollama's own gpt-oss tool-call parser choking (deterministic; retry re-fails).
+  → proxy `call_ollama` now falls back to a NO-TOOLS request on that error, so the
+  model's text returns and the existing rescue path lifts the tool call.
+
+Validated on requests-2931 (previously empty): empty_patch True→False, Edit/Write
+0→4, and a correct fix to requests/models.py. Note: it now hits the 20-turn cap,
+so LOCAL_MAX_TURNS is the next binding constraint.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

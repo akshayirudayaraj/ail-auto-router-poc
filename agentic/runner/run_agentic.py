@@ -72,7 +72,12 @@ ARMS = {
     "local": {
         "model": "claude-sonnet-4",           # name only; proxy routes to Ollama
         "served_model": LOCAL_OLLAMA_MODEL,
-        "bare": True,
+        # bare=False: keep CC's agentic system prompt. With --bare, gpt-oss:20b
+        # treated tasks as Q&A — it explored then explained/stopped without ever
+        # editing (21/25 empty patches, never an Edit). --bare was a tractability
+        # workaround for slow qwen; gpt-oss:20b + 64k ctx fits the system prompt
+        # (frontier's floor is ~20k) and needs the "keep going, make edits" scaffold.
+        "bare": bool(int(os.environ.get("LOCAL_BARE", "0"))),
         "max_turns": int(os.environ.get("LOCAL_MAX_TURNS", "20")),
         "timeout": int(os.environ.get("LOCAL_TIMEOUT", "1200")),
         "price": PRICE_LOCAL,
