@@ -5,8 +5,9 @@
 :root {
   color-scheme: light;
 
-  /* warm neutrals (from PulseCheck #161514 / #e1ddda family) */
-  --ink: #161514; --ink-2: #3a3836; --muted: #6f6a64; --faint: #9a948d;
+  /* warm neutrals (from PulseCheck #161514 / #e1ddda family). --muted/--faint
+     darkened from the source tokens for legible small text on white (AA). */
+  --ink: #161514; --ink-2: #35322f; --muted: #57524b; --faint: #7c756c;
   --line: #e1ddda; --line-2: #d7d1cb;
   --bg: #ffffff; --panel: #ffffff; --sunken: #faf9f7; --chip: #f2f0ec;
 
@@ -42,12 +43,14 @@ body {
 :focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-sm); }
 
 /* ---- header + nav ---- */
+/* 3-col grid: brand (left) | nav (page-centered) | empty. The two 1fr rails
+   keep the nav centered on the page regardless of the brand's width. */
 header {
-  display: flex; align-items: center; gap: 24px; padding: 12px 24px;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; padding: 12px 24px;
   background: color-mix(in srgb, #fff 88%, transparent); backdrop-filter: saturate(1.1) blur(8px);
-  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; flex-wrap: wrap;
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10;
 }
-.brand { display: flex; align-items: center; gap: 11px; }
+.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .logo {
   font-size: 20px; color: var(--accent); line-height: 1; display: inline-flex;
   align-items: center; justify-content: center; width: 34px; height: 34px;
@@ -55,7 +58,7 @@ header {
 }
 h1 { font-size: 15px; margin: 0; font-weight: 800; letter-spacing: -.01em; }
 .sub { margin: 1px 0 0; color: var(--muted); font-size: 11.5px; font-weight: 500; }
-nav#tabs { display: flex; gap: 2px; margin-left: 6px; flex-wrap: wrap; }
+nav#tabs { display: flex; gap: 2px; justify-self: center; }
 nav#tabs button, nav#tabs a {
   position: relative; background: none; border: none; color: var(--muted);
   padding: 10px 12px 12px; cursor: pointer; font-size: 14px; font-weight: 600;
