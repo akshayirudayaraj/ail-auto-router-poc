@@ -15,7 +15,6 @@ export function RouteTab() {
   const { routers } = useConsole();
   const [prompt, setPrompt] = useState("");
   const [router, setRouter] = useState(""); // "" = all (majority vote)
-  const [turnType, setTurnType] = useState("open");
   const [threshold, setThreshold] = useState(0.5);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,19 +29,15 @@ export function RouteTab() {
       return;
     }
     setBusy(true);
-    setStatus("embedding + scoring…");
-    const r = await apiPost<RouteResult>("/api/route", { prompt: p, turn_type: turnType, threshold });
+    setStatus("scoring…");
+    const r = await apiPost<RouteResult>("/api/route", { prompt: p, turn_type: "open", threshold });
     setBusy(false);
     if (r.error) {
       setStatus(r.error);
       setResult(null);
       return;
     }
-    setStatus(
-      r.embedding_dim
-        ? `embedded (${r.embedding_dim}-d)`
-        : "no embedding (" + (r.embed_error || "offline") + ") — using feature priors",
-    );
+    setStatus("");
     setResult(r);
   };
 
@@ -75,16 +70,6 @@ export function RouteTab() {
                   {r.name}
                 </option>
               ))}
-            </select>
-          </label>
-          <label>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-              Turn type
-              <HelpTip text="A single feature bit the routers trained on — not real history: open = a session's first task-stating prompt, followup = a later turn. With one pasted prompt there's no conversation behind it; this just flips that bit (a minor nudge to the score). Leave it 'open' for a fresh prompt." />
-            </span>
-            <select value={turnType} onChange={(e) => setTurnType(e.target.value)}>
-              <option value="open">open</option>
-              <option value="followup">followup</option>
             </select>
           </label>
           <label>
