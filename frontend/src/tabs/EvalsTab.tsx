@@ -28,6 +28,25 @@ const COL_LABEL: Record<string, string> = {
   cost_vs_local: "cost_vs_local",
 };
 
+// One-liner explanations, surfaced as native hover tooltips on the headers.
+const COL_HELP: Record<string, string> = {
+  router: "The routing policy being scored on the dual-arm gold set.",
+  "local_share@thr": "Share of requests this router keeps on the cheap local model at the operating threshold (higher = cheaper).",
+  qual_retention: "Adequacy retained vs always-Opus at the threshold — 100% means it matches Opus's quality.",
+  safety: "Of prompts where local would fail, the share the router correctly escalated to Opus (protects quality; want 100%).",
+  thrift: "Of prompts where local would pass, the share the router correctly kept local (captures the savings; want 100%).",
+  savings_capture: "Local share as a fraction of a perfect oracle's — how much of the safely-offloadable traffic it captured.",
+  under_escal_cellB: "Stayed local but Opus would have passed — the quality-eroding miss to minimize (want 0%).",
+  offload_isoq: "Max local share reachable while EXACTLY matching always-Opus quality (brittle on small gold sets; kept for continuity).",
+  "escalation@thr": "Share of requests sent to Opus at the threshold (= 1 − local share).",
+  "quality@thr": "Mean achieved adequacy across all requests at the operating threshold.",
+  over_escalation: "Escalated to Opus though local would have passed — wasted spend.",
+  aiq: "Area under the $-cost/quality hull: quality per unit cost, threshold-independent (higher = better).",
+  auc: "Ranking power of the escalation score against 'local inadequate' (0.5 = random, 1.0 = perfect).",
+  ece: "Expected calibration error of the escalation score — how well its probabilities match reality (lower = better).",
+  cost_vs_local: "Achieved $ cost relative to always-local (1.0 = as cheap as local; higher = pricier).",
+};
+
 // metrics shown as percentages; the rest as 3-decimal floats.
 const PCT_METRICS = new Set([
   "local_share@thr",
@@ -157,9 +176,9 @@ function PrimaryTable({ leaderboard, anchors, champ }: { leaderboard: LeaderRow[
       <table>
         <thead>
           <tr>
-            <th>router</th>
+            <th title={COL_HELP.router} style={{ cursor: "help" }}>router</th>
             {PRIMARY_COLS.map((c) => (
-              <th key={c} className="num">
+              <th key={c} className="num" title={COL_HELP[c]} style={{ cursor: "help" }}>
                 {COL_LABEL[c] ?? c}
               </th>
             ))}
@@ -204,9 +223,9 @@ function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
         <table>
           <thead>
             <tr>
-              <th>router</th>
+              <th title={COL_HELP.router} style={{ cursor: "help" }}>router</th>
               {SECONDARY_COLS.map((c) => (
-                <th key={c} className="num">
+                <th key={c} className="num" title={COL_HELP[c]} style={{ cursor: "help" }}>
                   {COL_LABEL[c] ?? c}
                 </th>
               ))}
