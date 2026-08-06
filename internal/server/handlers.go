@@ -485,6 +485,51 @@ func (s *Server) fitReport(thr float64) map[string]any {
 	}
 }
 
+// ---- /api/eval ----
+
+type evalRequest struct {
+	TrainSource string  `json:"train_source"` // "" => current fit source
+	Threshold   float64 `json:"threshold"`    // <=0 => current threshold
+}
+
+// handleEval runs the dual-arm gold benchmark on demand and returns the
+// leaderboard + method notes. Explicit control (per-router fits don't refresh
+// the leaderboard) and a hook for the fuller harness later.
+func (s *Server) handleEval(w http.ResponseWriter, r *http.Request) {
+	var req evalRequest
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	s.mu.RLock()
+	pw, pr, gold, curSrc, curThr := s.pointwise, s.pairwise, s.gold, s.fitSource, s.fitThresh
+	s.mu.RUnlock()
+	if len(gold) == 0 {
+		writeJSON(w, 400, map[string]any{"error": "no dual-arm gold set — run grading + `make agentic-materialize`"})
+		return
+	}
+	src := curSrc
+	if req.TrainSource != "" {
+		src = normSource(req.TrainSource)
+	}
+	thr := curThr
+	if req.Threshold > 0 {
+		thr = req.Threshold
+	}
+	data := eval.Data{Cfg: s.cfg, Pointwise: pw, Pairwise: pr, Gold: gold}
+	ge := &eval.GoldEval{Threshold: thr, TrainSource: src}
+	rep, err := ge.Run(router.Registry(), data)
+	if err != nil {
+		writeJSON(w, 400, map[string]any{"error": err.Error()})
+		return
+	}
+	writeJSON(w, 200, map[string]any{
+		"method":       rep.Method,
+		"train_source": srcLabel(src),
+		"threshold":    thr,
+		"n_gold":       len(gold),
+		"leaderboard":  rep.Rows,
+		"notes":        rep.Notes,
+	})
+}
+
 // ---- /api/route ----
 
 type routeRequest struct {

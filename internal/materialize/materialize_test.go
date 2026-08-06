@@ -2,6 +2,7 @@ package materialize
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"github.com/akshayirudayaraj/ail-routing-test/internal/config"
@@ -83,8 +84,11 @@ func TestBuild(t *testing.T) {
 	if g.PromptID != "t-hold-exec" || g.OutcomeLocal != 0 || g.OutcomeFrontier != 1 || !g.Executable {
 		t.Errorf("gold row wrong: %+v", g)
 	}
-	if g.CostLocal != 15 || g.CostFrontier != 300 {
-		t.Errorf("cost local=%v frontier=%v, want 15/300", g.CostLocal, g.CostFrontier)
+	// $ pricing, input/output priced separately (local $0.05/$0.25 per M; opus $5/$25 per M).
+	wantLocal := 10*(0.05/1e6) + 5*(0.25/1e6)   // s5: 10 in, 5 out -> 1.75e-6
+	wantFrontier := 20*(5.0/1e6) + 0*(25.0/1e6) // s6: 20 in, 0 out -> 1e-4
+	if math.Abs(g.CostLocal-wantLocal) > 1e-15 || math.Abs(g.CostFrontier-wantFrontier) > 1e-15 {
+		t.Errorf("cost local=%v frontier=%v, want %v/%v", g.CostLocal, g.CostFrontier, wantLocal, wantFrontier)
 	}
 	if g.LocalModel != "gpt-oss:20b" || g.FrontierModel != "opus" {
 		t.Errorf("gold models = %s/%s", g.LocalModel, g.FrontierModel)

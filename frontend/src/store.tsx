@@ -12,6 +12,7 @@ import {
   api,
   apiPost,
   type AgenticRow,
+  type EvalResult,
   type FitResult,
   type RouterFitResult,
   type RouterMeta,
@@ -47,6 +48,7 @@ interface ConsoleStore {
   runFit: (params: FitParams) => Promise<FitResult>;
   ensureFit: () => Promise<FitResult>;
   fitRouter: (routerName: string, source: string) => Promise<RouterFitResult>;
+  runEval: () => Promise<EvalResult>;
 }
 
 const Ctx = createContext<ConsoleStore | null>(null);
@@ -138,6 +140,16 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     return res;
   }, []);
 
+  // runEval runs the dual-arm gold benchmark on demand and refreshes the cached
+  // leaderboard (per-router fits don't touch it; this gives explicit control).
+  const runEval = useCallback(async () => {
+    const res = await apiPost<EvalResult>("/api/eval", {});
+    if (!res.error && res.leaderboard) {
+      setFit((prev) => (prev ? { ...prev, leaderboard: res.leaderboard, has_gold: true } : prev));
+    }
+    return res;
+  }, []);
+
   useEffect(() => {
     (async () => {
       const [s, rt] = await Promise.all([
@@ -170,6 +182,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       runFit,
       ensureFit,
       fitRouter,
+      runEval,
     }),
     [
       summary,
@@ -188,6 +201,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       runFit,
       ensureFit,
       fitRouter,
+      runEval,
     ],
   );
 
