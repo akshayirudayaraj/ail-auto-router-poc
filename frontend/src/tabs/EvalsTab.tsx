@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { type Anchor, type LeaderRow } from "../api";
 import { useConsole } from "../store";
 import { CostQualityPlot } from "../components/CostQualityPlot";
@@ -66,17 +67,46 @@ function fmtMetric(key: string, v: number | null | undefined): string {
   return PCT_METRICS.has(key) ? `${(v * 100).toFixed(0)}%` : v.toFixed(3);
 }
 
+// HelpTip: a "?" chip that shows explanatory text on hover/focus. The bubble is
+// portaled to <body> and position:fixed so it can't be clipped by the table's
+// overflow container, and it appears instantly (no native-title delay).
+function HelpTip({ text }: { text: string }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const show = (el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    const x = Math.min(Math.max(r.left + r.width / 2, 150), window.innerWidth - 150);
+    setPos({ x, y: r.bottom + 8 });
+  };
+  return (
+    <span
+      className="qmark"
+      tabIndex={0}
+      role="img"
+      aria-label={text}
+      onMouseEnter={(e) => show(e.currentTarget)}
+      onMouseLeave={() => setPos(null)}
+      onFocus={(e) => show(e.currentTarget)}
+      onBlur={() => setPos(null)}
+    >
+      ?
+      {pos &&
+        createPortal(
+          <span className="tip-bubble" style={{ left: pos.x, top: pos.y }}>
+            {text}
+          </span>,
+          document.body,
+        )}
+    </span>
+  );
+}
+
 // A column header with an inline "?" that reveals the metric's one-liner on hover.
 function MetricTh({ col, num }: { col: string; num?: boolean }) {
   return (
     <th className={num ? "num" : undefined}>
       <span className="th-help">
         {COL_LABEL[col] ?? col}
-        {COL_HELP[col] && (
-          <span className="qmark" title={COL_HELP[col]} aria-label={COL_HELP[col]}>
-            ?
-          </span>
-        )}
+        {COL_HELP[col] && <HelpTip text={COL_HELP[col]} />}
       </span>
     </th>
   );

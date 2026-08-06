@@ -140,7 +140,14 @@ th.num .th-help { justify-content: flex-end; }
   font-size: 9px; font-weight: 700; font-family: var(--sans); text-transform: none; letter-spacing: 0;
   color: var(--muted); background: var(--chip); border: 1px solid var(--line-2);
 }
-.qmark:hover { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); }
+.qmark:hover, .qmark:focus-visible { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); outline: none; }
+/* portaled to <body>, position:fixed → never clipped by the table's overflow */
+.tip-bubble {
+  position: fixed; transform: translateX(-50%); z-index: 9999; pointer-events: none;
+  max-width: 260px; white-space: normal; text-transform: none; letter-spacing: 0;
+  font-family: var(--sans); font-size: 12px; font-weight: 500; line-height: 1.45;
+  color: #fff; background: var(--ink); padding: 8px 11px; border-radius: 8px; box-shadow: var(--sh-pop);
+}
 td.wrap { white-space: normal; max-width: 420px; }
 tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 tr.clickable { cursor: pointer; }
