@@ -131,6 +131,31 @@ func LoadLabels(dir string) ([]LabelRecord, error) {
 	return out, nil
 }
 
+// LoadResolved reads the fusion OUTPUT (<dir>/labels/resolved.jsonl) — the
+// canonical one-per-(task,model) labels the offline engine produces. This is the
+// materializer's input; it is deliberately NOT part of LoadLabels' source set.
+func LoadResolved(dir string) ([]LabelRecord, error) {
+	p := filepath.Join(dir, "labels", "resolved.jsonl")
+	f, err := os.Open(p)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var out []LabelRecord
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 0, 1<<20), 1<<24)
+	for sc.Scan() {
+		if len(sc.Bytes()) == 0 {
+			continue
+		}
+		var r LabelRecord
+		if json.Unmarshal(sc.Bytes(), &r) == nil && r.SessionID != "" {
+			out = append(out, r)
+		}
+	}
+	return out, sc.Err()
+}
+
 // Resolve picks the single strongest label per (task, model) as the canonical
 // outcome, using schema.LabelStrength (executed > human > judge > implicit). Ties
 // on strength keep the higher-confidence record. All input records are retained by
