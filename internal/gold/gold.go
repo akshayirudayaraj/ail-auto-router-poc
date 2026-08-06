@@ -11,7 +11,6 @@
 package gold
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -165,23 +164,4 @@ func Save(cfg config.Config, rows []schema.GoldRow, meta Meta) error {
 	}
 	mb, _ := json.MarshalIndent(meta, "", "  ")
 	return os.WriteFile(filepath.Join(cfg.DataDir, "gold_meta.json"), mb, 0o644)
-}
-
-// Load reads a gold set from DataDir.
-func Load(cfg config.Config) ([]schema.GoldRow, error) {
-	f, err := os.Open(filepath.Join(cfg.DataDir, "gold.jsonl"))
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	var rows []schema.GoldRow
-	sc := bufio.NewScanner(f)
-	sc.Buffer(make([]byte, 1024*1024), 8*1024*1024)
-	for sc.Scan() {
-		var r schema.GoldRow
-		if json.Unmarshal(sc.Bytes(), &r) == nil {
-			rows = append(rows, r)
-		}
-	}
-	return rows, sc.Err()
 }

@@ -15,11 +15,6 @@
 //	extractor is handed logs with those fields stripped (see StripHidden).
 package schema
 
-import (
-	"encoding/json"
-	"strings"
-)
-
 // Role is the author of a turn in a session.
 type Role string
 
@@ -188,13 +183,3 @@ type GoldRow struct {
 
 	Executable bool `json:"executable"` // true when outcomes come from executed tests
 }
-
-// ------------------------------------------------------------------------
-// JSONL helpers
-// ------------------------------------------------------------------------
-
-// MarshalLine marshals v to a single JSON line (no trailing newline).
-func MarshalLine(v any) ([]byte, error) { return json.Marshal(v) }
-
-// IsHiddenField reports whether a JSON key is a planted ground-truth field.
-func IsHiddenField(key string) bool { return strings.HasPrefix(key, "_") }

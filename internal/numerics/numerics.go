@@ -237,15 +237,3 @@ func Newton(f, fprime func(float64) float64, x0 float64, maxIter int, tol float6
 	}
 	return x
 }
-
-// Mean returns the arithmetic mean, or 0 for an empty slice.
-func Mean(xs []float64) float64 {
-	if len(xs) == 0 {
-		return 0
-	}
-	var s float64
-	for _, x := range xs {
-		s += x
-	}
-	return s / float64(len(xs))
-}
