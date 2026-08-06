@@ -14,7 +14,8 @@ CACHE   ?= cache
 .PHONY: all gen extract train eval test build clean fmt vet tidy demo serve \
 	agentic agentic-smoke agentic-tasks agentic-image agentic-proxy \
 	agentic-proxy-stop agentic-gold agentic-materialize agentic-train agentic-eval \
-	agentic-fit-eval agentic-swe agentic-generate agentic-split
+	agentic-fit-eval agentic-swe agentic-generate agentic-split \
+	frontend-install frontend-build console-dev
 
 DATA_AGENTIC ?= data_agentic
 
@@ -54,8 +55,30 @@ eval: build
 	$(BIN)/eval
 
 ## serve: launch the web console (traces, data, fit, route) on :8080
+## Serves the prebuilt bundle embedded in the binary (committed under
+## internal/server/static). For live UI editing use `make console-dev` instead.
 serve: build
 	$(BIN)/serve
+
+# ---- frontend (TypeScript + React + Vite) -----------------------------------
+# The console SPA lives in frontend/. `frontend-build` compiles it into
+# internal/server/static/ where //go:embed bakes it into the serve binary — that
+# built bundle is committed so `go build`/`make serve` work without Node.
+NPM ?= npm
+
+## frontend-install: install console npm deps (run once / after package.json changes)
+frontend-install:
+	cd frontend && $(NPM) install
+
+## frontend-build: compile the TS/React console into the embedded static bundle
+frontend-build:
+	cd frontend && $(NPM) run build
+
+## console-dev: Vite dev server with hot-module reload; proxies /api to serve.
+## Run `make serve` (Go API on :8080) in one shell and this in another, then open
+## the Vite URL (http://localhost:5173). Set VITE_API_TARGET to point elsewhere.
+console-dev:
+	cd frontend && $(NPM) run dev
 
 ## all: full end-to-end pipeline, then print where results landed
 all: gen extract train eval
