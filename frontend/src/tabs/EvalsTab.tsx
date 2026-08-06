@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { type FitResult } from "../api";
 import { useConsole } from "../store";
 import { BarChart } from "../components/BarChart";
+import { GoldTable } from "../components/DatasetTables";
 
 const LEADER_COLS = [
   "aiq",
@@ -185,6 +186,11 @@ export function EvalsTab() {
           <RoutingDist fit={fit!} />
         </>
       )}
+
+      <h3>
+        Gold rows <span className="muted">(dual-arm executed benchmark — the rows behind the leaderboard)</span>
+      </h3>
+      <GoldTable />
 
       <h3>Harness methods</h3>
       <EvalMethods />

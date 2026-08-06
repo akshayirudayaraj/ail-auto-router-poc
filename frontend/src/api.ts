@@ -120,6 +120,46 @@ export interface RouteFeature {
   value: unknown;
 }
 
+export interface RowsResponse<T> {
+  rows: T[];
+  total: number;
+}
+
+export interface PointwiseRowView {
+  prompt_id: string;
+  prompt: string;
+  model: string;
+  outcome: number;
+  source: string;
+  confidence: number;
+  session_id?: string;
+  turn_type?: string;
+  tokens?: number;
+  hard_kw?: number;
+  has_embed?: boolean;
+  propensity?: number | null;
+}
+
+export interface PairwiseRowView {
+  prompt_id: string;
+  prompt: string;
+  model_a: string;
+  model_b: string;
+  preferred: string; // "a" | "b" | "tie"
+  source: string;
+}
+
+export interface GoldRowView {
+  prompt_id: string;
+  prompt: string;
+  outcome_local: number;
+  outcome_frontier: number;
+  cost_local: number;
+  cost_frontier: number;
+  cell?: string;
+  executable?: boolean;
+}
+
 export interface RouteResult {
   error?: string;
   embedding_dim?: number;
