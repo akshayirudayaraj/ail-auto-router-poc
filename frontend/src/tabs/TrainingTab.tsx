@@ -130,22 +130,36 @@ export function TrainingTab() {
         </p>
       </div>
 
-      {/* ---- per-router cards ---- */}
+      {/* ---- per-router table ---- */}
       <h3>Routing methods</h3>
-      <div className="methods">
-        {routers.map((r) => (
-          <RouterCard
-            key={r.name}
-            meta={r}
-            trained={training[r.name]}
-            source={srcByRouter[r.name] || "all"}
-            sources={sourcesForShape(r.shape, ds)}
-            busy={!!busyRouter[r.name]}
-            status={routerStatus[r.name]}
-            onSource={(s) => setSrcByRouter((m) => ({ ...m, [r.name]: s }))}
-            onFit={() => onFitRouter(r.name)}
-          />
-        ))}
+      <div className="tablewrap">
+        <table className="methods-table">
+          <thead>
+            <tr>
+              <th>method</th>
+              <th>type</th>
+              <th>data shape</th>
+              <th>trained on</th>
+              <th>label source</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {routers.map((r) => (
+              <MethodRow
+                key={r.name}
+                meta={r}
+                trained={training[r.name]}
+                source={srcByRouter[r.name] || "all"}
+                sources={sourcesForShape(r.shape, ds)}
+                busy={!!busyRouter[r.name]}
+                status={routerStatus[r.name]}
+                onSource={(s) => setSrcByRouter((m) => ({ ...m, [r.name]: s }))}
+                onFit={() => onFitRouter(r.name)}
+              />
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* ---- IRT ability recovery ---- */}
@@ -215,7 +229,7 @@ function bySrc(m: Record<string, number>): string {
     .join(" · ");
 }
 
-function RouterCard({
+function MethodRow({
   meta,
   trained,
   source,
@@ -236,39 +250,49 @@ function RouterCard({
 }) {
   const trainable = meta.trainable !== false && meta.kind === "learned";
   return (
-    <div className={"method" + (busy ? " training" : "")}>
-      <div className="mhead">
-        <span className="rname">{meta.name}</span>
+    <tr className={busy ? "training" : ""}>
+      <td>
+        <div className="rname">{meta.name}</div>
+        <div className="muted small">{meta.description}</div>
+      </td>
+      <td>
         <span className={"chip kind-" + meta.kind}>{meta.kind}</span>
-        {meta.shape && meta.shape !== "none" && <span className="chip shape">{meta.shape}</span>}
-      </div>
-      <div className="muted small">{meta.description}</div>
-
-      {trainable ? (
-        <>
-          <div className="mcontrols">
-            <select value={source} onChange={(e) => onSource(e.target.value)} disabled={busy}>
-              {sources.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <button onClick={onFit} disabled={busy}>
-              {busy ? "training…" : "Fit"}
-            </button>
-            {busy && <span className="training-badge">● running</span>}
-          </div>
-          <div className="muted small trained-on">
-            {busy ? "training…" : <>← trained on {trainedLabel(meta.name, trained)}</>}
-          </div>
-          {status && <div className="muted small">{status}</div>}
-        </>
-      ) : (
-        <div className="muted small trained-on">
-          {meta.kind === "baseline" ? "no training (fixed anchor)" : "python artifact / prior — not fit here"}
-        </div>
-      )}
-    </div>
+      </td>
+      <td>{meta.shape && meta.shape !== "none" ? <span className="chip shape">{meta.shape}</span> : <span className="muted">—</span>}</td>
+      <td className="trained-on">
+        {trainable ? (
+          busy ? (
+            <span className="training-badge">● training…</span>
+          ) : (
+            trainedLabel(meta.name, trained)
+          )
+        ) : (
+          <span className="muted">{meta.kind === "baseline" ? "no training (fixed anchor)" : "python artifact / prior"}</span>
+        )}
+        {status && <div className="muted small">{status}</div>}
+      </td>
+      <td>
+        {trainable ? (
+          <select value={source} onChange={(e) => onSource(e.target.value)} disabled={busy}>
+            {sources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="muted">—</span>
+        )}
+      </td>
+      <td className="num">
+        {trainable ? (
+          <button className="primary" onClick={onFit} disabled={busy}>
+            {busy ? "training…" : "Fit"}
+          </button>
+        ) : (
+          <span className="muted">—</span>
+        )}
+      </td>
+    </tr>
   );
 }

@@ -150,11 +150,13 @@ button.reveal { margin-top: 10px; padding: 6px 10px; cursor: pointer; opacity: .
 .datasum-nums { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
 .datasum-nums span { font-size: 13px; }
 
-/* per-router card controls + in-flight state */
-.method .mcontrols { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.method .mcontrols select { flex: 1; min-width: 0; }
-.method .trained-on { margin-top: 6px; font-family: ui-monospace, monospace; }
-.method.training { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+/* per-router methods table */
+.methods-table td { vertical-align: top; }
+.methods-table .rname { font-weight: 600; }
+.methods-table td .muted.small { max-width: 340px; }
+.methods-table select { max-width: 150px; }
+.methods-table .trained-on { font-family: ui-monospace, monospace; font-size: 12px; }
+.methods-table tr.training td { background: color-mix(in srgb, var(--accent) 8%, transparent); }
 
 /* pulsing "running" indicator */
 .training-badge { color: var(--accent); font-size: 12px; font-weight: 600; animation: pulse 1s ease-in-out infinite; white-space: nowrap; }
