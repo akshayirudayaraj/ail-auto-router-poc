@@ -12,6 +12,23 @@ import (
 // repoRoot is two levels up from internal/label.
 func repoRoot() string { return filepath.Join("..", "..") }
 
+// realSampleKey resolves the committed gpt-oss requests-2931 local sample by
+// PREFIX rather than a fixed session hash. The hash changes every time the
+// corpus is regenerated, so pinning one (e.g. the old 963462c0) makes these
+// tests rot; globbing the current sample keeps them stable across re-runs.
+func realSampleKey(t *testing.T) string {
+	t.Helper()
+	const prefix = "swe-psf__requests-2931__local__"
+	matches, err := filepath.Glob(filepath.Join(repoRoot(), "agentic", "results", prefix+"*.json"))
+	if err != nil {
+		t.Fatalf("glob sample: %v", err)
+	}
+	if len(matches) == 0 {
+		t.Skipf("no committed %s* sample in agentic/results", prefix)
+	}
+	return strings.TrimSuffix(filepath.Base(matches[0]), ".json")
+}
+
 // TestEvidencePack_RealSample builds the pack for a committed real gpt-oss sample
 // and asserts the STABLE properties: it loads the issue and renders every section.
 // It deliberately does NOT assert on the diff/verification content — that is
@@ -20,7 +37,7 @@ func repoRoot() string { return filepath.Join("..", "..") }
 func TestEvidencePack_RealSample(t *testing.T) {
 	results := filepath.Join(repoRoot(), "agentic", "results")
 	tasks := filepath.Join(repoRoot(), "agentic", "tasks")
-	const key = "swe-psf__requests-2931__local__963462c0"
+	key := realSampleKey(t)
 
 	p, err := BuildFromResults(results, tasks, key)
 	if err != nil {

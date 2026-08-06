@@ -1,0 +1,70 @@
+diff --git a/classes.dot b/classes.dot
+new file mode 100644
+index 00000000..6b2ccf84
+--- /dev/null
++++ b/classes.dot
+@@ -0,0 +1,4 @@
++digraph "classes" {
++charset="utf-8"
++rankdir=BT
++}
+diff --git a/pylint/pyreverse/diagrams.py b/pylint/pyreverse/diagrams.py
+index bf9f67af..63a03ff8 100644
+--- a/pylint/pyreverse/diagrams.py
++++ b/pylint/pyreverse/diagrams.py
+@@ -44,6 +44,39 @@ class DiagramEntity(Figure):
+ 
+ 
+ class ClassDiagram(Figure, FilterMixIn):
++    def _get_attr_type(self, node):
++        """Return mapping of attribute name to type hint string if available.
++
++        Only handles annotations from __init__ method parameters for now.
++        """
++        attr_types = {}
++        # Find __init__ function
++        init_func = None
++        for child in getattr(node, 'body', []):
++            if isinstance(child, astroid.FunctionDef) and child.name == '__init__':
++                init_func = child
++                break
++        if not init_func:
++            return attr_types
++        # Map parameter annotations
++        param_annots = {}
++        ann_list = getattr(init_func.args, 'annotations', [])
++        if ann_list is None:
++            ann_list = []
++        for name, annot in ann_list:
++            if annot and hasattr(annot, 'name'):
++                param_annots[name] = annot.name
++        # Inspect assignments to self attributes
++        for stmt in init_func.body:
++            if isinstance(stmt, astroid.Assign):
++                for target in stmt.targets:
++                    if isinstance(target, astroid.AssignAttr) and target.attrname:
++                        val = target.value
++                        if isinstance(val, astroid.Name):
++                            ann = param_annots.get(val.name)
++                            if ann:
++                                attr_types[target.attrname] = ann
++        return attr_types
+     """main class diagram handling"""
+ 
+     TYPE = "class"
+@@ -91,9 +124,13 @@ class ClassDiagram(Figure, FilterMixIn):
+         ):
+             if not self.show_attr(node_name):
+                 continue
++            attr_types = self._get_attr_type(node)
+             names = self.class_names(associated_nodes)
+-            if names:
+-                node_name = "{} : {}".format(node_name, ", ".join(names))
++            type_hint = attr_types.get(node_name)
++            if type_hint:
++                node_name = f"{node_name} : {type_hint}"
++            elif names:
++                node_name = f"{node_name} : {', '.join(names)}"
+             attrs.append(node_name)
+         return sorted(attrs)
+ 
