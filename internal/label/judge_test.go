@@ -87,7 +87,7 @@ func TestParseVerdict(t *testing.T) {
 func TestJudge_OnRealSampleWithScriptedVerdict(t *testing.T) {
 	results := filepath.Join(repoRoot(), "agentic", "results")
 	tasks := filepath.Join(repoRoot(), "agentic", "tasks")
-	pack, err := BuildFromResults(results, tasks, "swe-psf__requests-2931__local__963462c0")
+	pack, err := BuildFromResults(results, tasks, realSampleKey(t))
 	if err != nil {
 		t.Fatal(err)
 	}
