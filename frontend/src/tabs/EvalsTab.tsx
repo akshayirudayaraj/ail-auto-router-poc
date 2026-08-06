@@ -88,33 +88,28 @@ function champion(rows: LeaderRow[]): string {
   return best?.router ?? "";
 }
 
-// The POC headline: for each learned router, the share of requests it keeps on
-// the cheap LOCAL model, with a badge for the quality it retains vs always-Opus.
-// Ideal = a long green bar (high local share) at 100% quality.
+// The POC headline: for each learned router, the QUALITY it retains vs always-
+// Opus is the main bar (the promise: don't regress), and the share it keeps on
+// the cheap LOCAL model is the secondary readout (the payoff). Ideal = a full
+// quality bar with a high local share.
 function ScoreCard({ rows: rows0, anchors, nGold, champ }: { rows: LeaderRow[]; anchors: Anchor[]; nGold: number; champ: string }) {
   const oracle = anchors.find((a) => a.name === "oracle");
-  const rows = [...rows0].sort(
-    (a, b) => ((b.metrics["local_share@thr"] ?? 0) as number) - ((a.metrics["local_share@thr"] ?? 0) as number),
-  );
+  const rows = [...rows0].sort((a, b) => {
+    const qd = ((b.metrics["qual_retention"] ?? 0) as number) - ((a.metrics["qual_retention"] ?? 0) as number);
+    if (Math.abs(qd) > 1e-9) return qd;
+    return ((b.metrics["local_share@thr"] ?? 0) as number) - ((a.metrics["local_share@thr"] ?? 0) as number);
+  });
 
   return (
     <>
       <div id="evals-dist">
         {rows.map((row) => {
           const ls = (row.metrics["local_share@thr"] ?? 0) as number;
-          const qr = row.metrics["qual_retention"];
+          const qr = (row.metrics["qual_retention"] ?? 0) as number;
+          const qPct = Math.round(qr * 100);
           const locPct = Math.round(ls * 100);
           const locN = Math.round(ls * nGold);
-
-          let qBadge = <span className="muted small">—</span>;
-          if (qr != null) {
-            const good = qr >= 0.98;
-            qBadge = (
-              <span className={"chip " + (good ? "ok" : qr >= 0.9 ? "warn" : "bad")}>
-                quality {(qr * 100).toFixed(0)}% of Opus
-              </span>
-            );
-          }
+          const barColor = qr >= 0.98 ? "var(--good)" : qr >= 0.9 ? "var(--warn)" : "var(--bad)";
 
           return (
             <div key={row.router} className="dist-row">
@@ -122,27 +117,30 @@ function ScoreCard({ rows: rows0, anchors, nGold, champ }: { rows: LeaderRow[]; 
                 {row.router}
               </span>
               <div className="stack">
-                {locPct > 0 && (
-                  <span className="seg loc" style={{ width: `${locPct}%` }}>
-                    {locPct >= 12 ? `${locPct}%` : ""}
+                {qPct > 0 && (
+                  <span className="seg" style={{ width: `${qPct}%`, background: barColor }}>
+                    {qPct >= 12 ? `${qPct}%` : ""}
                   </span>
                 )}
               </div>
-              <span className="dist-counts muted small">
-                {nGold ? `${locN}/${nGold} local` : `${locPct}% local`}
+              <span className="dist-counts muted small">{qPct}% of Opus</span>
+              <span
+                className="chip"
+                style={{ background: "color-mix(in srgb, var(--local) 16%, transparent)", color: "var(--local)" }}
+              >
+                {nGold ? `${locPct}% local · ${locN}/${nGold}` : `${locPct}% local`}
               </span>
-              {qBadge}
             </div>
           );
         })}
       </div>
       <div className="dist-legend muted small">
-        <span className="swatch loc" /> kept on local (gpt-oss:20b, cheap). Bar length = share of requests handled
-        locally; the badge is quality retained vs always-Opus.
+        Bar = <b>quality retained vs always-Opus</b> (full = matches Opus). The green chip is the payoff — the share of
+        requests kept on <span className="swatch loc" /> local (gpt-oss:20b, cheap).
         {oracle != null && (
           <>
             {" "}
-            A perfect <b>oracle</b> would keep <b>{Math.round(oracle.local_share * 100)}%</b> local at 100% quality.
+            A perfect <b>oracle</b> holds 100% quality while keeping <b>{Math.round(oracle.local_share * 100)}%</b> local.
           </>
         )}
       </div>
@@ -316,9 +314,9 @@ export function EvalsTab() {
             Router scorecard <span className="muted">(the POC goal: keep requests on local without losing quality)</span>
           </h3>
           <p className="muted small">
-            Each router keeps some share of requests on the cheap <b>local</b> model and escalates the rest to{" "}
-            <b>Opus</b>. The win: a <b>high local share</b> at <b>~100% of Opus quality</b>. No cost model needed — this is
-            just fraction-of-requests and achieved quality on the dual-arm gold set.
+            The promise first: each router should retain <b>~100% of Opus quality</b> (the bar). The payoff: it does so
+            while keeping a <b>high share of requests on the cheap local</b> model (the green chip). No cost model needed —
+            just achieved quality and fraction-of-requests on the dual-arm gold set.
           </p>
           <ScoreCard rows={learnedRows} anchors={anchors} nGold={fit!.n_gold || 0} champ={champ} />
 
