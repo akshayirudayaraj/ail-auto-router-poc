@@ -2,10 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/akshayirudayaraj/ail-routing-test/internal/eval"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/extract"
@@ -216,21 +218,46 @@ func (s *Server) handleReports(w http.ResponseWriter, r *http.Request) {
 // ---- /api/fit ----
 
 type fitRequest struct {
-	TrainSource string  `json:"train_source"`
+	Router      string  `json:"router"`       // "" => fit ALL routers; else just this one
+	TrainSource string  `json:"train_source"` // "" / "all" => no source filter
 	Threshold   float64 `json:"threshold"`
+}
+
+// normSource maps the UI's "all" (or empty) to the no-filter sentinel "".
+func normSource(s string) schema.LabelSource {
+	if s == "" || s == "all" {
+		return ""
+	}
+	return schema.LabelSource(s)
+}
+
+// srcLabel renders a source for display ("" => "all").
+func srcLabel(src schema.LabelSource) string {
+	if src == "" {
+		return "all"
+	}
+	return string(src)
 }
 
 func (s *Server) handleFit(w http.ResponseWriter, r *http.Request) {
 	var req fitRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
-	src := schema.LabelSource(req.TrainSource)
-	if src == "" {
-		src = schema.LabelImplicit
-	}
+	src := normSource(req.TrainSource)
 	thr := req.Threshold
 	if thr <= 0 {
 		thr = 0.5
 	}
+	// Per-router fit: train just the named router on its own source.
+	if req.Router != "" {
+		res, err := s.fitOne(req.Router, src)
+		if err != nil {
+			writeJSON(w, 400, map[string]any{"error": err.Error()})
+			return
+		}
+		writeJSON(w, 200, res)
+		return
+	}
+	// Fit ALL routers on one source (the "Fit all routers" button).
 	if err := s.fit(src, thr); err != nil {
 		writeJSON(w, 400, map[string]any{"error": err.Error()})
 		return
@@ -260,6 +287,134 @@ func (s *Server) fit(src schema.LabelSource, thr float64) error {
 	s.fitSource = src
 	s.fitThresh = thr
 	return nil
+}
+
+// fitOne trains a single router in place on its own label source, leaving the
+// others as they are. Returns that router's training breakdown (+ IRT abilities
+// when relevant) so the Training tab can show exactly what it consumed.
+func (s *Server) fitOne(name string, src schema.LabelSource) (map[string]any, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.pointwise) == 0 {
+		return nil, errNoData
+	}
+	var target router.Router
+	for _, rt := range s.routers {
+		if rt.Name() == name {
+			target = rt
+			break
+		}
+	}
+	if target == nil {
+		return nil, fmt.Errorf("unknown router %q", name)
+	}
+	td := router.TrainData{
+		Pointwise: s.pointwise, Pairwise: s.pairwise,
+		LocalModels: s.cfg.LocalModels, FrontierModel: s.cfg.FrontierModel,
+		TrainSource: src,
+	}
+	if err := target.Fit(td); err != nil {
+		return nil, err
+	}
+	out := map[string]any{
+		"router":       name,
+		"train_source": srcLabel(src),
+		"trained_on":   s.trainedOn(name, src),
+	}
+	if irt, ok := target.(*router.IRT); ok {
+		out["abilities"] = s.abilityRows(irt.Abilities())
+	}
+	return out, nil
+}
+
+func (s *Server) isFrontierModel(m string) bool {
+	return m == s.cfg.FrontierModel || strings.HasPrefix(m, "claude")
+}
+
+// filterPointwise returns pointwise rows for one source ("" => all).
+func (s *Server) filterPointwise(src schema.LabelSource) []schema.PointwiseRow {
+	if src == "" {
+		return s.pointwise
+	}
+	out := s.pointwise[:0:0]
+	for _, r := range s.pointwise {
+		if r.LabelSource == src {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// trainedOn reports the shape + row count a router actually consumes at `src`.
+// This mirrors each router's Fit-time data selection (router pkg) for display.
+func (s *Server) trainedOn(name string, src schema.LabelSource) map[string]any {
+	pw := s.filterPointwise(src)
+	switch name {
+	case "irt-1pl":
+		return map[string]any{"shape": "pointwise", "count": len(pw)}
+	case "knn":
+		n := 0
+		for _, r := range pw {
+			if !s.isFrontierModel(r.Model) && len(r.Embedding) > 0 {
+				n++
+			}
+		}
+		return map[string]any{"shape": "embedded pointwise", "count": n}
+	case "routellm-logistic":
+		pairs := 0
+		for _, p := range s.pairwise {
+			if src != "" && p.Source != src {
+				continue
+			}
+			if aF, bF := s.isFrontierModel(p.ModelA), s.isFrontierModel(p.ModelB); aF != bF && p.Preferred != "tie" {
+				pairs++
+			}
+		}
+		pseudo := 0
+		for _, r := range pw {
+			if !s.isFrontierModel(r.Model) {
+				pseudo++
+			}
+		}
+		return map[string]any{"shape": "pairwise + pointwise pseudo-pairs", "pairwise": pairs, "pseudo": pseudo, "count": pairs + pseudo}
+	default:
+		return map[string]any{"shape": "none", "count": 0}
+	}
+}
+
+// dataSummary is the corpus-level training-data breakdown the tab shows above
+// the router cards, and the per-shape source lists that scope each selector.
+// Caller must hold at least the read lock.
+func (s *Server) dataSummary() map[string]any {
+	pwBySrc := map[string]int{}
+	emb := 0
+	for _, r := range s.pointwise {
+		pwBySrc[string(r.LabelSource)]++
+		if len(r.Embedding) > 0 {
+			emb++
+		}
+	}
+	prBySrc := map[string]int{}
+	for _, p := range s.pairwise {
+		prBySrc[string(p.Source)]++
+	}
+	return map[string]any{
+		"pointwise": map[string]any{"total": len(s.pointwise), "by_source": pwBySrc},
+		"pairwise":  map[string]any{"total": len(s.pairwise), "by_source": prBySrc},
+		"embedded":  emb,
+	}
+}
+
+// abilityRows renders the IRT ability map as reference-centered rows.
+func (s *Server) abilityRows(abilities map[string]float64) []map[string]any {
+	var out []map[string]any
+	for _, m := range s.cfg.AllModels() {
+		out = append(out, map[string]any{"model": m, "recovered": round3(abilities[m])})
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i]["recovered"].(float64) < out[j]["recovered"].(float64)
+	})
+	return out
 }
 
 // fitReport builds the IRT-recovery + gold-leaderboard payload.
@@ -311,8 +466,13 @@ func (s *Server) fitReport(thr float64) map[string]any {
 	}
 	sort.Slice(abRows, func(i, j int) bool { return abRows[i].Recovered < abRows[j].Recovered })
 
+	training := map[string]any{}
+	for _, rt := range s.routers {
+		training[rt.Name()] = s.trainedOn(rt.Name(), s.fitSource)
+	}
+
 	return map[string]any{
-		"train_source": s.fitSource,
+		"train_source": srcLabel(s.fitSource),
 		"threshold":    thr,
 		"n_pointwise":  len(s.pointwise),
 		"n_pairwise":   len(s.pairwise),
@@ -320,6 +480,8 @@ func (s *Server) fitReport(thr float64) map[string]any {
 		"leaderboard":  leaderboard,
 		"has_gold":     len(s.gold) > 0,
 		"n_gold":       len(s.gold),
+		"data_summary": s.dataSummary(),
+		"training":     training,
 	}
 }
 

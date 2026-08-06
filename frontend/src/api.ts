@@ -36,6 +36,30 @@ export interface RouterMeta {
   name: string;
   kind: string; // baseline | learned | stub
   description: string;
+  shape?: string; // pointwise | pairwise | none
+  trainable?: boolean;
+}
+
+export interface TrainedOn {
+  shape: string;
+  count: number;
+  pairwise?: number;
+  pseudo?: number;
+}
+
+export interface DataSummary {
+  pointwise?: { total: number; by_source: Record<string, number> };
+  pairwise?: { total: number; by_source: Record<string, number> };
+  embedded?: number;
+}
+
+// Result of a single-router fit (POST /api/fit with {router}).
+export interface RouterFitResult {
+  error?: string;
+  router?: string;
+  train_source?: string;
+  trained_on?: TrainedOn;
+  abilities?: Ability[];
 }
 
 export interface Ability {
@@ -58,6 +82,8 @@ export interface FitResult {
   abilities?: Ability[];
   has_gold?: boolean;
   leaderboard?: LeaderRow[];
+  data_summary?: DataSummary;
+  training?: Record<string, TrainedOn>;
 }
 
 export interface AgenticRow {
