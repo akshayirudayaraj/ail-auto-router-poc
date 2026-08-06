@@ -53,3 +53,6 @@ agentic/results/labels/resolved.jsonl
 agentic/results/labels/judge.jsonl
 agentic/results/calibration/
 agentic/results/labels/implicit.jsonl
+
+# Claude Code local hook logs
+.claude/hook-logs/

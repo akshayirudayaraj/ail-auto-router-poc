@@ -40,8 +40,7 @@ nav#tabs button.active { background: var(--accent); color: var(--accent-ink); }
   background: var(--chip); color: var(--muted); font-family: var(--mono);
 }
 main { padding: 20px; max-width: 1200px; margin: 0 auto; }
-.tab { display: none; }
-.tab.active { display: block; }
+.tab { display: block; }
 
 /* cards */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
@@ -125,22 +124,11 @@ h3 { margin: 22px 0 10px; font-size: 15px; }
 .feat .fname { color: var(--muted); font-family: var(--mono); }
 .feat .fval { font-family: var(--mono); }
 
-/* Corpus browser (Phase 5) */
-#corpus-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-#corpus-toolbar select { padding: 4px 6px; }
-#corpus-table tr.clickable { cursor: pointer; }
-#corpus-table tr.clickable:hover td { background: rgba(127,127,127,0.12); }
-#corpus-detail { margin-top: 16px; }
-#corpus-detail h3 { margin: 16px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
 .mono { font-family: var(--mono, monospace); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
 .toolcall { display: flex; gap: 8px; align-items: flex-start; padding: 3px 0; border-bottom: 1px dotted rgba(127,127,127,.2); }
 .toolcall .content { margin: 0; }
 button.reveal { margin-top: 10px; padding: 6px 10px; cursor: pointer; opacity: .8; }
 .warn-text { color: var(--warn, #b26b00); }
-
-/* offline-engine label/calibration UI */
-.card.wide { display: block; text-align: left; margin: 8px 0; }
-.calib-stats { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 
 /* stat bar under header */
 .statbar { display: flex; flex-wrap: wrap; gap: 18px; padding: 8px 20px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
