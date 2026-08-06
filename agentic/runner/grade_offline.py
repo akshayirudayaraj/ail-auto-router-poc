@@ -197,23 +197,33 @@ def main():
         task_dir = tasks / rr["task_id"]
         task = json.loads((task_dir / "task.json").read_text())
         grader = task.get("grader", "docker_pytest")
+        # Normalize legacy tags: the Step-1 task used "swebench-harness".
+        is_swe = grader in ("swebench", "swebench-harness")
         diff = (results / rr.get("patch_path", f"{key}.patch")).read_text() \
             if (results / rr.get("patch_path", f"{key}.patch")).exists() else ""
 
         # preflight: skip (emit nothing) when the required oracle env is absent
-        if grader == "docker_pytest" and not have_pytest_img:
+        if not is_swe and not have_pytest_img:
             skipped_env += 1
             print(f"[grade] SKIP {key}: docker_pytest image missing", file=sys.stderr)
             continue
-        if grader == "swebench" and not have_swebench:
+        if is_swe and not have_swebench:
             skipped_env += 1
             print(f"[grade] SKIP {key}: swebench env missing", file=sys.stderr)
             continue
 
-        if grader == "swebench":
-            res = grade_swebench(task.get("instance_id", ""), rr.get("arm", "test"), diff)
-        else:
-            res = grade_docker_pytest(task, task_dir, diff, args.timeout)
+        # A per-session grading error (e.g. a missing repo/ checkout, a patch that
+        # won't apply) must SKIP that session, never crash the whole run — the
+        # correctness rule is "grade only when the oracle actually ran".
+        try:
+            if is_swe:
+                res = grade_swebench(task.get("instance_id", ""), rr.get("arm", "test"), diff)
+            else:
+                res = grade_docker_pytest(task, task_dir, diff, args.timeout)
+        except Exception as e:
+            skipped_env += 1
+            print(f"[grade] SKIP {key}: grading error ({type(e).__name__}: {e})", file=sys.stderr)
+            continue
 
         if not res.get("graded"):
             skipped_env += 1

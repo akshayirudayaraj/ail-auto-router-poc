@@ -56,3 +56,6 @@ agentic/results/labels/_executed_cache/
 
 # Claude Code local hook logs
 .claude/hook-logs/
+
+# swebench offline-grade prediction artifacts (regenerable)
+agentic/results/*.offline_*.json
