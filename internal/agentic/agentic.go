@@ -38,15 +38,22 @@ const (
 func billable(r Result) int { return r.InputTokens + r.OutputTokens }
 
 // Result is the subset of a runner result JSON the Go side consumes.
+//
+// Resolved is a *bool on purpose: the log-first runner no longer grades during
+// generation, so a fresh record has NO `resolved` key. A pointer distinguishes
+// "absent" (nil → not yet graded) from "graded as false", which BuildGold needs
+// so it can refuse to fabricate a 0 outcome (see the guard there).
 type Result struct {
-	TaskID             string  `json:"task_id"`
-	Tier               string  `json:"tier"`
-	Arm                string  `json:"arm"`
-	Model              string  `json:"model"`
-	OllamaModel        string  `json:"ollama_model"`
-	Resolved           bool    `json:"resolved"`
-	FailToPassOK       bool    `json:"fail_to_pass_ok"`
-	PassToPassOK       bool    `json:"pass_to_pass_ok"`
+	TaskID              string `json:"task_id"`
+	Tier                string `json:"tier"`
+	Arm                 string `json:"arm"`
+	Model               string `json:"model"`
+	OllamaModel         string `json:"ollama_model"`
+	ServedModel         string `json:"served_model"`          // real model behind the arm (roster source)
+	HasExecutableOracle bool   `json:"has_executable_oracle"` // record carries a gradable oracle
+	Resolved            *bool  `json:"resolved"`              // nil = not yet graded (offline engine)
+	FailToPassOK        bool   `json:"fail_to_pass_ok"`
+	PassToPassOK        bool   `json:"pass_to_pass_ok"`
 	WallClockS         float64 `json:"wall_clock_s"`
 	TimedOut           bool    `json:"timed_out"`
 	HitTurnCap         bool    `json:"hit_turn_cap"`
@@ -148,10 +155,35 @@ func BuildGold(ctx context.Context, cfg config.Config, results []Result,
 	}
 	sort.Strings(ids)
 
+	// GUARD (stopgap). Gold assembly here is being SUPERSEDED by the offline label
+	// engine (PR#2: executed labels -> Resolve -> future materialization). The
+	// log-first runner no longer grades during generation, so an oracle-bearing
+	// record arrives with NO `resolved`. Refuse to fabricate a 0 outcome from that
+	// absence (which would silently produce all-zero gold); require the offline
+	// engine to grade first. Do NOT "fix" this by re-adding grading to generation.
+	var ungraded []string
+	for _, id := range ids {
+		for _, arm := range []string{"local", "frontier"} {
+			if r, ok := byTask[id][arm]; ok && r.HasExecutableOracle && r.Resolved == nil {
+				ungraded = append(ungraded, id+"/"+arm)
+			}
+		}
+	}
+	if len(ungraded) > 0 {
+		sort.Strings(ungraded)
+		show := ungraded
+		if len(show) > 5 {
+			show = show[:5]
+		}
+		return nil, Meta{Synthetic: false, Executable: true}, fmt.Errorf(
+			"gold assembly: %d oracle-bearing record(s) have no executed outcome "+
+				"(`resolved`) — the offline label engine (PR#2) must grade them "+
+				"first; refusing to score ungraded records as failures. e.g. %v",
+			len(ungraded), show)
+	}
+
 	var rows []schema.GoldRow
-	meta := Meta{Synthetic: false, Executable: true,
-		FrontierModel: "claude-sonnet (CLI alias; via subscription)",
-		LocalModel:    "qwen2.5-coder:14b (via Anthropic->Ollama proxy)"}
+	meta := Meta{Synthetic: false, Executable: true}
 	localOnly := 0
 	for _, id := range ids {
 		arms := byTask[id]
@@ -165,16 +197,24 @@ func BuildGold(ctx context.Context, cfg config.Config, results []Result,
 		if emb != nil {
 			e, _ = emb.Embed(ctx, t.Issue)
 		}
+		// Roster names come from the records (served_model), not hardcoded — the
+		// roster is now opus / gpt-oss:20b and changes per config.
+		frontModel := firstNonEmpty(front.ServedModel, front.Model, "frontier")
+		localModel := "(local arm missing)"
 		// If the local arm never ran (GPU-contended overnight), record the row
 		// as frontier-only with OutcomeLocal=0 and mark it, so partial runs are
 		// still usable. Fully-paired rows are the default.
 		outLocal := 0
 		costLocal := 0.0
 		if hasL {
-			outLocal = b2i(local.Resolved)
+			outLocal = outcome(local)
 			costLocal = float64(billable(local)) * priceLocal
+			localModel = firstNonEmpty(local.ServedModel, local.OllamaModel, "local")
 		} else {
 			localOnly++
+		}
+		if meta.FrontierModel == "" {
+			meta.FrontierModel, meta.LocalModel = frontModel, localModel
 		}
 		costFront := float64(billable(front)) * priceFrontier
 		rows = append(rows, schema.GoldRow{
@@ -183,9 +223,9 @@ func BuildGold(ctx context.Context, cfg config.Config, results []Result,
 			Features:        feature.Extract(t.Issue, "open"),
 			Embedding:       e,
 			OutcomeLocal:    outLocal,
-			OutcomeFrontier: b2i(front.Resolved),
-			LocalModel:      meta.LocalModel,
-			FrontierModel:   meta.FrontierModel,
+			OutcomeFrontier: outcome(front),
+			LocalModel:      localModel,
+			FrontierModel:   frontModel,
 			CostLocal:       costLocal,
 			CostFrontier:    costFront,
 			Executable:      true,
@@ -197,6 +237,25 @@ func BuildGold(ctx context.Context, cfg config.Config, results []Result,
 		return rows, meta, fmt.Errorf("no gold rows: need at least the frontier arm run (see agentic/results)")
 	}
 	return rows, meta, nil
+}
+
+// outcome derefs a graded Resolved (nil → 0). The BuildGold guard has already
+// rejected oracle-bearing records with a nil Resolved, so nil here means a
+// non-oracle record, scored 0.
+func outcome(r Result) int {
+	if r.Resolved == nil {
+		return 0
+	}
+	return b2i(*r.Resolved)
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // Meta describes the agentic gold set provenance.
