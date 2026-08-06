@@ -37,7 +37,7 @@ const COL_HELP: Record<string, string> = {
   safety: "Of prompts where local would fail, the share the router correctly escalated to Opus (protects quality; want 100%).",
   thrift: "Of prompts where local would pass, the share the router correctly kept local (captures the savings; want 100%).",
   savings_capture: "Local share as a fraction of a perfect oracle's — how much of the safely-offloadable traffic it captured.",
-  under_escal_cellB: "Stayed local but Opus would have passed — the quality-eroding miss to minimize (want 0%).",
+  under_escal_cellB: "The fraction of prompts where the router kept the request on local, local failed, and Opus would have passed (want 0%).",
   offload_isoq: "Max local share reachable while EXACTLY matching always-Opus quality (brittle on small gold sets; kept for continuity).",
   "escalation@thr": "Share of requests sent to Opus at the threshold (= 1 − local share).",
   "quality@thr": "Mean achieved adequacy across all requests at the operating threshold.",
