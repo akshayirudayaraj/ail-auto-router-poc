@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { api, type AgenticRow, type LabelBranch, type SessionTrace } from "../api";
 import { fmt } from "../format";
 import { useConsole } from "../store";
@@ -55,7 +56,13 @@ function evidenceBlurb(src?: string, ev?: any): string {
 export function DataTab() {
   const { corpus, labels, corpusLoaded } = useConsole();
   const [cat, setCat] = useState<Cat>("semi");
-  const [selected, setSelected] = useState<string | null>(null);
+  // The selected session lives in the URL (/data/:sessionId) so a trace is
+  // deep-linkable and the browser Back button works. DataTab renders for both
+  // /data and /data/:sessionId, so `cat` survives navigating into a trace.
+  const navigate = useNavigate();
+  const { sessionId } = useParams();
+  const selected = sessionId ? decodeURIComponent(sessionId) : null;
+  const openSession = (id: string) => navigate("/data/" + encodeURIComponent(id));
 
   const meta = CAT_META[cat];
   // Only surface rows that resolve to a real trace — legacy records with an
@@ -77,7 +84,7 @@ export function DataTab() {
     return (
       <section className="tab active">
         <div className="crumb">
-          <button className="back" onClick={() => setSelected(null)}>
+          <button className="back" onClick={() => navigate("/data")}>
             ← Back
           </button>
           <span className="crumb-sid">
@@ -136,7 +143,7 @@ export function DataTab() {
                     <tr
                       key={row.session_id}
                       className={"clickable" + (selected === row.session_id ? " active" : "")}
-                      onClick={() => setSelected(row.session_id)}
+                      onClick={() => openSession(row.session_id)}
                     >
                       <td className="wrap">
                         <code>{row.session_id}</code>
