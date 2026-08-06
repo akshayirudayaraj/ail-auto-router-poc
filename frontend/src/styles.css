@@ -162,6 +162,18 @@ button.reveal { margin-top: 10px; padding: 6px 10px; cursor: pointer; opacity: .
 .training-badge { color: var(--accent); font-size: 12px; font-weight: 600; animation: pulse 1s ease-in-out infinite; white-space: nowrap; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
+/* Fit-all status: running (spinner) / done (green) / error (red) */
+.fit-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.fit-status.running { color: var(--accent); }
+.fit-status.done { color: var(--good); }
+.fit-status.err { color: var(--bad); }
+.spinner {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent); display: inline-block; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* charts */
 .chart { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 14px; }
 svg.bars .bl { fill: var(--muted); font-family: var(--mono); font-size: 11px; }

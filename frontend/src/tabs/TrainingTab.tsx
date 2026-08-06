@@ -14,6 +14,8 @@ function sourcesForShape(shape: string | undefined, ds: any): string[] {
   return ["all", ...keys];
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 // One-line description of what a router consumed, from its trained_on breakdown.
 function trainedLabel(name: string, t?: TrainedOn): string {
   if (!t) return "not fit yet";
@@ -31,6 +33,8 @@ export function TrainingTab() {
   const [srcByRouter, setSrcByRouter] = useState<Record<string, string>>({});
   const [busyRouter, setBusyRouter] = useState<Record<string, string | boolean>>({});
   const [routerStatus, setRouterStatus] = useState<Record<string, string>>({});
+  const [fitAllAt, setFitAllAt] = useState(""); // timestamp of the last successful Fit-all
+  const [fitAllErr, setFitAllErr] = useState("");
 
   useEffect(() => {
     ensureFit();
@@ -42,8 +46,15 @@ export function TrainingTab() {
 
   const onFitAll = async () => {
     setBusyAll(true);
+    setFitAllAt("");
+    setFitAllErr("");
     try {
-      await runFit({ source: srcAll, threshold });
+      // Fitting is near-instant; hold the running state a beat so it's visible.
+      const [res] = await Promise.all([runFit({ source: srcAll, threshold }), sleep(450)]);
+      if (res.error) setFitAllErr(res.error);
+      else setFitAllAt(new Date().toLocaleTimeString());
+    } catch (e) {
+      setFitAllErr(String(e));
     } finally {
       setBusyAll(false); // never wedge the button, even if the fetch throws
     }
@@ -54,10 +65,10 @@ export function TrainingTab() {
     setBusyRouter((b) => ({ ...b, [name]: true }));
     setRouterStatus((s) => ({ ...s, [name]: "" }));
     try {
-      const res = await fitRouter(name, source);
+      const [res] = await Promise.all([fitRouter(name, source), sleep(450)]);
       setRouterStatus((s) => ({
         ...s,
-        [name]: res.error ? `error: ${res.error}` : `fit on ${res.train_source}`,
+        [name]: res.error ? `error: ${res.error}` : `✓ fit on ${res.train_source} · ${new Date().toLocaleTimeString()}`,
       }));
     } catch (e) {
       setRouterStatus((s) => ({ ...s, [name]: `failed: ${String(e)}` }));
@@ -119,8 +130,20 @@ export function TrainingTab() {
           <button className="primary" onClick={onFitAll} disabled={busyAll}>
             {busyAll ? "training…" : "Fit all routers"}
           </button>
-          {busyAll && <span className="training-badge">● running</span>}
-          <span className="muted">{fitStatus}</span>
+          {busyAll ? (
+            <span className="fit-status running">
+              <span className="spinner" /> fitting all routers…
+            </span>
+          ) : fitAllErr ? (
+            <span className="fit-status err">✗ {fitAllErr}</span>
+          ) : fitAllAt ? (
+            <span className="fit-status done">
+              ✓ fitted {fit?.train_source} · {fit?.n_pointwise ?? 0} pointwise / {fit?.n_pairwise ?? 0} pairwise ·
+              gold {fit?.n_gold ?? 0} · {fitAllAt}
+            </span>
+          ) : (
+            <span className="muted small">{fitStatus}</span>
+          )}
         </div>
         <p className="muted small">
           Each router consumes a specific data <b>shape</b>: IRT and kNN read <b>pointwise</b>; RouteLLM reads{" "}
