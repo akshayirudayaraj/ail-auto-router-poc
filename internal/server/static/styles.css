@@ -137,3 +137,7 @@ h3 { margin: 22px 0 10px; font-size: 15px; }
 .toolcall .content { margin: 0; }
 button.reveal { margin-top: 10px; padding: 6px 10px; cursor: pointer; opacity: .8; }
 .warn-text { color: var(--warn, #b26b00); }
+
+/* offline-engine label/calibration UI */
+.card.wide { display: block; text-align: left; margin: 8px 0; }
+.calib-stats { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }

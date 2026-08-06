@@ -70,6 +70,7 @@ func loadSplitMap() map[string]string {
 func (s *Server) handleAgentic(w http.ResponseWriter, r *http.Request) {
 	paths, _ := filepath.Glob(filepath.Join(agenticResultsDir(), "*.json"))
 	splitMap := loadSplitMap()
+	resolved := resolvedBySession() // fused canonical labels, joined per session
 	sort.Strings(paths)
 
 	rows := []map[string]any{}
@@ -117,6 +118,16 @@ func (s *Server) handleAgentic(w http.ResponseWriter, r *http.Request) {
 			"hit_turn_cap":          rec["hit_turn_cap"],
 			"empty_patch":           rec["empty_patch"],
 			"session_id":            sid,
+		}
+		// Join the fused canonical outcome (from the offline label engine) so the
+		// corpus table shows outcome/source/confidence and flags disagreements.
+		if rv, ok := resolved[sid]; ok {
+			row["outcome"] = num(rv["outcome"])
+			row["label_src"] = rv["label_source"]
+			row["conf"] = num(rv["label_confidence"])
+			if ev, ok := rv["evidence"].(map[string]any); ok {
+				row["disagreement"] = ev["disagreement_flag"]
+			}
 		}
 		rows = append(rows, row)
 	}

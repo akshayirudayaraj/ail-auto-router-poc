@@ -85,6 +85,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/route", s.handleRoute)
 	mux.HandleFunc("/api/agentic/session", s.handleAgenticSession)
 	mux.HandleFunc("/api/agentic", s.handleAgentic)
+	mux.HandleFunc("/api/labels", s.handleLabels)
 
 	sub, _ := fs.Sub(staticFS, "static")
 	mux.Handle("/", http.FileServer(http.FS(sub)))

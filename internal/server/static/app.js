@@ -37,18 +37,21 @@ $$("#tabs button").forEach((b) =>
 );
 
 // ---- corpus (agentic generated data) ----
-let corpusLoaded = false, corpusRows = [], corpusFilters = {};
-const CORPUS_FACETS = ["source", "arm", "split", "has_executable_oracle"];
+let corpusLoaded = false, corpusRows = [], corpusFilters = {}, corpusLabels = {}, corpusCalib = null;
+const CORPUS_FACETS = ["source", "arm", "split", "has_executable_oracle", "label_src"];
 const CORPUS_COLS = [
   ["task_id", "wrap"], ["arm", ""], ["served_model", ""], ["source", ""],
-  ["grounding", ""], ["tier", ""], ["split", ""], ["has_executable_oracle", ""],
-  ["num_turns", "num"], ["tools", "num"], ["total_tokens", "num"],
-  ["wall_s", "num"], ["timed_out", ""], ["empty_patch", ""],
+  ["tier", ""], ["split", ""], ["has_executable_oracle", ""],
+  ["outcome", "num"], ["label_src", ""], ["conf", "num"],
+  ["num_turns", "num"], ["tools", "num"], ["wall_s", "num"], ["timed_out", ""], ["empty_patch", ""],
 ];
 async function loadCorpus() {
   corpusLoaded = true;
-  const r = await api("/api/agentic");
+  const [r, lb] = await Promise.all([api("/api/agentic"), api("/api/labels")]);
   corpusRows = r.rows || [];
+  corpusLabels = lb.by_session || {};
+  corpusCalib = lb.calibration || null;
+  renderCalib();
   const tb = $("#corpus-toolbar"); tb.innerHTML = "";
   if (!corpusRows.length) {
     tb.append(el("span", { class: "muted" }, "No agentic sessions yet — run `make agentic-generate` (or `make agentic-swe`)."));
@@ -88,12 +91,57 @@ function renderCorpus() {
         return tr.append(el("td", {}, row[c] ? el("span", { class: "chip bad" }, "yes") : el("span", { class: "muted" }, "—")));
       if (c === "has_executable_oracle")
         return tr.append(el("td", {}, row[c] ? el("span", { class: "chip ok" }, "✓") : ""));
+      if (c === "outcome")
+        return tr.append(el("td", { class: cls }, row.outcome == null ? el("span", { class: "muted" }, "—")
+          : el("span", { class: "chip " + (row.outcome === 1 ? "ok" : "bad") }, row.outcome === 1 ? "adequate" : "inadequate")));
+      if (c === "label_src") {
+        if (row.label_src == null) return tr.append(el("td", {}, el("span", { class: "muted" }, "—")));
+        const td = el("td", {}, el("span", { class: "chip " + srcClass(row.label_src) }, row.label_src));
+        if (row.disagreement === true) td.append(el("span", { class: "chip warn", title: "judge & heuristic disagreed" }, "⚠"));
+        return tr.append(td);
+      }
+      if (c === "conf")
+        return tr.append(el("td", { class: cls }, row.conf == null ? "" : fmt(row.conf)));
       tr.append(el("td", { class: cls }, row[c] == null ? "" : String(fmt(row[c]))));
     });
     tb.append(tr);
   });
   t.append(tb);
 }
+function srcClass(s) { return s === "executed" ? "ok" : s === "judge" ? "" : "warn"; }
+function evidenceBlurb(src, ev) {
+  if (!ev) return "";
+  if (src === "executed") return ev.note || (ev.fail_to_pass_ok != null ? `F2P ${ev.fail_to_pass_ok} · P2P ${ev.pass_to_pass_ok}` : "");
+  if (src === "judge") return (ev.rationale || "").slice(0, 100) + (ev.k_votes > 1 ? ` (k=${ev.k_votes})` : "");
+  if (src === "implicit") return `signal: ${ev.signal || "?"}${ev.had_user_reaction === false ? " (weak default)" : ""}`;
+  if (src === "resolved") return ev.rule ? `rule: ${ev.rule}${ev.disagreement_flag ? " · ⚠ disagreement" : ""}` : "";
+  return "";
+}
+
+// Calibration card: how well the weak labelers (judge, heuristics) agree with
+// executed truth on the oracle-bearing sessions. This is the answer-key check that
+// makes the weak labels trustworthy on oracle-less sessions.
+function renderCalib() {
+  const box = $("#corpus-calib"); box.innerHTML = "";
+  if (!corpusCalib) return;
+  const c = corpusCalib;
+  const j = (c.by_source && c.by_source.judge) || {};
+  const im = (c.by_source && c.by_source.implicit) || {};
+  const card = el("div", { class: "card wide" }, el("div", { class: "lbl" }, "Calibration — weak labels vs executed truth"));
+  const stats = el("div", { class: "calib-stats" });
+  const stat = (k, v) => stats.append(el("span", { class: "chip" }, k + ": " + v));
+  stat("executed anchor", c.n_executed ?? 0);
+  stat("judge N", j.n ?? 0);
+  if (j.n) { stat("judge acc", fmt(j.accuracy)); stat("judge P", fmt(j.precision)); stat("judge R", fmt(j.recall)); }
+  stat("implicit N", im.n ?? 0);
+  if (im.n) stat("implicit acc", fmt(im.accuracy));
+  stat("judge↔heur agree", (c.n_judge_heuristic_pairs ? fmt(c.judge_heuristic_agreement) : "—"));
+  card.append(stats);
+  if (c.note) card.append(el("div", { class: "muted small" }, c.note));
+  else card.append(el("div", { class: "muted small" }, "positive class = inadequate (escalation-relevant); precision/recall are for detecting it."));
+  box.append(card);
+}
+
 async function selectCorpus(sid, reveal) {
   const d = $("#corpus-detail"); d.innerHTML = "";
   d.append(el("p", { class: "muted" }, "loading " + sid + " …"));
@@ -111,6 +159,23 @@ async function selectCorpus(sid, reveal) {
   if (rec.timed_out) head.append(el("span", { class: "chip bad" }, "timed_out"));
   if (rec.empty_patch) head.append(el("span", { class: "chip bad" }, "empty_patch"));
   d.append(head);
+
+  // Labels — each branch's verdict + the fused canonical outcome
+  const lab = corpusLabels[sid];
+  if (lab) {
+    d.append(el("h3", {}, "Labels (offline engine)"));
+    const lt = el("div", { class: "panel" });
+    ["executed", "judge", "implicit", "resolved"].forEach((src) => {
+      const v = lab[src]; if (!v) return;
+      const row = el("div", { class: "router-row" },
+        el("span", { class: "rname" }, src + (src === "resolved" ? " (canonical)" : "")),
+        el("span", {}, el("span", { class: "chip " + (v.outcome === 1 ? "ok" : "bad") }, v.outcome === 1 ? "adequate" : "inadequate")),
+        el("span", { class: "num", style: "font-family:var(--mono)" }, v.confidence == null ? "" : "conf " + fmt(v.confidence)),
+        el("span", { class: "muted small" }, evidenceBlurb(src, v.evidence)));
+      lt.append(row);
+    });
+    d.append(lt);
+  }
 
   // Issue
   if (r.issue) d.append(el("details", {}, el("summary", {}, "ISSUE"), el("pre", { class: "content" }, r.issue)));

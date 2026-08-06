@@ -13,8 +13,8 @@ CACHE   ?= cache
 
 .PHONY: all gen extract train eval test build clean fmt vet tidy demo serve \
 	agentic agentic-smoke agentic-tasks agentic-image agentic-proxy \
-	agentic-proxy-stop agentic-gold agentic-eval agentic-swe agentic-generate \
-	agentic-split
+	agentic-proxy-stop agentic-gold agentic-materialize agentic-eval agentic-swe \
+	agentic-generate agentic-split
 
 DATA_AGENTIC ?= data_agentic
 
@@ -35,6 +35,7 @@ build:
 	$(GO) build -o $(BIN)/eval     ./cmd/eval
 	$(GO) build -o $(BIN)/serve    ./cmd/serve
 	$(GO) build -o $(BIN)/agentic  ./cmd/agentic
+	$(GO) build -o $(BIN)/materialize ./cmd/materialize
 
 ## gen: generate synthetic CC session logs (Pillar 1a)
 gen: build
@@ -108,6 +109,24 @@ agentic-proxy:
 agentic-proxy-stop:
 	bash agentic/proxy/proxyctl.sh stop
 
+## agentic-grade: offline executed-oracle branch — run hidden tests on each
+## session's produced patch -> labels/executed.jsonl (docker_pytest needs the
+## executor image; swebench needs the swebench venv; ungradeable sessions skipped).
+agentic-grade:
+	docker build -q -t agentic-runner:py311 agentic/exec/ >/dev/null
+	python3 agentic/runner/grade_offline.py
+
+## agentic-calibrate: score judge/heuristics vs executed truth + fuse weak labels
+## (judge-primary) into canonical labels. No model call. Writes calibration/report.json
+## + labels/resolved.jsonl.
+agentic-calibrate:
+	$(GO) run ./cmd/label -calibrate
+
+## agentic-heuristics: mine implicit labels from sim-user reactions in each
+## session's RawTurn log (deterministic, no model call). Rewrites labels/implicit.jsonl.
+agentic-heuristics:
+	$(GO) run ./cmd/label -heuristics
+
 ## agentic-smoke: 1-task, BOTH arms, fidelity smoke (proves each arm can act).
 ## Generation is grading-free, so it does NOT build the Docker executor image.
 agentic-smoke: build agentic-proxy
@@ -139,7 +158,18 @@ agentic-generate: build agentic-proxy
 agentic-split:
 	python3 agentic/runner/split.py
 
-## agentic-gold: assemble the executed dual-arm gold set from runner results
+## agentic-materialize: offline-engine bridge (O6) — turn the fused canonical
+## labels (labels/resolved.jsonl) into pointwise/pairwise/gold for train + eval.
+## SUPERSEDES agentic-gold: outcomes come from the engine's calibrated labels,
+## gold is EXECUTED-only from the HOLDOUT split, oracle-ungraded sessions are
+## quarantined. Run after agentic-grade + agentic-calibrate.
+agentic-materialize: build
+	$(BIN)/materialize -data-dir $(DATA_AGENTIC)
+
+## agentic-gold: [DEPRECATED — use agentic-materialize] assemble the executed
+## dual-arm gold set directly from runner `resolved` fields. Retained until the
+## BuildGold guard lands on the data-plan branch; do not use on fresh log-first
+## data (it reads a `resolved` field the runner no longer emits).
 agentic-gold: build
 	$(BIN)/agentic -data-dir $(DATA_AGENTIC)
 
