@@ -3,6 +3,7 @@ import { api, type AgenticRow, type LabelBranch, type SessionTrace } from "../ap
 import { fmt } from "../format";
 import { useConsole } from "../store";
 import { ModelChip } from "../components/chips";
+import { ChatView } from "../components/ChatView";
 
 type Cat = "internal" | "semi" | "synth";
 
@@ -57,7 +58,10 @@ export function DataTab() {
   const [selected, setSelected] = useState<string | null>(null);
 
   const meta = CAT_META[cat];
-  const rows = meta.match ? corpus.filter(meta.match) : [];
+  // Only surface rows that resolve to a real trace — legacy records with an
+  // empty session_id can't be opened (the trace endpoint 400s on a missing id),
+  // so hiding them keeps every visible row clickable.
+  const rows = (meta.match ? corpus.filter(meta.match) : []).filter((r) => r.session_id);
 
   const reasoningFor = (row: AgenticRow): string => {
     const lab = labels[row.session_id];
@@ -66,6 +70,26 @@ export function DataTab() {
     const rec: LabelBranch | undefined = (src && lab[src]) || lab.resolved;
     return evidenceBlurb(src || rec?.source, rec?.evidence);
   };
+
+  // Detail "page": clicking a row swaps the list out for the full chat trace
+  // with a Back breadcrumb (below the top navbar), rather than an inline panel.
+  if (selected) {
+    return (
+      <section className="tab active">
+        <div className="crumb">
+          <button className="back" onClick={() => setSelected(null)}>
+            ← Back
+          </button>
+          <span className="crumb-sid">
+            <code>{selected}</code>
+          </span>
+        </div>
+        <div id="data-detail">
+          <SessionDetail sid={selected} />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="tab active">
@@ -149,14 +173,6 @@ export function DataTab() {
           )}
         </>
       )}
-
-      <div id="data-detail">
-        {selected ? (
-          <SessionDetail sid={selected} />
-        ) : (
-          <p className="muted">Select a session row to reconstruct its full trace (turns, tool calls, labels, diff).</p>
-        )}
-      </div>
     </section>
   );
 }
@@ -244,21 +260,8 @@ function SessionDetail({ sid }: { sid: string }) {
         </details>
       )}
 
-      <h3>Session (reconstructed turns)</h3>
-      {(data.turns || []).map((t, i) => (
-        <div key={i} className={"turn " + t.role}>
-          <div className="head">
-            <span className="role">{t.role}</span>
-            {t.served_model && <ModelChip model={t.served_model} />}
-          </div>
-          <div className="content">{t.content || ""}</div>
-        </div>
-      ))}
-
-      <h3>Tool trace (CC events)</h3>
-      <div className="panel">
-        <ToolTrace events={data.events || []} />
-      </div>
+      <h3>Conversation</h3>
+      <ChatView turns={data.turns || []} events={data.events || []} model={rec.served_model} />
 
       <h3>Patch (git diff)</h3>
       <pre className="content mono">{data.patch || "(empty)"}</pre>
@@ -282,39 +285,3 @@ function SessionDetail({ sid }: { sid: string }) {
   );
 }
 
-function ToolTrace({ events }: { events: any[] }) {
-  const out: React.ReactNode[] = [];
-  events.forEach((e, ei) => {
-    if (e.type === "assistant") {
-      (e.message?.content || []).forEach((b: any, bi: number) => {
-        if (b.type === "text" && b.text)
-          out.push(
-            <div key={`${ei}-${bi}`} className="turn assistant">
-              <div className="content">{b.text}</div>
-            </div>,
-          );
-        if (b.type === "tool_use")
-          out.push(
-            <div key={`${ei}-${bi}`} className="toolcall">
-              <span className="chip">→ {b.name}</span>
-              <span className="content mono">{JSON.stringify(b.input).slice(0, 300)}</span>
-            </div>,
-          );
-      });
-    } else if (e.type === "user") {
-      (e.message?.content || []).forEach((b: any, bi: number) => {
-        if (b.type === "tool_result") {
-          let c = b.content;
-          if (Array.isArray(c)) c = c.map((x: any) => x.text || "").join(" ");
-          out.push(
-            <div key={`${ei}-${bi}`} className="toolcall">
-              <span className={"chip " + (b.is_error ? "bad" : "ok")}>{b.is_error ? "✗ result" : "✓ result"}</span>
-              <span className="content mono">{String(c || "").slice(0, 300)}</span>
-            </div>,
-          );
-        }
-      });
-    }
-  });
-  return <>{out}</>;
-}
