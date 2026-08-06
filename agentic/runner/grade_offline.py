@@ -14,7 +14,7 @@ Two grading paths, kept separate (DECISIONS D16), selected by the task's `grader
     python:3.11-slim image (executor.py). Resolved iff all F2P pass AND all P2P
     still pass.
   * swebench — real SWE-bench Verified: hand the agent diff to the OFFICIAL swebench
-    harness (run_swe_arm.grade), which applies test_patch itself inside the
+    harness (swebench_grade.grade), which applies test_patch itself inside the
     per-instance image. Same env the agent ran in (execution=="container").
 
 CORRECTNESS RULE: only emit a label when the oracle actually ran. If the grader
@@ -42,6 +42,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from executor import score_checkout, IMAGE as PYTEST_IMAGE  # noqa: E402
+import swebench_grade  # noqa: E402  (self-contained; no dep on the retired run_swe_arm)
 
 LABELER_VERSION = "executed-v1"
 
@@ -59,10 +60,7 @@ def docker_image_exists(image: str) -> bool:
 
 
 def swebench_available() -> bool:
-    py = os.environ.get(
-        "SWEBENCH_PY",
-        str(Path.home() / "development/spectro/ail-self-routing/.venv_swe/bin/python"))
-    return Path(py).exists()
+    return swebench_grade.available()
 
 
 # --------------------------------------------------------------------------
@@ -109,11 +107,10 @@ def grade_docker_pytest(task: dict, task_dir: Path, diff: str, timeout: int) -> 
 
 
 def grade_swebench(instance_id: str, arm: str, diff: str) -> dict:
-    """Grade a real SWE-bench instance via the official harness (reused)."""
-    import run_swe_arm  # lazy: only import when the swebench path is used
+    """Grade a real SWE-bench instance via the official harness (swebench_grade)."""
     if not diff.strip():
         return {"graded": True, "resolved": False, "note": "empty patch — no change"}
-    res = run_swe_arm.grade(instance_id, arm, diff)  # {resolved, graded, tests_status,...}
+    res = swebench_grade.grade(instance_id, arm, diff)  # {resolved, graded, tests_status,...}
     res.setdefault("graded", False)
     return res
 
