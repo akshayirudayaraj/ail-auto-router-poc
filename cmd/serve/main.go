@@ -33,7 +33,7 @@ func main() {
 	if addr == "" {
 		addr = ":8080"
 	}
-	lg.Printf("console on http://localhost%s  (data dir: %s)", addr, cfg.DataDir)
+	lg.Printf("JSON API on http://localhost%s  (data dir: %s) — UI: `make console-dev`", addr, cfg.DataDir)
 	if err := http.ListenAndServe(addr, srv.Handler()); err != nil {
 		lg.Fatalf("serve: %v", err)
 	}

@@ -59,3 +59,6 @@ agentic/results/labels/_executed_cache/
 
 # swebench offline-grade prediction artifacts (regenerable)
 agentic/results/*.offline_*.json
+
+# stray root-level build binary (canonical output is /bin/)
+/serve

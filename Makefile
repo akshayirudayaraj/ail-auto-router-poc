@@ -54,23 +54,24 @@ train: build
 eval: build
 	$(BIN)/eval
 
-## serve: launch the web console (traces, data, fit, route) on :8080
-## Serves the prebuilt bundle embedded in the binary (committed under
-## internal/server/static). For live UI editing use `make console-dev` instead.
+## serve: launch the JSON API (traces, data, fit, route) on :8080
+## API-only — the console UI is the separate Vite frontend. For the UI, run
+## `make console-dev` (dev, :5173) or `make console-preview` (prod build) in
+## another shell; both talk to this API.
 serve: build
 	$(BIN)/serve
 
 # ---- frontend (TypeScript + React + Vite) -----------------------------------
-# The console SPA lives in frontend/. `frontend-build` compiles it into
-# internal/server/static/ where //go:embed bakes it into the serve binary — that
-# built bundle is committed so `go build`/`make serve` work without Node.
+# The console SPA lives in frontend/ and is decoupled from the Go API: it builds
+# to frontend/dist and is served independently (dev server or any static host).
+# The Go binary does NOT embed it, so `go build`/`make serve` need no Node.
 NPM ?= npm
 
 ## frontend-install: install console npm deps (run once / after package.json changes)
 frontend-install:
 	cd frontend && $(NPM) install
 
-## frontend-build: compile the TS/React console into the embedded static bundle
+## frontend-build: compile the TS/React console into frontend/dist
 frontend-build:
 	cd frontend && $(NPM) run build
 
@@ -79,6 +80,11 @@ frontend-build:
 ## the Vite URL (http://localhost:5173). Set VITE_API_TARGET to point elsewhere.
 console-dev:
 	cd frontend && $(NPM) run dev
+
+## console-preview: build the console and serve the production bundle locally
+## (Vite preview, proxies /api to serve just like dev). Needs `make serve` up.
+console-preview: frontend-build
+	cd frontend && $(NPM) run preview
 
 ## all: full end-to-end pipeline, then print where results landed
 all: gen extract train eval

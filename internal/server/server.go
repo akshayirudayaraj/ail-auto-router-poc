@@ -1,18 +1,21 @@
-// Package server is a stdlib-only web UI over the framework: it serves an
-// embedded single-page app plus a JSON API to (1) browse raw log traces with
-// their mined labels and planted truth, (2) inspect the structured datasets,
-// (3) fit the candidate routers and see IRT recovery + the gold leaderboard,
-// and (4) route a brand-new prompt through every fitted router live.
+// Package server is a stdlib-only JSON API over the framework: it exposes
+// endpoints to (1) browse raw log traces with their mined labels and planted
+// truth, (2) inspect the structured datasets, (3) fit the candidate routers and
+// see IRT recovery + the gold leaderboard, and (4) route a brand-new prompt
+// through every fitted router live.
+//
+// It is API-only: the React/Vite console is a separate frontend that consumes
+// these endpoints (dev: `make console-dev` on :5173, proxying /api here; prod:
+// `vite build` + any static host). The Go binary no longer embeds the UI, so
+// the two deploy independently.
 //
 // It reads the same data files the CLI stages produce and calls into the
 // router/eval/extract packages directly — no extra dependencies.
 package server
 
 import (
-	"embed"
 	"encoding/json"
 	"errors"
-	"io/fs"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -27,9 +30,6 @@ import (
 )
 
 var errNoData = errors.New("no dataset loaded — run `make extract` first")
-
-//go:embed static/*
-var staticFS embed.FS
 
 // Server holds loaded data, the live backend, and the currently fitted routers.
 type Server struct {
@@ -88,9 +88,25 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/agentic", s.handleAgentic)
 	mux.HandleFunc("/api/labels", s.handleLabels)
 
-	sub, _ := fs.Sub(staticFS, "static")
-	mux.Handle("/", http.FileServer(http.FS(sub)))
+	// API-only: the UI lives in the separate Vite frontend. A plain root reply
+	// so a stray browser hit here isn't a bare 404.
+	mux.HandleFunc("/", s.handleRoot)
 	return mux
+}
+
+// handleRoot answers non-API requests with a short pointer to the frontend
+// (this server no longer serves the console bundle).
+func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	writeJSON(w, 200, map[string]any{
+		"service": "ail-routing-test API",
+		"ui":      "run `make console-dev` and open http://localhost:5173 (proxies /api here)",
+		"api":     []string{"/api/summary", "/api/agentic", "/api/pointwise", "/api/pairwise", "/api/gold", "/api/fit", "/api/route", "/api/routers", "/api/labels"},
+	})
 }
 
 // ---- helpers ----

@@ -63,19 +63,21 @@ reruns are free and an interrupted overnight run resumes cheaply.
 ## Web console
 
 A web console over everything the pipeline produces. The **Go server is
-stdlib-only** (`net/http` + a JSON API, no external Go deps); the frontend is
-**TypeScript + React, built with Vite** and embedded into the `serve` binary
-(`internal/server/static`), so production stays a single self-contained binary.
+stdlib-only** (`net/http` + a JSON API, no external Go deps); the frontend is a
+**decoupled TypeScript + React app built with Vite**. The API and the UI deploy
+independently — the Go binary no longer embeds the bundle, so `go build`/`make
+serve` need no Node, and the UI is served by Vite (dev) or any static host.
 
 ```bash
-# production — serve the embedded bundle
-make serve                                  # http://localhost:8080  (AIL_ADDR=:9000 to change port)
-AIL_DATA_DIR=data_agentic make serve        # point it at the agentic dataset
+make serve            # terminal 1: Go JSON API on :8080  (AIL_ADDR=:9000 to change port)
+make console-dev      # terminal 2: Vite HMR on :5173 (proxies /api -> :8080) — open this
 
-# development — hot-module reload
-make serve            # terminal 1: Go JSON API on :8080
-make console-dev      # terminal 2: Vite HMR on :5173 (proxies /api -> :8080)
+AIL_DATA_DIR=data_agentic make serve        # point the API at the agentic dataset
+make console-preview                        # prod build served via `vite preview` (:4173, also proxies /api)
 ```
+
+The UI always talks to the API on :8080 through the Vite proxy — :8080 itself is
+API-only (a browser hit there returns a JSON pointer to the console).
 
 Four tabs:
 - **Data** — reconstructed sessions by source (Internal / Semi-synthetic /
@@ -91,10 +93,10 @@ Four tabs:
   feature vector that drove it.
 
 The console reads the same files the CLI stages write and calls the same
-`router`/`eval`/`extract` code — a view, not a reimplementation. Editing the UI
-needs Node (`make frontend-install` once, then `make console-dev` for live edits
-or `make frontend-build` to refresh the embedded bundle); running the prebuilt
-binary does not. See `frontend/README.md`.
+`router`/`eval`/`extract` code — a view, not a reimplementation. The UI needs
+Node (`make frontend-install` once, then `make console-dev` for live edits or
+`make frontend-build` to produce `frontend/dist`); the Go API does not. See
+`frontend/README.md`.
 
 ---
 
@@ -121,8 +123,9 @@ resumes. Every target has a `##` doc line in the `Makefile`.
 
 | command | does |
 |---|---|
-| `make serve` | serve the embedded console on :8080 (`AIL_ADDR`, `AIL_DATA_DIR` env) |
-| `make console-dev` | Vite dev server with hot reload (proxies `/api` to `serve`) |
+| `make serve` | serve the JSON API on :8080 (`AIL_ADDR`, `AIL_DATA_DIR` env) |
+| `make console-dev` | Vite dev server with hot reload on :5173 (proxies `/api` to `serve`) — the UI |
+| `make console-preview` | build + serve the prod UI bundle via `vite preview` (:4173) |
 | `make frontend-install` | install the console's npm deps (run once) |
 | `make frontend-build` | rebuild the embedded UI bundle after editing `frontend/src` |
 
@@ -239,11 +242,11 @@ Package layout:
 | `internal/extract` | Pillar 1b extraction + 1c quality report |
 | `internal/router` | Pillar 2 routers + interface |
 | `internal/eval` | Pillar 3 harness, metrics, policy |
-| `internal/server` | web console backend: stdlib `net/http` JSON API + embedded (built) React bundle under `static/` |
+| `internal/server` | console backend: stdlib `net/http` JSON API only (the React UI is the separate `frontend/`) |
 | `cmd/{gen,extract,train,eval}` | stage entrypoints |
 | `cmd/serve` | web console server (`make serve`) |
 | `cmd/{label,materialize}` | offline label engine + O6 dataset materializer |
-| `frontend/` | TypeScript + React + Vite console source (built into `internal/server/static`) |
+| `frontend/` | TypeScript + React + Vite console source (builds to `frontend/dist`, served independently) |
 | `agentic/` | **non-portable** log-first generation: `claude -p` dual-arm runner + Anthropic→Ollama proxy + SWE materializer + synth gate + sim-user |
 | `python/` | **non-portable** encoder + SLM-head training |
 | `docs/` | design docs: `ROUTER_BRAINSTORM`, `DATA_PLAN`, `OFFLINE_ENGINE_PLAN`, `DECISIONS` (+ `archive/`) |
