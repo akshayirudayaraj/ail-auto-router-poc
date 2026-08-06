@@ -13,6 +13,7 @@ import {
   apiPost,
   type AgenticRow,
   type FitResult,
+  type RouterFitResult,
   type RouterMeta,
   type SessionLabels,
   type Summary,
@@ -45,6 +46,7 @@ interface ConsoleStore {
   loadCorpus: () => Promise<void>;
   runFit: (params: FitParams) => Promise<FitResult>;
   ensureFit: () => Promise<FitResult>;
+  fitRouter: (routerName: string, source: string) => Promise<RouterFitResult>;
 }
 
 const Ctx = createContext<ConsoleStore | null>(null);
@@ -65,9 +67,9 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [labels, setLabels] = useState<Record<string, SessionLabels>>({});
   const [corpusLoaded, setCorpusLoaded] = useState(false);
   const [fit, setFit] = useState<FitResult | null>(null);
-  // Default to the strongest source that the agentic corpus actually carries
-  // (executed); the fit falls back gracefully if a source has no rows.
-  const [fitParams, setFitParams] = useState<FitParams>({ source: "executed", threshold: 0.5 });
+  // Default to "all" — fit on every label source present (no filter). Per-router
+  // fits can narrow to a single source from the Training tab.
+  const [fitParams, setFitParams] = useState<FitParams>({ source: "all", threshold: 0.5 });
   const [fitStatus, setFitStatus] = useState("");
 
   // Latest fit kept in a ref so ensureFit can dedupe without re-creating itself.
@@ -121,6 +123,21 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     return runFit(fitParams);
   }, [runFit, fitParams]);
 
+  // fitRouter trains ONE router on its own source and merges the result into the
+  // cached aggregate fit (its trained-on breakdown, and IRT abilities when IRT).
+  const fitRouter = useCallback(async (routerName: string, source: string) => {
+    const res = await apiPost<RouterFitResult>("/api/fit", { router: routerName, train_source: source });
+    if (!res.error) {
+      setFit((prev) => {
+        if (!prev) return prev;
+        const training = { ...(prev.training || {}) };
+        if (res.trained_on) training[routerName] = res.trained_on;
+        return { ...prev, training, abilities: res.abilities ?? prev.abilities };
+      });
+    }
+    return res;
+  }, []);
+
   useEffect(() => {
     (async () => {
       const [s, rt] = await Promise.all([
@@ -152,6 +169,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       loadCorpus,
       runFit,
       ensureFit,
+      fitRouter,
     }),
     [
       summary,
@@ -169,6 +187,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       loadCorpus,
       runFit,
       ensureFit,
+      fitRouter,
     ],
   );
 

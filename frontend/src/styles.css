@@ -143,6 +143,22 @@ button.reveal { margin-top: 10px; padding: 6px 10px; cursor: pointer; opacity: .
 .chip.kind-baseline { background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
 .chip.kind-learned { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
 .chip.kind-stub { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.chip.shape { background: color-mix(in srgb, var(--muted) 12%, transparent); color: var(--muted); font-family: ui-monospace, monospace; font-size: 11px; }
+
+/* training-data summary */
+.datasum { margin-bottom: 10px; }
+.datasum-nums { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+.datasum-nums span { font-size: 13px; }
+
+/* per-router card controls + in-flight state */
+.method .mcontrols { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.method .mcontrols select { flex: 1; min-width: 0; }
+.method .trained-on { margin-top: 6px; font-family: ui-monospace, monospace; }
+.method.training { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
+
+/* pulsing "running" indicator */
+.training-badge { color: var(--accent); font-size: 12px; font-weight: 600; animation: pulse 1s ease-in-out infinite; white-space: nowrap; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
 /* charts */
 .chart { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 14px; }
