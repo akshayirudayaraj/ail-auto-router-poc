@@ -222,6 +222,37 @@ func AIQ(curve []CQPoint) float64 {
 	return area
 }
 
+// LocalOffloadAtFrontierQuality is this POC's headline metric: the largest share
+// of requests a router can keep on the LOCAL model while STILL matching
+// always-frontier's quality (retention = 1.0). Higher = more offload at no
+// quality cost. Threshold-independent — swept over the whole curve. Returns 0
+// when the router can't reach frontier quality at any operating point (e.g.
+// always-local, whose quality ceiling sits below the frontier's).
+//
+// Unlike AIQ (a $-cost-weighted area), this needs no cost model — it answers the
+// question that actually matters here: "how much can we route to local without
+// losing quality?" It rises automatically as the local model improves.
+func LocalOffloadAtFrontierQuality(curve []CQPoint) float64 {
+	if len(curve) == 0 {
+		return 0
+	}
+	frontierQ := 0.0 // quality when everything is escalated
+	for _, p := range curve {
+		if p.Escalation > 1-1e-9 {
+			frontierQ = p.Quality
+		}
+	}
+	offload := 0.0
+	for _, p := range curve {
+		if p.Quality >= frontierQ-1e-9 {
+			if ls := 1 - p.Escalation; ls > offload {
+				offload = ls
+			}
+		}
+	}
+	return offload
+}
+
 // EscalationCells are the dual-arm confusion cells for a fixed decision vector.
 // UnderEscalation ("cell B"): stayed local, local failed, frontier would have
 // passed — the costly miss the router must minimize. OverEscalation: escalated
