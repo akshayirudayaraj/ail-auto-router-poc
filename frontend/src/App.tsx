@@ -14,9 +14,21 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 function StatBar() {
-  const { summary } = useConsole();
+  const { summary, corpus } = useConsole();
   if (!summary) return <div className="statbar" />;
   const c = summary.counts || {};
+
+  // Prefer the roster the corpus ACTUALLY served (per-session arm) over the
+  // config roster in /api/summary, which can be a stale default (e.g. qwen /
+  // claude-sonnet) when the data dir's gold_meta is out of date. Same ground
+  // truth the Data view colors chips by. Fall back to summary if no corpus.
+  const served = (arm: string) =>
+    [...new Set(corpus.filter((r) => r.arm === arm && r.served_model).map((r) => r.served_model as string))];
+  const locals = served("local");
+  const frontiers = served("frontier");
+  const localLabel = (locals.length ? locals : summary.local_models || []).join(" · ") || "—";
+  const frontierLabel = (frontiers.length ? frontiers : summary.frontier_model ? [summary.frontier_model] : []).join(" · ") || "—";
+
   const stat = (k: string, v: React.ReactNode) => (
     <span className="stat">
       <b>{v}</b> {k}
@@ -24,8 +36,8 @@ function StatBar() {
   );
   return (
     <div className="statbar">
-      {stat("local", (summary.local_models || []).join(" · ") || "—")}
-      {stat("frontier", summary.frontier_model || "—")}
+      {stat("local", localLabel)}
+      {stat("frontier", frontierLabel)}
       {stat("pointwise", (c.pointwise_implicit ?? 0) + (c.pointwise_judge ?? 0))}
       {stat("pairwise", c.pairwise ?? 0)}
       {stat("gold", c.gold ?? 0)}
