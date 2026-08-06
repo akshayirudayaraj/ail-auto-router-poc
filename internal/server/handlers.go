@@ -319,6 +319,7 @@ func (s *Server) fitReport(thr float64) map[string]any {
 		"abilities":    abRows,
 		"leaderboard":  leaderboard,
 		"has_gold":     len(s.gold) > 0,
+		"n_gold":       len(s.gold),
 	}
 }
 

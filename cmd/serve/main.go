@@ -12,6 +12,7 @@ import (
 
 	"github.com/akshayirudayaraj/ail-routing-test/internal/backend"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/config"
+	"github.com/akshayirudayaraj/ail-routing-test/internal/dataio"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/server"
 )
 
@@ -21,6 +22,10 @@ func main() {
 	if err != nil {
 		lg.Fatalf("config: %v", err)
 	}
+	// Adapt the roster to the served models in this data dir (no-op on synthetic;
+	// picks up gpt-oss:20b / opus on the agentic set) so the console classifies
+	// local vs frontier correctly and fits the right models.
+	cfg = dataio.ResolveRoster(cfg)
 	be := backend.New(cfg, lg)
 	srv := server.New(cfg, be, lg)
 
