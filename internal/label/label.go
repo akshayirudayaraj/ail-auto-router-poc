@@ -2,7 +2,7 @@
 // artifacts that log-first generation produces (see agentic/SAMPLE_CORPUS.md) into
 // outcomes. Generation assigns NO outcome; this package is where outcomes come
 // from — the executed oracle, an LLM judge (over a distilled evidence pack), or
-// signal heuristics. See OFFLINE_ENGINE_PLAN.md.
+// signal heuristics. See docs/OFFLINE_ENGINE_PLAN.md.
 //
 // Design contracts honored here:
 //   - Logs are immutable; labels are an append-only layer (one LabelRecord per

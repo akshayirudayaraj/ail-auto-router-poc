@@ -7,7 +7,7 @@
 // survives only as a fast, free, no-model-call fixture to exercise the
 // downstream Go code (extract/train/eval/server) in tests and CI. All real
 // training/eval data comes from the agentic log-first runner (agentic/, Sources
-// 2 + 3); see DATA_PLAN.md and DECISIONS D17/D18.
+// 2 + 3); see docs/DATA_PLAN.md and DECISIONS D17/D18.
 //
 // The generative model of outcomes is deliberately a 1PL IRT model:
 //

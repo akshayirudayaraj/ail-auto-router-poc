@@ -280,7 +280,7 @@ def main():
     W("")
     W("---\n")
     W("Reproduce: `make agentic` (full, resumable/cached) or `make agentic-smoke` "
-      "(1-task both-arm fidelity smoke). See DECISIONS.md (D12–D15) for every "
+      "(1-task both-arm fidelity smoke). See docs/DECISIONS.md (D12–D15) for every "
       "assumption and `agentic/README.md` for the Go/Python boundary.\n")
 
     with open(OUT, "w") as fh:

@@ -47,12 +47,12 @@ logs/build_images/
 # report.py narrative — local artifact; canonical agentic results are data_agentic/RESULTS.md
 RESULTS_AGENTIC.md
 
-# offline-engine executed-oracle rebuild cache (executed.jsonl is the artifact)
+# offline-engine executed-oracle rebuild cache (executed.jsonl is the artifact).
+# The label-engine OUTPUTS (executed/judge/implicit/resolved.jsonl + calibration)
+# are tracked so `make agentic-grade && agentic-calibrate && agentic-materialize`
+# pushes the canonical labels the console/train read — only the rebuild cache is
+# ignored.
 agentic/results/labels/_executed_cache/
-agentic/results/labels/resolved.jsonl
-agentic/results/labels/judge.jsonl
-agentic/results/calibration/
-agentic/results/labels/implicit.jsonl
 
 # Claude Code local hook logs
 .claude/hook-logs/
