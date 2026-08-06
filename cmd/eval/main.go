@@ -26,6 +26,11 @@ func main() {
 	if err != nil {
 		lg.Fatalf("config: %v", err)
 	}
+	// Adapt the roster to the served models in this data dir (no-op on synthetic;
+	// picks up gpt-oss:20b / opus on the agentic set) — otherwise the backtest
+	// misclassifies frontier rows as local and IRT fits phantom models.
+	cfg = dataio.ResolveRoster(cfg)
+	lg.Printf("roster: local=%v frontier=%s (data dir %s)", cfg.LocalModels, cfg.FrontierModel, cfg.DataDir)
 	pw, err := dataio.LoadPointwise(cfg)
 	if err != nil {
 		lg.Fatalf("load pointwise: %v (run `make extract` first)", err)
@@ -87,6 +92,14 @@ func main() {
 // policyDemo calibrates a deployable threshold + quota gate on the best learned
 // router (by gold AIQ) and reports the resulting operating points.
 func policyDemo(cfg config.Config, data eval.Data, lg *log.Logger) string {
+	// The policy layer calibrates thresholds against the dual-arm gold set; with
+	// no gold rows yet (executed holdout not populated) there is nothing to
+	// calibrate against, and CalibrateForQuality/Operating would divide by zero.
+	if len(data.Gold) == 0 {
+		lg.Printf("policy layer skipped: no dual-arm gold rows")
+		return "### policy layer\n\n> Skipped: no dual-arm gold rows yet. " +
+			"Populate executed holdout gold (run grading, then `make agentic-materialize`) to calibrate a deployable threshold.\n\n"
+	}
 	td := eval.TrainDataFrom(data, schema.LabelImplicit)
 	type cand struct {
 		r      router.Router

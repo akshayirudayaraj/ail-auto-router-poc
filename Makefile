@@ -13,8 +13,8 @@ CACHE   ?= cache
 
 .PHONY: all gen extract train eval test build clean fmt vet tidy demo serve \
 	agentic agentic-smoke agentic-tasks agentic-image agentic-proxy \
-	agentic-proxy-stop agentic-gold agentic-materialize agentic-eval agentic-swe \
-	agentic-generate agentic-split
+	agentic-proxy-stop agentic-gold agentic-materialize agentic-train agentic-eval \
+	agentic-fit-eval agentic-swe agentic-generate agentic-split
 
 DATA_AGENTIC ?= data_agentic
 
@@ -173,10 +173,22 @@ agentic-materialize: build
 agentic-gold: build
 	$(BIN)/agentic -data-dir $(DATA_AGENTIC)
 
-## agentic-eval: run the EXISTING eval harness on the agentic gold set
+## agentic-train: fit the routers on the materialized agentic pointwise/pairwise.
+## Roster (gpt-oss:20b / opus) is auto-detected from the data (dataio.ResolveRoster).
+agentic-train: build
+	AIL_DATA_DIR=$(DATA_AGENTIC) $(BIN)/train
+
+## agentic-eval: run the EXISTING eval harness on the agentic set
 ## (run from the data dir so its RESULTS.md lands there, not clobbering root)
 agentic-eval: build
 	cd $(DATA_AGENTIC) && AIL_DATA_DIR=. ../$(BIN)/eval
+
+## agentic-fit-eval: downstream pipeline once labels exist — materialize the
+## engine's canonical labels into datasets, then fit + evaluate. Run after the
+## label branches (agentic-grade / agentic-heuristics / agentic-calibrate) have
+## produced labels/resolved.jsonl.
+agentic-fit-eval: agentic-materialize agentic-train agentic-eval
+	@echo "== agentic fit+eval done. see $(DATA_AGENTIC)/RESULTS.md =="
 
 ## agentic: full pipeline — training data, both arms (resumable/cached),
 ## assemble executed gold, run the existing harness, write RESULTS_AGENTIC.md.
