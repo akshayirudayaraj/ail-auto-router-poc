@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { type Anchor, type LeaderRow } from "../api";
 import { useConsole } from "../store";
 import { CostQualityPlot } from "../components/CostQualityPlot";
@@ -28,6 +29,25 @@ const COL_LABEL: Record<string, string> = {
   cost_vs_local: "cost_vs_local",
 };
 
+// One-liner explanations, surfaced as native hover tooltips on the headers.
+const COL_HELP: Record<string, string> = {
+  router: "The routing policy being scored on the dual-arm gold set.",
+  "local_share@thr": "Share of requests this router keeps on the cheap local model at the operating threshold (higher = cheaper).",
+  qual_retention: "Adequacy retained vs always-Opus at the threshold — 100% means it matches Opus's quality.",
+  safety: "Of prompts where local would fail, the share the router correctly escalated to Opus (protects quality; want 100%).",
+  thrift: "Of prompts where local would pass, the share the router correctly kept local (captures the savings; want 100%).",
+  savings_capture: "Local share as a fraction of a perfect oracle's — how much of the safely-offloadable traffic it captured.",
+  under_escal_cellB: "The fraction of prompts where the router kept the request on local, local failed, and Opus would have passed (want 0%).",
+  offload_isoq: "Max local share reachable while EXACTLY matching always-Opus quality (brittle on small gold sets; kept for continuity).",
+  "escalation@thr": "Share of requests sent to Opus at the threshold (= 1 − local share).",
+  "quality@thr": "Mean achieved adequacy across all requests at the operating threshold.",
+  over_escalation: "Escalated to Opus though local would have passed — wasted spend.",
+  aiq: "Area under the $-cost/quality hull: quality per unit cost, threshold-independent (higher = better).",
+  auc: "Ranking power of the escalation score against 'local inadequate' (0.5 = random, 1.0 = perfect).",
+  ece: "Expected calibration error of the escalation score — how well its probabilities match reality (lower = better).",
+  cost_vs_local: "Achieved $ cost relative to always-local (1.0 = as cheap as local; higher = pricier).",
+};
+
 // metrics shown as percentages; the rest as 3-decimal floats.
 const PCT_METRICS = new Set([
   "local_share@thr",
@@ -45,6 +65,51 @@ const PCT_METRICS = new Set([
 function fmtMetric(key: string, v: number | null | undefined): string {
   if (v == null) return "";
   return PCT_METRICS.has(key) ? `${(v * 100).toFixed(0)}%` : v.toFixed(3);
+}
+
+// HelpTip: a "?" chip that shows explanatory text on hover/focus. The bubble is
+// portaled to <body> and position:fixed so it can't be clipped by the table's
+// overflow container, and it appears instantly (no native-title delay).
+function HelpTip({ text }: { text: string }) {
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const show = (el: HTMLElement) => {
+    const r = el.getBoundingClientRect();
+    const x = Math.min(Math.max(r.left + r.width / 2, 150), window.innerWidth - 150);
+    setPos({ x, y: r.bottom + 8 });
+  };
+  return (
+    <span
+      className="qmark"
+      tabIndex={0}
+      role="img"
+      aria-label={text}
+      onMouseEnter={(e) => show(e.currentTarget)}
+      onMouseLeave={() => setPos(null)}
+      onFocus={(e) => show(e.currentTarget)}
+      onBlur={() => setPos(null)}
+    >
+      ?
+      {pos &&
+        createPortal(
+          <span className="tip-bubble" style={{ left: pos.x, top: pos.y }}>
+            {text}
+          </span>,
+          document.body,
+        )}
+    </span>
+  );
+}
+
+// A column header with an inline "?" that reveals the metric's one-liner on hover.
+function MetricTh({ col, num }: { col: string; num?: boolean }) {
+  return (
+    <th className={num ? "num" : undefined}>
+      <span className="th-help">
+        {COL_LABEL[col] ?? col}
+        {COL_HELP[col] && <HelpTip text={COL_HELP[col]} />}
+      </span>
+    </th>
+  );
 }
 
 const EVAL_METHODS: [string, string][] = [
@@ -157,11 +222,9 @@ function PrimaryTable({ leaderboard, anchors, champ }: { leaderboard: LeaderRow[
       <table>
         <thead>
           <tr>
-            <th>router</th>
+            <MetricTh col="router" />
             {PRIMARY_COLS.map((c) => (
-              <th key={c} className="num">
-                {COL_LABEL[c] ?? c}
-              </th>
+              <MetricTh key={c} col={c} num />
             ))}
           </tr>
         </thead>
@@ -204,11 +267,9 @@ function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
         <table>
           <thead>
             <tr>
-              <th>router</th>
+              <MetricTh col="router" />
               {SECONDARY_COLS.map((c) => (
-                <th key={c} className="num">
-                  {COL_LABEL[c] ?? c}
-                </th>
+                <MetricTh key={c} col={c} num />
               ))}
             </tr>
           </thead>
@@ -226,10 +287,6 @@ function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
           </tbody>
         </table>
       </div>
-      <p className="muted small" style={{ marginTop: 8 }}>
-        AIQ = $-cost-weighted area under the cost/quality hull. offload_isoq = max local share at exactly-frontier quality
-        (brittle on small gold sets — kept for continuity). AUC/ECE score the escalation signal against "local inadequate".
-      </p>
     </details>
   );
 }
@@ -324,16 +381,6 @@ export function EvalsTab() {
             How it earns that <span className="muted">(safety · thrift · vs the perfect oracle)</span>
           </h3>
           <PrimaryTable leaderboard={learnedRows} anchors={anchors} champ={champ} />
-          <p
-            className="muted small"
-            dangerouslySetInnerHTML={{
-              __html:
-                "<b>local share</b> = fraction kept local. <b>quality vs Opus</b> = adequacy retained vs always-Opus (want 100%). " +
-                "<b>safety</b> = of prompts where local would fail, the share correctly escalated (protects quality). " +
-                "<b>thrift</b> = of prompts where local would pass, the share kept local (captures savings). " +
-                "<b>vs oracle</b> = local share as a fraction of a perfect router's. <b>quality leaks</b> = stayed local but Opus would've passed (want 0%).",
-            }}
-          />
 
           <h3 style={{ marginTop: 22 }}>
             Cost / quality map <span className="muted">(each router vs the always-local / oracle / always-Opus anchors)</span>

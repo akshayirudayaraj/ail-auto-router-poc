@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, type AgenticRow, type LabelBranch, type SessionTrace } from "../api";
-import { fmt } from "../format";
+import { fmt, taskOf } from "../format";
 import { useConsole } from "../store";
 import { ModelChip } from "../components/chips";
 import { ChatView } from "../components/ChatView";
@@ -80,7 +80,17 @@ export function DataTab() {
 
   // Detail "page": clicking a row swaps the list out for the full chat trace
   // with a Back breadcrumb (below the top navbar), rather than an inline panel.
+  // A dual-arm task has both a local and a frontier session; the arm switcher
+  // flips between the two traces for the same task.
   if (selected) {
+    const task = taskOf(selected);
+    const armSid: Record<string, string> = {};
+    corpus.forEach((s) => {
+      if (s.session_id && s.arm && taskOf(s.session_id) === task && !armSid[s.arm]) armSid[s.arm] = s.session_id;
+    });
+    const curArm = corpus.find((s) => s.session_id === selected)?.arm || selected.split("__").slice(-2)[0] || "";
+    if (curArm && !armSid[curArm]) armSid[curArm] = selected;
+    const armOrder = ["local", "frontier"].filter((a) => armSid[a]);
     return (
       <section className="tab active">
         <div className="crumb">
@@ -88,8 +98,25 @@ export function DataTab() {
             ← Back
           </button>
           <span className="crumb-sid">
-            <code>{selected}</code>
+            <code>{task}</code>
           </span>
+          {armOrder.length > 1 && (
+            <select
+              className="arm-switch"
+              value={curArm}
+              onChange={(e) => {
+                const sid = armSid[e.target.value];
+                if (sid) openSession(sid);
+              }}
+              title="Switch between the local and frontier arm of this task"
+            >
+              {armOrder.map((a) => (
+                <option key={a} value={a}>
+                  {a} arm
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div id="data-detail">
           <SessionDetail sid={selected} />
