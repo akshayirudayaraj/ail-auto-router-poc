@@ -169,6 +169,14 @@ func assembleResults(cfg config.Config, evalBody string, reports map[string]eval
 
 	var b strings.Builder
 	b.WriteString("# Results\n\n")
+	// Provenance banner so each RESULTS.md self-identifies its label source. The
+	// templated `data/` run is a never-signal CI fixture; the agentic data dir
+	// carries execution-grounded gold.
+	if strings.Contains(strings.ReplaceAll(goldMeta, " ", ""), "\"executable\":true") {
+		b.WriteString("> **Execution-grounded** — agentic dual-arm gold (executed unit-test outcomes).\n\n")
+	} else {
+		b.WriteString("> **Templated-synthetic baseline** — data from `internal/generate`, a never-signal CI fixture (see DECISIONS: quarantined generator). For real execution-grounded results see `data_agentic/RESULTS.md`.\n\n")
+	}
 	fmt.Fprintf(&b, "End-to-end run on the small default config (seed=%d, %d local models + frontier `%s`).\n\n",
 		cfg.Seed, len(cfg.LocalModels), cfg.FrontierModel)
 	b.WriteString("_Absolute cost/quality numbers come from the dual-arm gold set only; backtests rank routers; off-policy estimates the counterfactual reward from logged propensities._\n\n")

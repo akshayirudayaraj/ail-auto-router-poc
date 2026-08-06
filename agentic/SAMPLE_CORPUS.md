@@ -76,9 +76,9 @@ _oracle/      # test_patch.diff + gold_patch.diff  — NEVER inside repo/ (firew
 
 1. **Executed oracle (strongest; `has_executable_oracle` + `holdout`).**
    `outcome = resolved(base repo + <session>.patch + _oracle/test_patch)`:
-   - `grader=="swebench"` → the official swebench harness (`run_swe_arm.py:grade`,
-     parked for reuse) applies `test_patch` and runs F2P/P2P in the per-instance
-     image. **Run the agent's patch in the SAME image the agent ran in**
+   - `grader=="swebench"` → the official swebench harness (in the offline label
+     engine) applies `test_patch` and runs F2P/P2P in the per-instance image.
+     **Run the agent's patch in the SAME image the agent ran in**
      (`execution=="container"`) so grade env == generation env.
    - `grader=="docker_pytest"` → the in-repo `executor.py:score_checkout`
      (self-contained tasks). Resolved iff all F2P pass AND all P2P still pass.

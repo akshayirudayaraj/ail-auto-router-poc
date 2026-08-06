@@ -1,15 +1,16 @@
 <!--
-  WORKING SCRATCH DOC — DO NOT COMMIT.
-  This is a live brainstorm for the `auto` router. Edit freely; nothing here is final.
-  Ported from the "Auto Routing — Design Doc" Google Doc on 2026-07-28, restructured
-  in-repo around the two-branch (cascade | predictive) spine on 2026-07-29,
-  reorganized around data-sources + a meta-routing layer + a POC harness on 2026-08-03,
-  and given a clarity pass (plain language, less bold, added diagrams + glossary) on 2026-08-04.
+  SOURCE OF TRUTH for the auto router's design. This is the authoritative design
+  doc; the `ail-routing-test` repo implements the predictive-branch POC harness of
+  §6 against it. When code and this doc disagree, this doc is the intent.
+  History: ported from the "Auto Routing — Design Doc" Google Doc on 2026-07-28,
+  restructured around the two-branch (cascade | predictive) spine on 2026-07-29,
+  reorganized around data-sources + a meta-routing layer + a POC harness on
+  2026-08-03, clarity pass on 2026-08-04.
 -->
 
-# Auto Routing — Design Brainstorm
+# Auto Routing — Design (Source of Truth)
 
-*Status: Draft for discussion. Owner: Akshay Irudayaraj.*
+*Status: Authoritative design. Owner: Akshay Irudayaraj.*
 
 ## Abstract
 

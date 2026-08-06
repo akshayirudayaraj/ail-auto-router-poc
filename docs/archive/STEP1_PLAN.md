@@ -1,3 +1,5 @@
+> **ARCHIVED — delivered & superseded.** Step 1 (one real SWE-bench execution-grounded dual-arm gold row) is done; the execution-grounded track is now covered by `DATA_PLAN.md` and the agentic runner. Kept for history.
+
 # Step 1 Plan — the execution-grounded keystone
 
 > Handoff doc for the next agent/session. Written 2026-08-04. Owner: Akshay.

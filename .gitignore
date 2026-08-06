@@ -43,3 +43,6 @@ agentic/.claude_toolbox/
 
 # swebench image-build logs (noise, regenerable)
 logs/build_images/
+
+# report.py narrative — local artifact; canonical agentic results are data_agentic/RESULTS.md
+RESULTS_AGENTIC.md

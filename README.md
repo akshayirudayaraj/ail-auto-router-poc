@@ -24,6 +24,22 @@ code is the real deliverable.**
 
 ---
 
+## Source of truth & repo map
+
+The authoritative design is **`ROUTER_BRAINSTORM.md`** — this repo is the
+predictive-branch **POC harness of its §6**. The pipeline maps to the code:
+
+| ROUTER_BRAINSTORM §6 stage | in this repo |
+|---|---|
+| ① Data sources (logs / semi-synthetic / synthetic) | `agentic/` (real execution-grounded generation) · `internal/generate` (templated CI fixture, never signal) |
+| ② Parse → training labels (firewall, reconstruct, split, implicit/judge) | `internal/extract`, `agentic/runner/{firewall_gate,split}.py` |
+| ③ Per-router shapes (pointwise / pairwise) | `internal/schema` |
+| ④ Fit routers (RouteLLM / IRT / kNN / encoder-MLP·SLM) | `internal/router` (last two are Go stubs + `python/`) |
+| ⑤ Non-circular eval (gold / backtest / off-policy / guardrail) | `internal/eval` |
+| Gold lane (execution oracle, dual-arm) | `agentic/` + the deferred offline label engine |
+
+---
+
 ## Quick start
 
 ```bash
@@ -82,12 +98,12 @@ the repo's hidden tests** (a non-circular oracle) — filling the
 
 ```bash
 make agentic-smoke   # 1 task, BOTH arms, tool-call fidelity smoke
-make agentic         # full pipeline (resumable/cached) -> RESULTS_AGENTIC.md
+make agentic         # full pipeline (resumable/cached) -> data_agentic/RESULTS.md
 ```
 
 The local arm reaches the harness through an **Anthropic→Ollama proxy**
 (`agentic/proxy/`) so it drives the exact same `tool_use`/`tool_result` protocol
-as frontier. See `agentic/README.md`, `RESULTS_AGENTIC.md`, and DECISIONS
+as frontier. See `agentic/README.md`, `data_agentic/RESULTS.md`, and DECISIONS
 D11-ag/D12–D15. This track keeps the Go/Python boundary: the schema, gold
 assembly (`internal/agentic`, `cmd/agentic`) and eval harness stay portable Go;
 the harness-driving glue and Docker execution live under `agentic/` (Python).

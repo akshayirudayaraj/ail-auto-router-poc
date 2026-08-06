@@ -1,5 +1,7 @@
 # Results
 
+> **Templated-synthetic baseline** — data from `internal/generate`, a never-signal CI fixture (see DECISIONS: quarantined generator). For real execution-grounded results see `data_agentic/RESULTS.md`.
+
 End-to-end run on the small default config (seed=42, 2 local models + frontier `claude-sonnet-5`).
 
 _Absolute cost/quality numbers come from the dual-arm gold set only; backtests rank routers; off-policy estimates the counterfactual reward from logged propensities._

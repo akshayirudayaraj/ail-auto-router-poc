@@ -30,7 +30,7 @@ agentic/
   runner/validate_tasks.py         fail-before / pass-after check per task
   runner/executor.py               run a checkout's tests in Docker (the oracle)
   runner/run_agentic.py            drive claude -p per (task,arm); mine metrics
-  runner/report.py                 write RESULTS_AGENTIC.md
+  runner/report.py                 write data_agentic/RESULTS.md
   exec/Dockerfile                  hermetic python:3.11-slim + pytest image
   tasks/<id>/                      task.json + repo/ (buggy) + _reference/ (fix)
   results/<task>__<arm>__<hash>.json   cached per-(task,arm) executed results
@@ -50,7 +50,7 @@ as frontier**. That is the whole point: it lets us measure **tool-call
 fidelity**, not just reasoning. The proxy logs, per response, whether a tool
 call arrived as a **native** Ollama `tool_calls` entry or had to be **rescued**
 from bare prose-JSON the model emitted as text (`qwen2.5-coder` does the latter
-~100% of the time — see RESULTS_AGENTIC.md).
+~100% of the time — see data_agentic/RESULTS.md).
 
 `--bare` on the local arm is a tractability necessity: the full Claude Code
 system prompt is ~30k tokens, which costs **~8 min/turn** on a local 14B model;
@@ -63,7 +63,7 @@ local arm doesn't need). See DECISIONS D13.
 make agentic-smoke     # 1 task, BOTH arms, tool-call fidelity smoke
 make agentic           # full pipeline (resumable/cached): both arms on all
                        # tasks -> executed gold -> existing eval harness ->
-                       # RESULTS_AGENTIC.md
+                       # data_agentic/RESULTS.md
 ```
 
 Prerequisites: Docker (execution oracle), Ollama with `qwen2.5-coder:14b`
