@@ -65,7 +65,9 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [labels, setLabels] = useState<Record<string, SessionLabels>>({});
   const [corpusLoaded, setCorpusLoaded] = useState(false);
   const [fit, setFit] = useState<FitResult | null>(null);
-  const [fitParams, setFitParams] = useState<FitParams>({ source: "implicit", threshold: 0.5 });
+  // Default to the strongest source that the agentic corpus actually carries
+  // (executed); the fit falls back gracefully if a source has no rows.
+  const [fitParams, setFitParams] = useState<FitParams>({ source: "executed", threshold: 0.5 });
   const [fitStatus, setFitStatus] = useState("");
 
   // Latest fit kept in a ref so ensureFit can dedupe without re-creating itself.

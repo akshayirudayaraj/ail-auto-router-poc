@@ -31,8 +31,9 @@ export function TrainingTab() {
           <label>
             Train label source
             <select value={source} onChange={(e) => setSource(e.target.value)}>
-              <option value="implicit">implicit</option>
+              <option value="executed">executed</option>
               <option value="judge">judge</option>
+              <option value="implicit">implicit</option>
             </select>
           </label>
           <label>
@@ -51,6 +52,16 @@ export function TrainingTab() {
           </button>
           <span className="muted">{fitStatus}</span>
         </div>
+        <p
+          className="muted small"
+          dangerouslySetInnerHTML={{
+            __html:
+              "Label ladder (weakest→strongest): <b>implicit</b> (behavior heuristics) · <b>judge</b> (frontier-as-judge) · <b>executed</b> (ran the hidden tests). " +
+              "The no-circularity design trains on <b>weak</b> labels and keeps <b>executed</b> for the gold eval. " +
+              "Training on <b>executed</b> here uses the same ground-truth family as the gold leaderboard, so its numbers are optimistic — and the CLI backtest (<code>make agentic-eval</code>) will refuse it (eval must be stronger than train). " +
+              "The agentic corpus currently has <b>only executed</b> labels; extract implicit/judge signals to restore the clean split.",
+          }}
+        />
       </div>
 
       <h3>Routing methods</h3>

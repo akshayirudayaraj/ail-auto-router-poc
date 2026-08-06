@@ -59,7 +59,7 @@ eval: build
 ## `make console-dev` (dev, :5173) or `make console-preview` (prod build) in
 ## another shell; both talk to this API.
 serve: build
-	$(BIN)/serve
+	AIL_DATA_DIR=$${AIL_DATA_DIR:-data_agentic} $(BIN)/serve
 
 # ---- frontend (TypeScript + React + Vite) -----------------------------------
 # The console SPA lives in frontend/ and is decoupled from the Go API: it builds

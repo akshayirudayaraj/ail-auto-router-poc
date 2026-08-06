@@ -52,9 +52,28 @@ type Server struct {
 func New(cfg config.Config, be *backend.Client, lg *log.Logger) *Server {
 	s := &Server{cfg: cfg, be: be, lg: lg, fitSource: schema.LabelImplicit, fitThresh: 0.5}
 	s.loadData()
-	// fit on startup so /api/route works immediately (best-effort)
-	_ = s.fit(schema.LabelImplicit, 0.5)
+	// fit on startup so /api/route works immediately (best-effort). Pick the
+	// source the loaded data actually carries — synthetic corpora are implicit,
+	// the agentic corpus is executed — so routers aren't left unfit on an empty
+	// source filter.
+	_ = s.fit(s.dominantSource(), 0.5)
 	return s
+}
+
+// dominantSource returns the label source most represented in the loaded
+// pointwise rows (defaulting to implicit when there is nothing to count).
+func (s *Server) dominantSource() schema.LabelSource {
+	counts := map[schema.LabelSource]int{}
+	for _, r := range s.pointwise {
+		counts[r.LabelSource]++
+	}
+	best, bestN := schema.LabelImplicit, 0
+	for src, n := range counts {
+		if n > bestN {
+			best, bestN = src, n
+		}
+	}
+	return best
 }
 
 func (s *Server) loadData() {
