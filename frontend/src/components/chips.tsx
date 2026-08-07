@@ -7,7 +7,3 @@ export function ModelChip({ model }: { model?: string | null }) {
   if (!model) return <span className="muted">—</span>;
   return <span className={"chip " + (isLocal(model) ? "model-local" : "model-frontier")}>{model}</span>;
 }
-
-export function Chip({ kind, children }: { kind?: string; children: React.ReactNode }) {
-  return <span className={"chip" + (kind ? " " + kind : "")}>{children}</span>;
-}
