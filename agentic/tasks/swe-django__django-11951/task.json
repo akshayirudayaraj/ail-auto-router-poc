@@ -1,0 +1,41 @@
+{
+  "id": "swe-django__django-11951",
+  "tier": "swe-verified",
+  "issue": "bulk_create batch_size param overrides the compatible batch size calculation\nDescription\n\t \n\t\t(last modified by Ahmet Kucuk)\n\t \nAt this line: \u200bhttps://github.com/django/django/blob/stable/2.2.x/django/db/models/query.py#L1197\nbatch_size param overrides compatible batch size calculation. This looks like a bug as bulk_update properly picks the minimum of two:\n\u200bhttps://github.com/django/django/blob/stable/2.2.x/django/db/models/query.py#L504\nI suggest using similar\n batch_size = min(batch_size, max_batch_size) if batch_size else max_batch_size\nlogic in bulk_create as well. I am happy to open a PR for it.\n",
+  "test_cmd": "python -m pytest -q",
+  "fail_to_pass": [
+    "test_explicit_batch_size_respects_max_batch_size (bulk_create.tests.BulkCreateTests)"
+  ],
+  "pass_to_pass": [
+    "test_batch_same_vals (bulk_create.tests.BulkCreateTests)",
+    "test_bulk_insert_expressions (bulk_create.tests.BulkCreateTests)",
+    "test_bulk_insert_nullable_fields (bulk_create.tests.BulkCreateTests)",
+    "test_efficiency (bulk_create.tests.BulkCreateTests)",
+    "test_empty_model (bulk_create.tests.BulkCreateTests)",
+    "test_explicit_batch_size (bulk_create.tests.BulkCreateTests)",
+    "test_explicit_batch_size_efficiency (bulk_create.tests.BulkCreateTests)",
+    "test_ignore_conflicts_ignore (bulk_create.tests.BulkCreateTests)",
+    "test_large_batch (bulk_create.tests.BulkCreateTests)",
+    "test_large_batch_efficiency (bulk_create.tests.BulkCreateTests)",
+    "test_large_batch_mixed (bulk_create.tests.BulkCreateTests)",
+    "test_large_batch_mixed_efficiency (bulk_create.tests.BulkCreateTests)",
+    "test_large_single_field_batch (bulk_create.tests.BulkCreateTests)",
+    "test_long_and_short_text (bulk_create.tests.BulkCreateTests)",
+    "test_long_non_ascii_text (bulk_create.tests.BulkCreateTests)",
+    "test_multi_table_inheritance_unsupported (bulk_create.tests.BulkCreateTests)",
+    "test_non_auto_increment_pk (bulk_create.tests.BulkCreateTests)",
+    "test_non_auto_increment_pk_efficiency (bulk_create.tests.BulkCreateTests)",
+    "test_proxy_inheritance_supported (bulk_create.tests.BulkCreateTests)",
+    "test_set_state_with_pk_specified (bulk_create.tests.BulkCreateTests)",
+    "test_simple (bulk_create.tests.BulkCreateTests)"
+  ],
+  "provenance": "swe_verified",
+  "grounding": "benchmark",
+  "has_executable_oracle": true,
+  "grader": "swebench",
+  "source": "swe-bench-verified",
+  "instance_id": "django__django-11951",
+  "repo": "django/django",
+  "base_commit": "312049091288dbba2299de8d07ea3e3311ed7238",
+  "environment_setup_commit": "0668164b4ac93a5be79f5b87fae83c657124d9ab"
+}

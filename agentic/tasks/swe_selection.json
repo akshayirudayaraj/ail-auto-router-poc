@@ -1,112 +1,132 @@
 {
   "dataset": "princeton-nlp/SWE-bench_Verified",
-  "requested_n": 10,
-  "selected_n": 10,
-  "per_repo_cap": 8,
+  "requested_n": 12,
+  "selected_n": 12,
+  "per_repo_cap": 12,
   "per_repo_counts": {
-    "django/django": 6,
-    "sympy/sympy": 4
+    "django/django": 9,
+    "sympy/sympy": 3
   },
   "selected": [
     {
-      "instance_id": "django__django-13821",
+      "instance_id": "django__django-13933",
       "repo": "django/django",
       "n_f2p": 1,
-      "n_p2p": 14,
+      "n_p2p": 19,
       "patch_lines": 16,
-      "test_lines": 16,
+      "test_lines": 20,
       "difficulty": "<15 min fix",
-      "score": 37.8
+      "score": 42.8
     },
     {
-      "instance_id": "django__django-14539",
+      "instance_id": "django__django-10999",
       "repo": "django/django",
       "n_f2p": 2,
-      "n_p2p": 14,
-      "patch_lines": 15,
-      "test_lines": 14,
+      "n_p2p": 10,
+      "patch_lines": 17,
+      "test_lines": 18,
       "difficulty": "<15 min fix",
-      "score": 37.8
+      "score": 43.0
     },
     {
-      "instance_id": "django__django-9296",
+      "instance_id": "django__django-11964",
       "repo": "django/django",
-      "n_f2p": 1,
-      "n_p2p": 20,
-      "patch_lines": 14,
-      "test_lines": 17,
-      "difficulty": "<15 min fix",
-      "score": 38.0
-    },
-    {
-      "instance_id": "sympy__sympy-16450",
-      "repo": "sympy/sympy",
-      "n_f2p": 1,
-      "n_p2p": 38,
-      "patch_lines": 12,
-      "test_lines": 17,
-      "difficulty": "<15 min fix",
-      "score": 39.6
-    },
-    {
-      "instance_id": "sympy__sympy-22714",
-      "repo": "sympy/sympy",
-      "n_f2p": 1,
-      "n_p2p": 11,
-      "patch_lines": 12,
-      "test_lines": 23,
-      "difficulty": "<15 min fix",
-      "score": 40.2
-    },
-    {
-      "instance_id": "django__django-12304",
-      "repo": "django/django",
-      "n_f2p": 1,
-      "n_p2p": 17,
-      "patch_lines": 11,
-      "test_lines": 23,
-      "difficulty": "<15 min fix",
-      "score": 40.4
-    },
-    {
-      "instance_id": "sympy__sympy-12481",
-      "repo": "sympy/sympy",
-      "n_f2p": 1,
-      "n_p2p": 7,
+      "n_f2p": 2,
+      "n_p2p": 15,
       "patch_lines": 18,
-      "test_lines": 19,
+      "test_lines": 16,
       "difficulty": "<15 min fix",
-      "score": 41.4
+      "score": 43.0
     },
     {
-      "instance_id": "django__django-11133",
-      "repo": "django/django",
-      "n_f2p": 1,
-      "n_p2p": 64,
-      "patch_lines": 12,
-      "test_lines": 14,
-      "difficulty": "<15 min fix",
-      "score": 41.8
-    },
-    {
-      "instance_id": "django__django-14580",
-      "repo": "django/django",
-      "n_f2p": 1,
-      "n_p2p": 49,
-      "patch_lines": 12,
-      "test_lines": 17,
-      "difficulty": "<15 min fix",
-      "score": 41.8
-    },
-    {
-      "instance_id": "sympy__sympy-16766",
+      "instance_id": "sympy__sympy-15809",
       "repo": "sympy/sympy",
-      "n_f2p": 1,
-      "n_p2p": 7,
-      "patch_lines": 15,
+      "n_f2p": 2,
+      "n_p2p": 10,
+      "patch_lines": 12,
       "test_lines": 23,
       "difficulty": "<15 min fix",
-      "score": 42.4
+      "score": 43.0
+    },
+    {
+      "instance_id": "django__django-11951",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 21,
+      "patch_lines": 13,
+      "test_lines": 23,
+      "difficulty": "<15 min fix",
+      "score": 43.2
+    },
+    {
+      "instance_id": "django__django-17029",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 43,
+      "patch_lines": 11,
+      "test_lines": 21,
+      "difficulty": "<15 min fix",
+      "score": 43.6
+    },
+    {
+      "instance_id": "django__django-14373",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 19,
+      "patch_lines": 14,
+      "test_lines": 23,
+      "difficulty": "<15 min fix",
+      "score": 43.8
+    },
+    {
+      "instance_id": "sympy__sympy-13372",
+      "repo": "sympy/sympy",
+      "n_f2p": 1,
+      "n_p2p": 44,
+      "patch_lines": 20,
+      "test_lines": 12,
+      "difficulty": "<15 min fix",
+      "score": 43.8
+    },
+    {
+      "instance_id": "django__django-14915",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 23,
+      "patch_lines": 13,
+      "test_lines": 25,
+      "difficulty": "<15 min fix",
+      "score": 45.6
+    },
+    {
+      "instance_id": "sympy__sympy-15017",
+      "repo": "sympy/sympy",
+      "n_f2p": 1,
+      "n_p2p": 14,
+      "patch_lines": 12,
+      "test_lines": 28,
+      "difficulty": "<15 min fix",
+      "score": 45.8
+    },
+    {
+      "instance_id": "django__django-10914",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 98,
+      "patch_lines": 12,
+      "test_lines": 12,
+      "difficulty": "<15 min fix",
+      "score": 46.6
+    },
+    {
+      "instance_id": "django__django-15315",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 33,
+      "patch_lines": 16,
+      "test_lines": 21,
+      "difficulty": "<15 min fix",
+      "score": 46.6
     }
   ],
   "allowed_difficulty": [
@@ -128,7 +148,7 @@
     "count": 267
   },
   "dropped_already_materialized": {
-    "count": 82
+    "count": 92
   },
   "dropped_malformed": [],
   "skipped_for_repo_cap_count": 0,

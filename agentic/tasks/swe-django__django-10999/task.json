@@ -1,0 +1,31 @@
+{
+  "id": "swe-django__django-10999",
+  "tier": "swe-verified",
+  "issue": "Fix parse_duration() for some negative durations\nDescription\n\t\nThe \u200bhttps://docs.djangoproject.com/en/2.1/_modules/django/utils/dateparse/ defines:\nstandard_duration_re = re.compile(\n\tr'^'\n\tr'(?:(?P<days>-?\\d+) (days?, )?)?'\n\tr'((?:(?P<hours>-?\\d+):)(?=\\d+:\\d+))?'\n\tr'(?:(?P<minutes>-?\\d+):)?'\n\tr'(?P<seconds>-?\\d+)'\n\tr'(?:\\.(?P<microseconds>\\d{1,6})\\d{0,6})?'\n\tr'$'\n)\nthat doesn't match to negative durations, because of the <hours> definition final (lookahead) part does not have '-?' in it. The following will work:\n\tr'((?:(?P<hours>-?\\d+):)(?=-?\\d+:-?\\d+))?'\n(Thanks to Konstantin Senichev for finding the fix.)\n",
+  "test_cmd": "python -m pytest -q",
+  "fail_to_pass": [
+    "test_negative (utils_tests.test_dateparse.DurationParseTests)",
+    "test_parse_postgresql_format (utils_tests.test_dateparse.DurationParseTests)"
+  ],
+  "pass_to_pass": [
+    "test_parse_date (utils_tests.test_dateparse.DateParseTests)",
+    "test_parse_datetime (utils_tests.test_dateparse.DateParseTests)",
+    "test_parse_time (utils_tests.test_dateparse.DateParseTests)",
+    "test_days (utils_tests.test_dateparse.DurationParseTests)",
+    "test_fractions_of_seconds (utils_tests.test_dateparse.DurationParseTests)",
+    "test_hours_minutes_seconds (utils_tests.test_dateparse.DurationParseTests)",
+    "test_iso_8601 (utils_tests.test_dateparse.DurationParseTests)",
+    "test_minutes_seconds (utils_tests.test_dateparse.DurationParseTests)",
+    "test_parse_python_format (utils_tests.test_dateparse.DurationParseTests)",
+    "test_seconds (utils_tests.test_dateparse.DurationParseTests)"
+  ],
+  "provenance": "swe_verified",
+  "grounding": "benchmark",
+  "has_executable_oracle": true,
+  "grader": "swebench",
+  "source": "swe-bench-verified",
+  "instance_id": "django__django-10999",
+  "repo": "django/django",
+  "base_commit": "36300ef336e3f130a0dadc1143163ff3d23dc843",
+  "environment_setup_commit": "419a78300f7cd27611196e1e464d50fd0385ff27"
+}

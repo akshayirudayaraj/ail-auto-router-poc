@@ -1,0 +1,24 @@
+diff --git a/sympy/functions/elementary/miscellaneous.py b/sympy/functions/elementary/miscellaneous.py
+index 5f9fe73c5..0457936b3 100644
+--- a/sympy/functions/elementary/miscellaneous.py
++++ b/sympy/functions/elementary/miscellaneous.py
+@@ -339,9 +339,7 @@ def real_root(arg, n=None, evaluate=None):
+ 
+ class MinMaxBase(Expr, LatticeOp):
+     def __new__(cls, *args, **assumptions):
+-        if not args:
+-            raise ValueError("The Max/Min functions must have arguments.")
+-
++        evaluate = assumptions.pop('evaluate', True)
+         args = (sympify(arg) for arg in args)
+ 
+         # first standard filter, for cls.zero and cls.identity
+@@ -351,7 +349,7 @@ def __new__(cls, *args, **assumptions):
+         except ShortCircuit:
+             return cls.zero
+ 
+-        if assumptions.pop('evaluate', True):
++        if evaluate:
+             # remove redundant args that are easily identified
+             args = cls._collapse_arguments(args, **assumptions)
+ 
