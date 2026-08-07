@@ -1,0 +1,17 @@
+diff --git a/django/utils/decorators.py b/django/utils/decorators.py
+index 5c9a5d01c7..c08f29f451 100644
+--- a/django/utils/decorators.py
++++ b/django/utils/decorators.py
+@@ -38,6 +38,12 @@ def _multi_decorate(decorators, method):
+         # 'func'. Also, wrap method.__get__() in a function because new
+         # attributes can't be set on bound method objects, only on functions.
+         bound_method = partial(method.__get__(self, type(self)))
++        # If bound_method is a functools.partial, wrap it to preserve attributes
++        if isinstance(bound_method, partial):
++            def _call(*args, **kwargs):
++                return bound_method(*args, **kwargs)
++            update_wrapper(_call, method)
++            bound_method = _call
+         for dec in decorators:
+             bound_method = dec(bound_method)
+         return bound_method(*args, **kwargs)

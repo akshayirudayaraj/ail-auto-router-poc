@@ -3,9 +3,9 @@
   "executable": true,
   "local_model": "gpt-oss:20b",
   "frontier_model": "opus",
-  "n_pointwise": 159,
-  "n_pairwise": 79,
-  "n_gold": 20,
+  "n_pointwise": 169,
+  "n_pairwise": 84,
+  "n_gold": 25,
   "quarantined_oracle_ungraded": 0,
   "holdout_dropped_not_dual_executed": 0
 }
