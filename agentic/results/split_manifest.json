@@ -1,21 +1,21 @@
 {
   "seed": 1337,
-  "holdout_frac": 0.3,
-  "policy": "stratified_disagreement_enriched",
-  "disagree_frac": 0.5,
-  "agree_frac": 0.25,
+  "holdout_frac": 0.4,
+  "policy": "representative",
+  "disagree_frac": 0.4,
+  "agree_frac": 0.4,
   "strata": {
     "agree": {
-      "holdout": 8,
-      "train": 13
+      "holdout": 12,
+      "train": 9
     },
     "none": {
       "holdout": 0,
       "train": 11
     },
     "disagree": {
-      "holdout": 19,
-      "train": 23
+      "holdout": 15,
+      "train": 27
     }
   },
   "n_tasks": 74,
@@ -36,8 +36,8 @@
     "med-02-csv-quotes": "train",
     "med-03-interval-merge": "train",
     "med-04-lru-cache": "train",
-    "swe-mwaskom__seaborn-3069": "holdout",
-    "swe-mwaskom__seaborn-3187": "train",
+    "swe-mwaskom__seaborn-3069": "train",
+    "swe-mwaskom__seaborn-3187": "holdout",
     "swe-pallets__flask-5014": "holdout",
     "swe-psf__requests-1142": "holdout",
     "swe-psf__requests-1724": "train",
@@ -45,18 +45,18 @@
     "swe-psf__requests-1921": "train",
     "swe-psf__requests-2317": "holdout",
     "swe-psf__requests-2931": "holdout",
-    "swe-psf__requests-5414": "holdout",
+    "swe-psf__requests-5414": "train",
     "swe-psf__requests-6028": "holdout",
     "swe-pydata__xarray-2905": "train",
     "swe-pydata__xarray-3095": "train",
     "swe-pydata__xarray-3151": "holdout",
     "swe-pydata__xarray-3305": "train",
     "swe-pydata__xarray-3677": "train",
-    "swe-pydata__xarray-3993": "holdout",
+    "swe-pydata__xarray-3993": "train",
     "swe-pydata__xarray-4075": "train",
     "swe-pydata__xarray-4094": "train",
     "swe-pydata__xarray-4356": "train",
-    "swe-pydata__xarray-4629": "train",
+    "swe-pydata__xarray-4629": "holdout",
     "swe-pydata__xarray-4687": "holdout",
     "swe-pydata__xarray-4695": "holdout",
     "swe-pydata__xarray-4966": "train",
@@ -72,19 +72,19 @@
     "swe-pylint-dev__pylint-4551": "holdout",
     "swe-pylint-dev__pylint-4604": "train",
     "swe-pylint-dev__pylint-4661": "holdout",
-    "swe-pylint-dev__pylint-4970": "train",
+    "swe-pylint-dev__pylint-4970": "holdout",
     "swe-pylint-dev__pylint-6386": "train",
     "swe-pylint-dev__pylint-6528": "holdout",
     "swe-pylint-dev__pylint-6903": "train",
     "swe-pylint-dev__pylint-7080": "holdout",
     "swe-pylint-dev__pylint-8898": "holdout",
-    "swe-pytest-dev__pytest-10051": "holdout",
+    "swe-pytest-dev__pytest-10051": "train",
     "swe-pytest-dev__pytest-10081": "train",
     "swe-pytest-dev__pytest-10356": "train",
     "swe-pytest-dev__pytest-5262": "train",
     "swe-pytest-dev__pytest-5631": "holdout",
     "swe-pytest-dev__pytest-5787": "train",
-    "swe-pytest-dev__pytest-5809": "train",
+    "swe-pytest-dev__pytest-5809": "holdout",
     "swe-pytest-dev__pytest-5840": "holdout",
     "swe-pytest-dev__pytest-6197": "train",
     "swe-pytest-dev__pytest-6202": "holdout",
@@ -346,7 +346,7 @@
       "task_id": "swe-mwaskom__seaborn-3069",
       "arm": "frontier",
       "session_id": "swe-mwaskom__seaborn-3069__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -355,7 +355,7 @@
       "task_id": "swe-mwaskom__seaborn-3069",
       "arm": "local",
       "session_id": "swe-mwaskom__seaborn-3069__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -364,7 +364,7 @@
       "task_id": "swe-mwaskom__seaborn-3187",
       "arm": "frontier",
       "session_id": "swe-mwaskom__seaborn-3187__frontier__b90e91cf",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -373,7 +373,7 @@
       "task_id": "swe-mwaskom__seaborn-3187",
       "arm": "local",
       "session_id": "swe-mwaskom__seaborn-3187__local__8512972e",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -535,7 +535,7 @@
       "task_id": "swe-psf__requests-5414",
       "arm": "frontier",
       "session_id": "swe-psf__requests-5414__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -544,7 +544,7 @@
       "task_id": "swe-psf__requests-5414",
       "arm": "local",
       "session_id": "swe-psf__requests-5414__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -661,7 +661,7 @@
       "task_id": "swe-pydata__xarray-3993",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-3993__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -670,7 +670,7 @@
       "task_id": "swe-pydata__xarray-3993",
       "arm": "local",
       "session_id": "swe-pydata__xarray-3993__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -733,7 +733,7 @@
       "task_id": "swe-pydata__xarray-4629",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-4629__frontier__b90e91cf",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -742,7 +742,7 @@
       "task_id": "swe-pydata__xarray-4629",
       "arm": "local",
       "session_id": "swe-pydata__xarray-4629__local__8512972e",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1021,7 +1021,7 @@
       "task_id": "swe-pylint-dev__pylint-4970",
       "arm": "frontier",
       "session_id": "swe-pylint-dev__pylint-4970__frontier__b90e91cf",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1030,7 +1030,7 @@
       "task_id": "swe-pylint-dev__pylint-4970",
       "arm": "local",
       "session_id": "swe-pylint-dev__pylint-4970__local__8512972e",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1129,7 +1129,7 @@
       "task_id": "swe-pytest-dev__pytest-10051",
       "arm": "frontier",
       "session_id": "swe-pytest-dev__pytest-10051__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1138,7 +1138,7 @@
       "task_id": "swe-pytest-dev__pytest-10051",
       "arm": "local",
       "session_id": "swe-pytest-dev__pytest-10051__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1237,7 +1237,7 @@
       "task_id": "swe-pytest-dev__pytest-5809",
       "arm": "frontier",
       "session_id": "swe-pytest-dev__pytest-5809__frontier__b90e91cf",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1246,7 +1246,7 @@
       "task_id": "swe-pytest-dev__pytest-5809",
       "arm": "local",
       "session_id": "swe-pytest-dev__pytest-5809__local__8512972e",
-      "split": "train",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true

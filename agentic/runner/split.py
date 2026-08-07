@@ -132,7 +132,7 @@ def build_manifest(recs: list[dict], seed: int, holdout_frac: float,
     return {
         "seed": seed,
         "holdout_frac": holdout_frac,
-        "policy": "stratified_disagreement_enriched" if stratified else "by_task",
+        "policy": ("representative" if abs(disagree_frac - agree_frac) < 1e-9 else "stratified_disagreement_enriched") if stratified else "by_task",
         "disagree_frac": disagree_frac if stratified else None,
         "agree_frac": agree_frac if stratified else None,
         "strata": strata,
@@ -161,19 +161,25 @@ def main():
     ap.add_argument("--seed", type=int,
                     default=int(os.environ.get("AIL_SPLIT_SEED", "1337")))
     ap.add_argument("--holdout-frac", type=float,
-                    default=float(os.environ.get("AIL_HOLDOUT_FRAC", "0.3")))
+                    default=float(os.environ.get("AIL_HOLDOUT_FRAC", "0.4")))
+    # By default the split is REPRESENTATIVE: every executed dual-arm cell is held
+    # out at holdout_frac, so the gold set mirrors the population (and thrift has a
+    # real local-pass denominator). Set AIL_DISAGREE_FRAC / AIL_AGREE_FRAC to
+    # deliberately enrich/deplete a cell (e.g. disagreement-enriched for a harder,
+    # more discriminating eval).
     ap.add_argument("--disagree-frac", type=float,
-                    default=float(os.environ.get("AIL_DISAGREE_FRAC", "0.5")))
+                    default=(float(os.environ["AIL_DISAGREE_FRAC"]) if os.environ.get("AIL_DISAGREE_FRAC") else None))
     ap.add_argument("--agree-frac", type=float,
-                    default=float(os.environ.get("AIL_AGREE_FRAC", "0.25")))
+                    default=(float(os.environ["AIL_AGREE_FRAC"]) if os.environ.get("AIL_AGREE_FRAC") else None))
     ap.add_argument("--results-dir", default=str(RESULTS_DIR))
     ap.add_argument("--out", default=str(RESULTS_DIR / "split_manifest.json"))
     args = ap.parse_args()
 
+    df = args.disagree_frac if args.disagree_frac is not None else args.holdout_frac
+    af = args.agree_frac if args.agree_frac is not None else args.holdout_frac
     recs = load_records(Path(args.results_dir))
     cells = task_cells(Path(args.results_dir))
-    manifest = build_manifest(recs, args.seed, args.holdout_frac, cells,
-                              args.disagree_frac, args.agree_frac)
+    manifest = build_manifest(recs, args.seed, args.holdout_frac, cells, df, af)
     verify(manifest)
     Path(args.out).write_text(json.dumps(manifest, indent=2))
     print(f"[split] {manifest['n_sessions']} sessions / {manifest['n_tasks']} tasks "
