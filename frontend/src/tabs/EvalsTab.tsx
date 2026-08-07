@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { type Anchor, type LeaderRow } from "../api";
+import { type Ability, type Anchor, type LeaderRow } from "../api";
 import { useConsole } from "../store";
+import { signed } from "../format";
 import { CostQualityPlot } from "../components/CostQualityPlot";
 import { GoldTable } from "../components/DatasetTables";
+import { ModelChip } from "../components/chips";
 import { HelpTip } from "../components/HelpTip";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -224,11 +226,12 @@ function PrimaryTable({ leaderboard, anchors, champ }: { leaderboard: LeaderRow[
   );
 }
 
-function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
+function SecondaryTable({ leaderboard, abilities }: { leaderboard: LeaderRow[]; abilities: Ability[] }) {
+  const hasPlanted = abilities.some((a) => a.planted != null);
   return (
     <details className="panel" style={{ marginTop: 12 }}>
       <summary style={{ cursor: "pointer", color: "var(--muted)" }}>
-        Secondary / diagnostic metrics (AIQ, AUC, ECE, offload_isoq, raw cost)
+        Secondary / diagnostic metrics (AIQ, AUC, ECE, offload_isoq, raw cost · IRT ability recovery)
       </summary>
       <div className="tablewrap" style={{ marginTop: 10 }}>
         <table>
@@ -254,6 +257,52 @@ function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
           </tbody>
         </table>
       </div>
+
+      {/* IRT ability recovery — a diagnostic of the IRT fit, not a routing score:
+          are the fitted per-model abilities θ sane (and, on synthetic data with a
+          planted truth, are they recovered)? Lives here under the secondary/
+          diagnostic dropdown rather than in Training. */}
+      <h4 style={{ margin: "18px 0 6px" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          IRT ability recovery <span className="muted">(θ, reference-centered — higher = more capable)</span>
+          <HelpTip text="Diagnostic of the IRT fit, not a routing metric. The 1-parameter IRT (Rasch) model fits P(model adequate on a prompt) = σ(model ability θ − prompt difficulty) on the TRAINING labels. This table shows each model's fitted θ; the router escalates a prompt when its difficulty exceeds local's ability. 'Recovery' = does the fit recover the PLANTED θ — only defined on synthetic data with a ground truth (the 'planted θ' column). On real data there is no planted truth, so only the ordering and sign of the θ gaps are meaningful." />
+        </span>
+      </h4>
+      {abilities.length ? (
+        <>
+          <div className="tablewrap" style={{ maxWidth: 400 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>model</th>
+                  {hasPlanted && <th className="num">planted θ</th>}
+                  <th className="num">recovered θ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {abilities.map((a) => (
+                  <tr key={a.model}>
+                    <td>
+                      <ModelChip model={a.model} />
+                    </td>
+                    {hasPlanted && <td className="num">{a.planted == null ? "—" : signed(a.planted)}</td>}
+                    <td className="num">{signed(a.recovered)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p
+            className="muted small"
+            dangerouslySetInnerHTML={{
+              __html:
+                "θ is reference-centered (local rung = 0). Only the <b>ordering and sign</b> of the gaps matter for routing; magnitudes compress under noisy labels.",
+            }}
+          />
+        </>
+      ) : (
+        <p className="muted small">Fit the routers to see IRT ability recovery.</p>
+      )}
     </details>
   );
 }
@@ -391,7 +440,7 @@ export function EvalsTab() {
           </h3>
           <CostQualityPlot leaderboard={learnedRows} anchors={anchors} />
 
-          <SecondaryTable leaderboard={leaderboard} />
+          <SecondaryTable leaderboard={leaderboard} abilities={fit?.abilities || []} />
         </>
       )}
 

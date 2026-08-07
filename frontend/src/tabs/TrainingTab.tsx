@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { signed } from "../format";
 import { useConsole } from "../store";
-import { ModelChip } from "../components/chips";
 import { HelpTip } from "../components/HelpTip";
 import { PairwiseTable, PointwiseTable } from "../components/DatasetTables";
 import type { RouterMeta, TrainedOn } from "../api";
@@ -42,8 +40,6 @@ export function TrainingTab() {
 
   const ds = fit?.data_summary;
   const training = fit?.training || {};
-  const abilities = fit?.abilities || [];
-  const hasPlanted = abilities.some((a) => a.planted != null);
   // Per-router quality-calibrated operating threshold, keyed by router name. This
   // is CalibrateForQuality@100% from the gold leaderboard — the threshold the eval
   // actually operates each router at (max local kept while holding Opus quality).
@@ -205,49 +201,6 @@ export function TrainingTab() {
           </tbody>
         </table>
       </div>
-
-      {/* ---- IRT ability recovery ---- */}
-      <h3>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          IRT ability recovery <span className="muted">(θ, reference-centered — higher = more capable)</span>
-          <HelpTip text="1-parameter IRT (Rasch): P(model adequate on a prompt) = σ(model ability θ − prompt difficulty). 'Recovery' = does the fit recover each model's latent ability θ — vs the planted truth on synthetic data? θ is centered on the local model; the router escalates a prompt when its difficulty exceeds local's ability." />
-        </span>
-      </h3>
-      {abilities.length ? (
-        <>
-          <div className="tablewrap" style={{ maxWidth: 400 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>model</th>
-                  {hasPlanted && <th className="num">planted θ</th>}
-                  <th className="num">recovered θ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {abilities.map((a) => (
-                  <tr key={a.model}>
-                    <td>
-                      <ModelChip model={a.model} />
-                    </td>
-                    {hasPlanted && <td className="num">{a.planted == null ? "—" : signed(a.planted)}</td>}
-                    <td className="num">{signed(a.recovered)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p
-            className="muted small"
-            dangerouslySetInnerHTML={{
-              __html:
-                "θ is reference-centered (local rung = 0). Only the <b>ordering and sign</b> of the gaps matter for routing; magnitudes compress under noisy labels.",
-            }}
-          />
-        </>
-      ) : (
-        <p className="muted small">{fit?.error ? fit.error : "Fit the routers to see IRT ability recovery."}</p>
-      )}
 
       <h3>
         Pointwise rows <span className="muted">(single-arm (model, prompt) → outcome — IRT/kNN training unit)</span>
