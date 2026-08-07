@@ -1,0 +1,22 @@
+{
+  "id": "swe-scikit-learn__scikit-learn-14141",
+  "tier": "swe-verified",
+  "issue": "Add joblib in show_versions\njoblib should be added to the dependencies listed in show_versions or added to the issue template when sklearn version is > 0.20.\n",
+  "test_cmd": "python -m pytest -q",
+  "fail_to_pass": [
+    "sklearn/utils/tests/test_show_versions.py::test_get_deps_info"
+  ],
+  "pass_to_pass": [
+    "sklearn/utils/tests/test_show_versions.py::test_get_sys_info",
+    "sklearn/utils/tests/test_show_versions.py::test_show_versions_with_blas"
+  ],
+  "provenance": "swe_verified",
+  "grounding": "benchmark",
+  "has_executable_oracle": true,
+  "grader": "swebench",
+  "source": "swe-bench-verified",
+  "instance_id": "scikit-learn__scikit-learn-14141",
+  "repo": "scikit-learn/scikit-learn",
+  "base_commit": "3d997697fdd166eff428ea9fd35734b6a8ba113e",
+  "environment_setup_commit": "7e85a6d1f038bbb932b36f18d75df6be937ed00d"
+}

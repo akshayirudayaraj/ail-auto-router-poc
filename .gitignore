@@ -62,3 +62,4 @@ agentic/results/*.offline_*.json
 
 # stray root-level build binary (canonical output is /bin/)
 /serve
+agentic/runner/logs/

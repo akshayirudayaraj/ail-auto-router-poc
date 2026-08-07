@@ -1,34 +1,34 @@
 {
   "seed": 1337,
   "holdout_frac": 0.4,
-  "policy": "local_favoring",
+  "policy": "disagreement_enriched",
   "fracs": {
-    "both_pass": 0.65,
-    "disagree": 0.3,
-    "both_fail": 0.3
+    "both_pass": 0.5,
+    "disagree": 0.5,
+    "both_fail": 0.08
   },
   "strata": {
     "both_pass": {
-      "holdout": 9,
-      "train": 3
+      "holdout": 4,
+      "train": 4
     },
     "none": {
       "holdout": 0,
       "train": 11
     },
     "disagree": {
-      "holdout": 11,
-      "train": 31
+      "holdout": 2,
+      "train": 2
     },
     "both_fail": {
-      "holdout": 3,
-      "train": 6
+      "holdout": 5,
+      "train": 56
     }
   },
-  "n_tasks": 74,
-  "n_sessions": 152,
-  "n_holdout_tasks": 23,
-  "n_train_tasks": 51,
+  "n_tasks": 84,
+  "n_sessions": 172,
+  "n_holdout_tasks": 11,
+  "n_train_tasks": 73,
   "task_split": {
     "easy-01-reverse-words": "train",
     "easy-02-is-even": "train",
@@ -43,55 +43,58 @@
     "med-02-csv-quotes": "train",
     "med-03-interval-merge": "train",
     "med-04-lru-cache": "train",
+    "swe-django__django-12419": "holdout",
+    "swe-django__django-15851": "train",
+    "swe-django__django-15863": "holdout",
     "swe-mwaskom__seaborn-3069": "train",
-    "swe-mwaskom__seaborn-3187": "holdout",
-    "swe-pallets__flask-5014": "holdout",
-    "swe-psf__requests-1142": "holdout",
+    "swe-mwaskom__seaborn-3187": "train",
+    "swe-pallets__flask-5014": "train",
+    "swe-psf__requests-1142": "train",
     "swe-psf__requests-1724": "train",
-    "swe-psf__requests-1766": "holdout",
+    "swe-psf__requests-1766": "train",
     "swe-psf__requests-1921": "train",
     "swe-psf__requests-2317": "holdout",
-    "swe-psf__requests-2931": "holdout",
+    "swe-psf__requests-2931": "train",
     "swe-psf__requests-5414": "train",
     "swe-psf__requests-6028": "holdout",
     "swe-pydata__xarray-2905": "train",
     "swe-pydata__xarray-3095": "train",
-    "swe-pydata__xarray-3151": "holdout",
+    "swe-pydata__xarray-3151": "train",
     "swe-pydata__xarray-3305": "train",
     "swe-pydata__xarray-3677": "train",
     "swe-pydata__xarray-3993": "train",
     "swe-pydata__xarray-4075": "train",
     "swe-pydata__xarray-4094": "train",
     "swe-pydata__xarray-4356": "train",
-    "swe-pydata__xarray-4629": "holdout",
-    "swe-pydata__xarray-4687": "holdout",
-    "swe-pydata__xarray-4695": "holdout",
+    "swe-pydata__xarray-4629": "train",
+    "swe-pydata__xarray-4687": "train",
+    "swe-pydata__xarray-4695": "train",
     "swe-pydata__xarray-4966": "train",
     "swe-pydata__xarray-6461": "train",
     "swe-pydata__xarray-6599": "train",
-    "swe-pydata__xarray-6721": "holdout",
+    "swe-pydata__xarray-6721": "train",
     "swe-pydata__xarray-6744": "train",
     "swe-pydata__xarray-6938": "train",
     "swe-pydata__xarray-6992": "train",
     "swe-pydata__xarray-7229": "train",
-    "swe-pydata__xarray-7233": "holdout",
+    "swe-pydata__xarray-7233": "train",
     "swe-pydata__xarray-7393": "train",
-    "swe-pylint-dev__pylint-4551": "holdout",
+    "swe-pylint-dev__pylint-4551": "train",
     "swe-pylint-dev__pylint-4604": "train",
     "swe-pylint-dev__pylint-4661": "holdout",
     "swe-pylint-dev__pylint-4970": "train",
     "swe-pylint-dev__pylint-6386": "train",
     "swe-pylint-dev__pylint-6528": "train",
     "swe-pylint-dev__pylint-6903": "train",
-    "swe-pylint-dev__pylint-7080": "holdout",
-    "swe-pylint-dev__pylint-8898": "holdout",
+    "swe-pylint-dev__pylint-7080": "train",
+    "swe-pylint-dev__pylint-8898": "train",
     "swe-pytest-dev__pytest-10051": "train",
     "swe-pytest-dev__pytest-10081": "train",
     "swe-pytest-dev__pytest-10356": "train",
     "swe-pytest-dev__pytest-5262": "train",
-    "swe-pytest-dev__pytest-5631": "holdout",
+    "swe-pytest-dev__pytest-5631": "train",
     "swe-pytest-dev__pytest-5787": "train",
-    "swe-pytest-dev__pytest-5809": "holdout",
+    "swe-pytest-dev__pytest-5809": "train",
     "swe-pytest-dev__pytest-5840": "train",
     "swe-pytest-dev__pytest-6197": "train",
     "swe-pytest-dev__pytest-6202": "holdout",
@@ -103,7 +106,14 @@
     "swe-pytest-dev__pytest-7521": "train",
     "swe-pytest-dev__pytest-7571": "train",
     "swe-pytest-dev__pytest-7982": "holdout",
-    "swe-pytest-dev__pytest-8399": "holdout"
+    "swe-pytest-dev__pytest-8399": "train",
+    "swe-scikit-learn__scikit-learn-12585": "train",
+    "swe-scikit-learn__scikit-learn-13439": "holdout",
+    "swe-scikit-learn__scikit-learn-14141": "train",
+    "swe-sphinx-doc__sphinx-9698": "train",
+    "swe-sympy__sympy-14711": "train",
+    "swe-sympy__sympy-16886": "holdout",
+    "swe-sympy__sympy-23534": "holdout"
   },
   "items": [
     {
@@ -350,6 +360,60 @@
       "has_executable_oracle": null
     },
     {
+      "task_id": "swe-django__django-12419",
+      "arm": "frontier",
+      "session_id": "swe-django__django-12419__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-12419",
+      "arm": "local",
+      "session_id": "swe-django__django-12419__local__8512972e",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-15851",
+      "arm": "frontier",
+      "session_id": "swe-django__django-15851__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-15851",
+      "arm": "local",
+      "session_id": "swe-django__django-15851__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-15863",
+      "arm": "frontier",
+      "session_id": "swe-django__django-15863__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-15863",
+      "arm": "local",
+      "session_id": "swe-django__django-15863__local__8512972e",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
       "task_id": "swe-mwaskom__seaborn-3069",
       "arm": "frontier",
       "session_id": "swe-mwaskom__seaborn-3069__frontier__b90e91cf",
@@ -371,7 +435,7 @@
       "task_id": "swe-mwaskom__seaborn-3187",
       "arm": "frontier",
       "session_id": "swe-mwaskom__seaborn-3187__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -380,7 +444,7 @@
       "task_id": "swe-mwaskom__seaborn-3187",
       "arm": "local",
       "session_id": "swe-mwaskom__seaborn-3187__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -389,7 +453,7 @@
       "task_id": "swe-pallets__flask-5014",
       "arm": "frontier",
       "session_id": "swe-pallets__flask-5014__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -398,7 +462,7 @@
       "task_id": "swe-pallets__flask-5014",
       "arm": "local",
       "session_id": "swe-pallets__flask-5014__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -407,7 +471,7 @@
       "task_id": "swe-psf__requests-1142",
       "arm": "frontier",
       "session_id": "swe-psf__requests-1142__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -416,7 +480,7 @@
       "task_id": "swe-psf__requests-1142",
       "arm": "frontier",
       "session_id": "swe-psf__requests-1142__frontier",
-      "split": "holdout",
+      "split": "train",
       "provenance": null,
       "grounding": null,
       "has_executable_oracle": null
@@ -425,7 +489,7 @@
       "task_id": "swe-psf__requests-1142",
       "arm": "local",
       "session_id": "swe-psf__requests-1142__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -434,7 +498,7 @@
       "task_id": "swe-psf__requests-1142",
       "arm": "local",
       "session_id": "swe-psf__requests-1142__local",
-      "split": "holdout",
+      "split": "train",
       "provenance": null,
       "grounding": null,
       "has_executable_oracle": null
@@ -461,7 +525,7 @@
       "task_id": "swe-psf__requests-1766",
       "arm": "frontier",
       "session_id": "swe-psf__requests-1766__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -470,7 +534,7 @@
       "task_id": "swe-psf__requests-1766",
       "arm": "local",
       "session_id": "swe-psf__requests-1766__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -515,7 +579,7 @@
       "task_id": "swe-psf__requests-2931",
       "arm": "frontier",
       "session_id": "swe-psf__requests-2931__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -524,7 +588,7 @@
       "task_id": "swe-psf__requests-2931",
       "arm": "local",
       "session_id": "swe-psf__requests-2931__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -533,7 +597,7 @@
       "task_id": "swe-psf__requests-2931",
       "arm": "local",
       "session_id": "swe-psf__requests-2931__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -614,7 +678,7 @@
       "task_id": "swe-pydata__xarray-3151",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-3151__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -623,7 +687,7 @@
       "task_id": "swe-pydata__xarray-3151",
       "arm": "local",
       "session_id": "swe-pydata__xarray-3151__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -740,7 +804,7 @@
       "task_id": "swe-pydata__xarray-4629",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-4629__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -749,7 +813,7 @@
       "task_id": "swe-pydata__xarray-4629",
       "arm": "local",
       "session_id": "swe-pydata__xarray-4629__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -758,7 +822,7 @@
       "task_id": "swe-pydata__xarray-4687",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-4687__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -767,7 +831,7 @@
       "task_id": "swe-pydata__xarray-4687",
       "arm": "local",
       "session_id": "swe-pydata__xarray-4687__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -776,7 +840,7 @@
       "task_id": "swe-pydata__xarray-4695",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-4695__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -785,7 +849,7 @@
       "task_id": "swe-pydata__xarray-4695",
       "arm": "local",
       "session_id": "swe-pydata__xarray-4695__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -848,7 +912,7 @@
       "task_id": "swe-pydata__xarray-6721",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-6721__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -857,7 +921,7 @@
       "task_id": "swe-pydata__xarray-6721",
       "arm": "local",
       "session_id": "swe-pydata__xarray-6721__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -938,7 +1002,7 @@
       "task_id": "swe-pydata__xarray-7233",
       "arm": "frontier",
       "session_id": "swe-pydata__xarray-7233__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -947,7 +1011,7 @@
       "task_id": "swe-pydata__xarray-7233",
       "arm": "local",
       "session_id": "swe-pydata__xarray-7233__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -974,7 +1038,7 @@
       "task_id": "swe-pylint-dev__pylint-4551",
       "arm": "frontier",
       "session_id": "swe-pylint-dev__pylint-4551__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -983,7 +1047,7 @@
       "task_id": "swe-pylint-dev__pylint-4551",
       "arm": "local",
       "session_id": "swe-pylint-dev__pylint-4551__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1100,7 +1164,7 @@
       "task_id": "swe-pylint-dev__pylint-7080",
       "arm": "frontier",
       "session_id": "swe-pylint-dev__pylint-7080__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1109,7 +1173,7 @@
       "task_id": "swe-pylint-dev__pylint-7080",
       "arm": "local",
       "session_id": "swe-pylint-dev__pylint-7080__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1118,7 +1182,7 @@
       "task_id": "swe-pylint-dev__pylint-8898",
       "arm": "frontier",
       "session_id": "swe-pylint-dev__pylint-8898__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1127,7 +1191,7 @@
       "task_id": "swe-pylint-dev__pylint-8898",
       "arm": "local",
       "session_id": "swe-pylint-dev__pylint-8898__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1208,7 +1272,7 @@
       "task_id": "swe-pytest-dev__pytest-5631",
       "arm": "frontier",
       "session_id": "swe-pytest-dev__pytest-5631__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1217,7 +1281,7 @@
       "task_id": "swe-pytest-dev__pytest-5631",
       "arm": "local",
       "session_id": "swe-pytest-dev__pytest-5631__local__95dd7c6a",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1244,7 +1308,7 @@
       "task_id": "swe-pytest-dev__pytest-5809",
       "arm": "frontier",
       "session_id": "swe-pytest-dev__pytest-5809__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1253,7 +1317,7 @@
       "task_id": "swe-pytest-dev__pytest-5809",
       "arm": "local",
       "session_id": "swe-pytest-dev__pytest-5809__local__8512972e",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1460,7 +1524,7 @@
       "task_id": "swe-pytest-dev__pytest-8399",
       "arm": "frontier",
       "session_id": "swe-pytest-dev__pytest-8399__frontier__b90e91cf",
-      "split": "holdout",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1469,6 +1533,132 @@
       "task_id": "swe-pytest-dev__pytest-8399",
       "arm": "local",
       "session_id": "swe-pytest-dev__pytest-8399__local__95dd7c6a",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-scikit-learn__scikit-learn-12585",
+      "arm": "frontier",
+      "session_id": "swe-scikit-learn__scikit-learn-12585__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-scikit-learn__scikit-learn-12585",
+      "arm": "local",
+      "session_id": "swe-scikit-learn__scikit-learn-12585__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-scikit-learn__scikit-learn-13439",
+      "arm": "frontier",
+      "session_id": "swe-scikit-learn__scikit-learn-13439__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-scikit-learn__scikit-learn-13439",
+      "arm": "local",
+      "session_id": "swe-scikit-learn__scikit-learn-13439__local__8512972e",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-scikit-learn__scikit-learn-14141",
+      "arm": "frontier",
+      "session_id": "swe-scikit-learn__scikit-learn-14141__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-scikit-learn__scikit-learn-14141",
+      "arm": "local",
+      "session_id": "swe-scikit-learn__scikit-learn-14141__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sphinx-doc__sphinx-9698",
+      "arm": "frontier",
+      "session_id": "swe-sphinx-doc__sphinx-9698__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sphinx-doc__sphinx-9698",
+      "arm": "local",
+      "session_id": "swe-sphinx-doc__sphinx-9698__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-14711",
+      "arm": "frontier",
+      "session_id": "swe-sympy__sympy-14711__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-14711",
+      "arm": "local",
+      "session_id": "swe-sympy__sympy-14711__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-16886",
+      "arm": "frontier",
+      "session_id": "swe-sympy__sympy-16886__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-16886",
+      "arm": "local",
+      "session_id": "swe-sympy__sympy-16886__local__8512972e",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-23534",
+      "arm": "frontier",
+      "session_id": "swe-sympy__sympy-23534__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-23534",
+      "arm": "local",
+      "session_id": "swe-sympy__sympy-23534__local__8512972e",
       "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",

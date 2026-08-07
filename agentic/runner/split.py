@@ -176,12 +176,18 @@ def main():
     # while still keeping most disagreement/both_fail in train. Set any of the
     # env vars to override (equal values => representative; high disagree =>
     # a harder, more discriminating eval).
+    # both_pass (local-adequate) is the SCARCE, valuable cell — split ~evenly so
+    # the eval shows offload opportunity AND train has enough local-pass examples
+    # for the routers to learn to keep local. disagree (the escalation signal) is
+    # likewise split evenly. both_fail is ABUNDANT (hard tasks neither arm solves)
+    # and only realistic ballast in the eval — keep its holdout share LOW so it
+    # doesn't flood the gold and crush the oracle local-share headline.
     ap.add_argument("--both-pass-frac", type=float,
-                    default=float(os.environ.get("AIL_BOTHPASS_FRAC", "0.65")))
+                    default=float(os.environ.get("AIL_BOTHPASS_FRAC", "0.5")))
     ap.add_argument("--disagree-frac", type=float,
-                    default=float(os.environ.get("AIL_DISAGREE_FRAC", "0.3")))
+                    default=float(os.environ.get("AIL_DISAGREE_FRAC", "0.5")))
     ap.add_argument("--both-fail-frac", type=float,
-                    default=float(os.environ.get("AIL_BOTHFAIL_FRAC", "0.3")))
+                    default=float(os.environ.get("AIL_BOTHFAIL_FRAC", "0.08")))
     ap.add_argument("--results-dir", default=str(RESULTS_DIR))
     ap.add_argument("--out", default=str(RESULTS_DIR / "split_manifest.json"))
     args = ap.parse_args()
