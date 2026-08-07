@@ -24,7 +24,7 @@ RESULTS_DIR = HERE.parent / "results"
 DATASET = os.environ.get("SWEBENCH_DATASET", "princeton-nlp/SWE-bench_Verified")
 SWEBENCH_PY = os.environ.get(
     "SWEBENCH_PY",
-    str(Path.home() / "development/spectro/ail-self-routing/.venv_swe/bin/python"))
+    str(Path.home() / "dev/ail-routing-test-swe/.venv-swe/bin/python"))
 
 
 def available() -> bool:
