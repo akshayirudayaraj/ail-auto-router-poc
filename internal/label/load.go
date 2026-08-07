@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/akshayirudayaraj/ail-routing-test/internal/resultsfs"
 )
 
 // runRecord is the subset of a generation run record (…​.json) the engine reads.
@@ -39,7 +41,8 @@ type taskMeta struct {
 // (tasksDir/<task_id>/task.json), the diff (.patch), and the event stream
 // (.events.jsonl). This is the convenience entry the judge branch calls per log.
 func BuildFromResults(resultsDir, tasksDir, sessionKey string) (EvidencePack, error) {
-	rr, err := loadRunRecord(filepath.Join(resultsDir, sessionKey+".json"))
+	// Artifacts may be flat or in a type subdir; resolve basenames wherever they landed.
+	rr, err := loadRunRecord(resultsfs.Find(resultsDir, sessionKey+".json"))
 	if err != nil {
 		return EvidencePack{}, err
 	}
@@ -47,7 +50,7 @@ func BuildFromResults(resultsDir, tasksDir, sessionKey string) (EvidencePack, er
 	if err != nil {
 		return EvidencePack{}, err
 	}
-	diff, err := os.ReadFile(filepath.Join(resultsDir, rr.PatchPath))
+	diff, err := os.ReadFile(resultsfs.Find(resultsDir, rr.PatchPath))
 	if err != nil {
 		return EvidencePack{}, fmt.Errorf("read patch: %w", err)
 	}
@@ -62,7 +65,7 @@ func BuildFromResults(resultsDir, tasksDir, sessionKey string) (EvidencePack, er
 		HitTurnCap:   rr.HitTurnCap,
 	}
 	return BuildEvidencePack(rr.TaskID, rr.SessionID, issue, string(diff),
-		filepath.Join(resultsDir, rr.EventsLogPath), flags)
+		resultsfs.Find(resultsDir, rr.EventsLogPath), flags)
 }
 
 func loadRunRecord(path string) (runRecord, error) {

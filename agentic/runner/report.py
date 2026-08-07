@@ -28,7 +28,8 @@ TIER_ORDER = {"easy": 0, "medium": 1, "hard": 2}
 
 def load_results():
     by = {}
-    for p in glob.glob(os.path.join(RESULTS_DIR, "*.json")):
+    for p in [q for q in glob.glob(os.path.join(RESULTS_DIR, "**", "*.json"), recursive=True)
+              if os.sep + "labels" + os.sep not in q and os.sep + "calibration" + os.sep not in q]:
         try:
             r = json.load(open(p))
         except Exception:

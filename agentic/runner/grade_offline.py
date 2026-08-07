@@ -129,7 +129,11 @@ def load_split_by_task(results_dir: Path) -> dict:
 
 
 def iter_run_records(results_dir: Path):
-    for p in sorted(glob.glob(str(results_dir / "*.json"))):
+    # Layout-agnostic: run records may be flat or under type subdirs (synthetic/,
+    # semi-synthetic/, logs/). Exclude the labels/ and calibration/ .json files.
+    paths = [p for p in glob.glob(str(results_dir / "**" / "*.json"), recursive=True)
+             if os.sep + "labels" + os.sep not in p and os.sep + "calibration" + os.sep not in p]
+    for p in sorted(paths):
         base = os.path.basename(p)
         if base in ("split_manifest.json", "gold_meta.json"):
             continue

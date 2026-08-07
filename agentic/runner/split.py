@@ -44,7 +44,9 @@ def load_records(results_dir: Path) -> list[dict]:
     """Load run-record JSONs (the log-first records + legacy swe_*.json). Skips
     non-record files (e.g. the selection manifest, prediction jsonls)."""
     recs = []
-    for p in sorted(glob.glob(str(results_dir / "*.json"))):
+    paths = [p for p in glob.glob(str(results_dir / "**" / "*.json"), recursive=True)
+             if os.sep + "labels" + os.sep not in p and os.sep + "calibration" + os.sep not in p]
+    for p in sorted(paths):
         name = os.path.basename(p)
         if name in ("split_manifest.json", "swe_selection.json"):
             continue

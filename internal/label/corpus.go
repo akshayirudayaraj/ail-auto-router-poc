@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/akshayirudayaraj/ail-routing-test/internal/resultsfs"
 )
 
 // SessionRef identifies one generated session on disk (one run record).
@@ -35,16 +37,10 @@ func (s SessionRef) Ident(split string, ts int64) LabelRecord {
 
 // ListSessions returns every session (run record) in resultsDir, sorted by key.
 func ListSessions(resultsDir string) ([]SessionRef, error) {
-	paths, err := filepath.Glob(filepath.Join(resultsDir, "*.json"))
-	if err != nil {
-		return nil, err
-	}
+	paths := resultsfs.Records(resultsDir) // layout-agnostic (flat or type subdirs)
 	var out []SessionRef
 	for _, p := range paths {
 		base := filepath.Base(p)
-		if base == "split_manifest.json" || base == "gold_meta.json" {
-			continue
-		}
 		rr, err := loadRunRecord(p)
 		if err != nil || rr.TaskID == "" {
 			continue // not a run record
