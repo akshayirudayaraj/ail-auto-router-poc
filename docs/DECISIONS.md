@@ -414,3 +414,72 @@ Validated on requests-2931 (previously empty): empty_patch True→False, Edit/Wr
 so LOCAL_MAX_TURNS is the next binding constraint.
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+
+## D21 — Headline metrics read at the quality-calibrated operating point
+
+The gold leaderboard originally read every router at a fixed threshold (0.5),
+which contradicted the swept `offload_isoq` headline: a router could show
+`offload_isoq=13%` yet `thrift=0` and `local_share@thr=4%`, because the fixed
+point and the swept point were different operating points. This was confusing and
+made `thrift`/`safety` meaningless.
+
+Decision: operate every router at `CalibrateForQuality(target=1.0)` — the highest
+(most-local, cheapest) threshold whose quality retention is still ≥ 100% of
+always-frontier. This is exactly the isoquality point, so `local_share@thr` now
+equals `offload_isoq` and `thrift`/`safety`/`quality@thr` are all read there. The
+threshold is emitted as `qual_cal_thr` and surfaced as an "op. threshold" column
+in the Training tab. Fixed-0.5 fallback only when 100% quality is unreachable
+without escalating everything (then local share is honestly 0).
+
+Note the `safety` denominator spans disagree + both_fail, so `safety` can be
+< 100% while quality retention is 100% (keeping a both_fail local loses no
+quality); the true quality leak is the cell-B under-escalation rate. See
+ROUTER_BRAINSTORM §2B.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+
+## D22 — Persistence seam (Store) + eval-run API
+
+To let eval storage move file → Postgres without rewriting the server, introduce
+a small `Store` interface (`internal/store`) with a `FileStore` (append-only
+JSONL) today and a `PostgresStore` droppable in later behind the same interface.
+`EvalRun` is modelled DB-first: scalar, index-friendly columns (`id`,
+`created_at`, `git_sha`, `dataset_hash`, `method`, `train_source`, `threshold`,
+`n_gold`) plus a `Payload` JSON blob (a `jsonb` column later) for the full
+leaderboard/anchors/notes.
+
+New endpoint `/api/evals`: `POST` runs the dual-arm gold benchmark and PERSISTS
+the run through the Store; `GET` lists history newest-first. Each run stamps a
+`dataset_hash` (sha256 of the gold rows + train-set sizes) so it is reproducible.
+The existing `/api/eval` (run-only, no persist) is unchanged. `store` is a leaf
+package with no dependency on `internal/eval` (the caller marshals the report into
+`Payload`) so the storage layer stays cycle-free. This is Phase 1 of a Go-only,
+offline-only composability redesign; Phases 2–3 (formal router registry with
+declared input/output schemas; per-candidate score vector) are deferred.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+
+## D23 — Grow the gold set via repeatable easy-SWE batches (django-biased)
+
+The dual-arm gold set is grown with a repeatable batch pipeline
+(`materialize easy/new/tiny → build images → run both arms → grade → fuse/split/
+materialize`). Selection levers: `--easy` (human `<15 min fix` tier), `--new-only`
+(skip already-materialized), `--max-patch-lines` (let tiny-patch big-repo fixes
+through the big-repo exclusion), and a new `--repos`/`SWE_REPOS` allowlist to
+restrict to reliable repos — **django** images build cleanly at the 7.7GB Docker
+cap while sympy/scikit-learn OOM and time out. Split fractions were retuned so the
+scarce, valuable cells aren't crushed: `both_pass`/`disagree` hold out ~0.5,
+abundant `both_fail` only ~0.08.
+
+**Open finding (blocks the local-offload headline).** Across batches 2→5 (gold
+14→25) the oracle ceiling and router AUC *fell* (AUC 0.82→0.63), not rose:
+`gpt-oss:20b` solves few SWE-bench Verified tasks, so nearly every local failure
+is a **disagree** (Opus solves it), not a both_fail. Growing the corpus mostly
+adds disagree — the hardest cell to rank — so the eval gets harder and the
+headline shrinks even as the data gets more honest. SWE-bench Verified may be a
+"hard-escalation stress set," not a source of `both_pass`. Decision pending on
+whether to (a) source `both_pass` from an easier track, (b) use a stronger local
+rung, or (c) keep SWE-bench purely as an escalation stressor. See
+`docs/EVAL_PROGRESSION.md`.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

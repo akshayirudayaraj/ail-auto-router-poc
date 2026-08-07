@@ -81,13 +81,18 @@ API-only (a browser hit there returns a JSON pointer to the console).
 
 Four tabs:
 - **Data** — reconstructed sessions by source (Internal / Semi-synthetic /
-  Synthetic); click a row to open its full trace as a **back-and-forth chat**
-  (thinking, tool calls + results, patch, offline-engine labels, hidden-oracle
-  reveal).
-- **Training** — routing methods; IRT ability recovery (planted vs recovered θ);
-  the **pointwise + pairwise** training rows.
-- **Evals** — dual-arm gold leaderboard (AIQ, AUC, cell-B, …), routing
-  distribution (local vs frontier per strategy), and the **gold rows** behind it.
+  Synthetic); every table column carries an explanatory tooltip (incl. how the
+  `consensus` label fuses judge + implicit); click a row to open its full trace
+  as a **back-and-forth chat** (thinking, tool calls + results, patch,
+  offline-engine labels, hidden-oracle reveal).
+- **Training** — routing methods, each showing its **operating threshold**
+  (`CalibrateForQuality@100%` — the most-local cutoff that still holds full Opus
+  quality); the **pointwise + pairwise** training rows.
+- **Evals** — dual-arm gold leaderboard (AIQ, AUC, cell-B, …) read at each
+  router's tuned **isoquality operating point**, routing distribution (local vs
+  frontier per strategy), the **gold rows** behind it, a temporal-backtest
+  placeholder, and **IRT ability recovery** (planted vs recovered θ) under the
+  secondary/diagnostic metrics.
 - **Route** — type any prompt; it is embedded live (Ollama) and scored by every
   fitted router, showing per-router decision, consensus, and the model-free
   feature vector that drove it.
@@ -123,7 +128,7 @@ resumes. Every target has a `##` doc line in the `Makefile`.
 
 | command | does |
 |---|---|
-| `make serve` | serve the JSON API on :8080 (`AIL_ADDR`, `AIL_DATA_DIR` env) |
+| `make serve` | serve the JSON API on :8080 (`AIL_ADDR`, `AIL_DATA_DIR` env); adds `POST/GET /api/evals` (persist + list eval runs via the `internal/store` seam) |
 | `make console-dev` | Vite dev server with hot reload on :5173 (proxies `/api` to `serve`) — the UI |
 | `make console-preview` | build + serve the prod UI bundle via `vite preview` (:4173) |
 | `make frontend-install` | install the console's npm deps (run once) |
@@ -135,6 +140,7 @@ resumes. Every target has a `##` doc line in the `Makefile`.
 |---|---|
 | `make agentic-smoke` | 1 task, both arms, tool-call fidelity smoke |
 | `make agentic-swe SWE_N=20` | materialize N SWE-bench Verified instances, build images, run both arms in-container |
+| `agentic/runner/materialize_swe.py --easy --new-only --max-patch-lines 20 --repos django/django` | grow the gold set with genuinely-new easy tasks; `--repos`/`SWE_REPOS` restricts to reliable repos (django images build cleanly, no OOM) |
 | `make agentic-generate` | run both arms over all materialized tasks (log-first, no grading) + write the split |
 | `make agentic-proxy` / `agentic-proxy-stop` | start / stop the Anthropic→Ollama proxy for the local arm |
 
@@ -225,7 +231,10 @@ the harness-driving glue and Docker execution live under `agentic/` (Python).
      │  · off-policy IPS + doubly-robust (needs propensities)│
      │  · guardrail/perturbation suite (topic-collapse test) │
      │  · metrics: AUC, ECE, escalation, quality retention…  │
-     │  · policy: threshold calibration + quota gate         │
+     │  · policy: CalibrateForQuality@100% operating point   │
+     │    (= isoquality) + quota gate                        │
+     │  · persisted runs via internal/store (POST/GET        │
+     │    /api/evals) — file today, Postgres-ready           │
      └───────────────────────────────────────────────────────┘
 ```
 
@@ -243,6 +252,7 @@ Package layout:
 | `internal/router` | Pillar 2 routers + interface |
 | `internal/eval` | Pillar 3 harness, metrics, policy |
 | `internal/server` | console backend: stdlib `net/http` JSON API only (the React UI is the separate `frontend/`) |
+| `internal/store` | persistence seam for eval runs: `FileStore` (JSONL) today, Postgres later, behind one interface; backs `POST/GET /api/evals` |
 | `cmd/{gen,extract,train,eval}` | stage entrypoints |
 | `cmd/serve` | web console server (`make serve`) |
 | `cmd/{label,materialize}` | offline label engine + O6 dataset materializer |
@@ -310,15 +320,17 @@ spend caps:
    `HOME/PATH/USER/LOGNAME` so the CLI can read its Keychain credential.
 2. **Direct HTTP with `ANTHROPIC_API_KEY`** — fallback if the CLI isn't found.
 
-The active path is logged at startup. Frontier model defaults to the latest
-Claude Sonnet.
+The active path is logged at startup. The base backend's frontier (judge /
+generate) defaults to Claude Sonnet; the **agentic execution track** runs
+`local=gpt-oss:20b` (through the Ollama proxy) and `frontier=opus`.
 
 ### Setup
 ```bash
 # Ollama
 ollama serve &                 # if not already running
 ollama pull nomic-embed-text
-ollama pull llama3.1:8b
+ollama pull gpt-oss:20b        # the local rung used by the agentic track
+ollama pull llama3.1:8b        # (example gen models for the synthetic base pipeline)
 ollama pull qwen2.5-coder:14b
 
 # Anthropic (pick one)
@@ -386,7 +398,12 @@ four things that make router eval hard as explicit guardrails.
 | **guardrail suite** | difficulty-monotonicity + **topic-collapse** (keyword injection) | score must move with difficulty; decision must NOT flip on off-topic words |
 
 Plus a **policy layer**: calibrate a threshold to a target escalation rate (safe
-on logs) or a target quality (gold only), and a frontier **quota gate**.
+on logs) or a target quality (gold only), and a frontier **quota gate**. The
+gold leaderboard reports every headline metric at each router's
+`CalibrateForQuality(target=1.0)` operating point — the highest (most-local,
+cheapest) threshold that still holds **100% of always-frontier quality**, i.e.
+the isoquality point (exposed as `qual_cal_thr`). So `local_share@thr` equals
+`offload_isoq`, and `thrift`/`safety` are read there, not at a fixed 0.5.
 
 ## What is trustworthy
 
@@ -396,5 +413,12 @@ on logs) or a target quality (gold only), and a frontier **quota gate**.
   blind spots (label circularity) and the observational censoring of real logs.
 - Implicit signals are **noisy features anchored by the judge**, not clean
   labels. See Pillar 1c.
+- The current execution-grounded gold set is **n=25 real dual-arm** rows
+  (SWE-bench Verified). A known limitation: `gpt-oss:20b` solves few SWE-bench
+  Verified tasks, so most local failures are ones Opus *can* solve — the corpus
+  skews toward the **disagree** cell as it grows, which caps the local-offload
+  headline by the local rung's weakness, not the router's. See
+  `docs/EVAL_PROGRESSION.md` and DECISIONS D23.
 
-See `docs/DECISIONS.md` for every choice, and `RESULTS.md` for the latest run.
+See `docs/DECISIONS.md` for every choice, `docs/EVAL_PROGRESSION.md` for the
+batch-by-batch trend, and `RESULTS.md` for the latest run.
