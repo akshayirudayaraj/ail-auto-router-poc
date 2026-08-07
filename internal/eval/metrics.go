@@ -222,19 +222,22 @@ func AIQ(curve []CQPoint) float64 {
 	return area
 }
 
-// LocalOffloadAtFrontierQuality is this POC's headline metric: the largest share
-// of requests a router can keep on the LOCAL model while STILL matching
-// always-frontier's quality (retention = 1.0). Higher = more offload at no
-// quality cost. Threshold-independent — swept over the whole curve. Returns 0
-// when the router can't reach frontier quality at any operating point (e.g.
-// always-local, whose quality ceiling sits below the frontier's).
+// IsoQualityOffload is this POC's headline operating point: the largest share of
+// requests a router can keep on the LOCAL model while STILL matching always-
+// frontier's quality (retention ≥ 1.0), AND the decision threshold that achieves
+// it. This IS the router's tuned operating point for the POC — route as much to
+// local as possible without losing quality — so every headline metric
+// (local_share, thrift, safety, quality retention) is reported here, not at an
+// arbitrary fixed threshold. Threshold-independent search over the whole curve.
+// Returns ok=false when the router can't reach frontier quality at any point
+// (e.g. always-local, whose quality ceiling sits below the frontier's).
 //
 // Unlike AIQ (a $-cost-weighted area), this needs no cost model — it answers the
 // question that actually matters here: "how much can we route to local without
 // losing quality?" It rises automatically as the local model improves.
-func LocalOffloadAtFrontierQuality(curve []CQPoint) float64 {
+func IsoQualityOffload(curve []CQPoint) (offload, threshold float64, ok bool) {
 	if len(curve) == 0 {
-		return 0
+		return 0, math.Inf(1), false
 	}
 	frontierQ := 0.0 // quality when everything is escalated
 	for _, p := range curve {
@@ -242,15 +245,28 @@ func LocalOffloadAtFrontierQuality(curve []CQPoint) float64 {
 			frontierQ = p.Quality
 		}
 	}
-	offload := 0.0
+	best := -1.0
+	thr := math.Inf(1)
 	for _, p := range curve {
 		if p.Quality >= frontierQ-1e-9 {
-			if ls := 1 - p.Escalation; ls > offload {
-				offload = ls
+			if ls := 1 - p.Escalation; ls > best {
+				best = ls
+				thr = p.Threshold
 			}
 		}
 	}
-	return offload
+	if best < 0 {
+		return 0, math.Inf(1), false
+	}
+	return best, thr, true
+}
+
+// LocalOffloadAtFrontierQuality returns just the offload share (see
+// IsoQualityOffload). Kept as a convenience for callers that don't need the
+// operating threshold.
+func LocalOffloadAtFrontierQuality(curve []CQPoint) float64 {
+	o, _, _ := IsoQualityOffload(curve)
+	return o
 }
 
 // EscalationCells are the dual-arm confusion cells for a fixed decision vector.

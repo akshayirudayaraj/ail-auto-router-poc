@@ -32,13 +32,13 @@ const COL_LABEL: Record<string, string> = {
 // One-liner explanations, surfaced as native hover tooltips on the headers.
 const COL_HELP: Record<string, string> = {
   router: "The routing policy being scored on the dual-arm gold set.",
-  "local_share@thr": "Share of requests this router keeps on the cheap local model at the operating threshold (higher = cheaper).",
-  qual_retention: "Adequacy retained vs always-Opus at the threshold — 100% means it matches Opus's quality.",
+  "local_share@thr": "Share of requests kept on the cheap local model at the router's tuned isoquality operating point — equals offload_isoq (higher = cheaper).",
+  qual_retention: "Adequacy retained vs always-Opus at the operating point — 100% means it matches Opus's quality (can exceed 100% where local beats Opus).",
   safety: "Of prompts where local would fail, the share the router correctly escalated to Opus (protects quality; want 100%).",
-  thrift: "Of prompts where local would pass, the share the router correctly kept local (captures the savings; want 100%).",
+  thrift: "Of prompts where local would pass, the share the router correctly kept local at the operating point (captures the savings; want 100%).",
   savings_capture: "Local share as a fraction of a perfect oracle's — how much of the safely-offloadable traffic it captured.",
   under_escal_cellB: "The fraction of prompts where the router kept the request on local, local failed, and Opus would have passed (want 0%).",
-  offload_isoq: "Max local share reachable while EXACTLY matching always-Opus quality (brittle on small gold sets; kept for continuity).",
+  offload_isoq: "Max local share reachable while matching always-Opus quality. This IS the tuned operating point every headline metric is read at (so local_share@thr equals it).",
   "escalation@thr": "Share of requests sent to Opus at the threshold (= 1 − local share).",
   "quality@thr": "Mean achieved adequacy across all requests at the operating threshold.",
   over_escalation: "Escalated to Opus though local would have passed — wasted spend.",
@@ -150,7 +150,7 @@ function ScoreCard({ rows: rows0, anchors, nGold, champ }: { rows: LeaderRow[]; 
               </span>
               <div className="stack">
                 {qPct > 0 && (
-                  <span className="seg" style={{ width: `${qPct}%`, background: barColor }}>
+                  <span className="seg" style={{ width: `${Math.min(qPct, 100)}%`, background: barColor }}>
                     {qPct >= 12 ? `${qPct}%` : ""}
                   </span>
                 )}
@@ -373,6 +373,11 @@ export function EvalsTab() {
             The promise first: each router should retain <b>~100% of Opus quality</b> (the bar). The payoff: it does so
             while keeping a <b>high share of requests on the cheap local</b> model (the green chip). No cost model needed —
             just achieved quality and fraction-of-requests on the dual-arm gold set.
+          </p>
+          <p className="muted small" style={{ marginTop: -4 }}>
+            <b>Threshold tuning:</b> each router runs at its <i>isoquality</i> operating point — the escalation threshold
+            that keeps the most requests local while still matching Opus quality. So the local share below equals the{" "}
+            <code>offload_isoq</code> headline, and <code>thrift</code> is read at that same point (not a fixed 0.5).
           </p>
           <ScoreCard rows={learnedRows} anchors={anchors} nGold={fit!.n_gold || 0} champ={champ} />
 

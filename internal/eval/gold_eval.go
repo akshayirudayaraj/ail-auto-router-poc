@@ -68,8 +68,17 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 		curve := CostQualityCurve(scores, d.Gold)
 		hull := UpperHull(curve)
 		aiq := AIQ(curve)
-		op := Operating(scores, d.Gold, g.Threshold)
-		offload := LocalOffloadAtFrontierQuality(curve)
+		// Operate at the TUNED isoquality point (max local share while matching
+		// frontier quality), not an arbitrary fixed threshold — so local_share,
+		// thrift, safety and the scorecard all report the same operating point the
+		// offload_isoq headline advertises. Fall back to the fixed threshold only
+		// when the router can never reach frontier quality (then offload is 0).
+		offload, tunedThr, ok := IsoQualityOffload(curve)
+		opThr := g.Threshold
+		if ok {
+			opThr = tunedThr
+		}
+		op := Operating(scores, d.Gold, opThr)
 		localShare := 1 - op.EscalationRate
 		savingsCapture := 0.0
 		if oracleLocalShare > 0 {
@@ -104,7 +113,7 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 	}
 	rep.Detail = GoldReportDetail{Curves: details, Anchors: anchors}
 	rep.Notes = append(rep.Notes,
-		fmt.Sprintf("Headline @ threshold %.2f: keep local_share@thr of requests on local while holding qual_retention ≈ 1.0 (matching always-frontier).", g.Threshold),
+		"Operating point is TUNED PER ROUTER to the isoquality frontier: the threshold that keeps the most requests on local while holding qual_retention ≥ 1.0 (matching always-frontier). local_share@thr therefore equals offload_isoq, and thrift/safety are read at that same point.",
 		"safety = of prompts where local fails, the share correctly escalated (protects quality). thrift = of prompts where local passes, the share kept local (captures savings).",
 		"savings_capture = local share as a fraction of the oracle's (a perfect router escalates iff local would fail). cell-B (under_escal) = stayed local but frontier would have passed — the quality leak to minimize.",
 		"Anchors: always-local / oracle / always-frontier bound the achievable region. AIQ (secondary) is threshold-independent.",
