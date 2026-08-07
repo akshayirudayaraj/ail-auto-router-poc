@@ -1,0 +1,81 @@
+diff --git a/changelog/5792.bugfix.rst b/changelog/5792.bugfix.rst
+new file mode 100644
+index 000000000..dee115e54
+--- /dev/null
++++ b/changelog/5792.bugfix.rst
+@@ -0,0 +1 @@
++Fix regression where ``conftest.py`` files would fail to load if the initial directory was given with an incorrect casing on case-insensitive file systems (e.g. Windows).
+diff --git a/src/_pytest/config/__init__.py b/src/_pytest/config/__init__.py
+index 3a0eca546..6c2e9330a 100644
+--- a/src/_pytest/config/__init__.py
++++ b/src/_pytest/config/__init__.py
+@@ -30,7 +30,7 @@ from _pytest._code import filter_traceback
+ from _pytest.compat import importlib_metadata
+ from _pytest.outcomes import fail
+ from _pytest.outcomes import Skipped
+-from _pytest.pathlib import unique_path
++from _pytest.pathlib import Path
+ from _pytest.warning_types import PytestConfigWarning
+ 
+ hookimpl = HookimplMarker("pytest")
+@@ -367,7 +367,7 @@ class PytestPluginManager(PluginManager):
+         """
+         current = py.path.local()
+         self._confcutdir = (
+-            unique_path(current.join(namespace.confcutdir, abs=True))
++            current.join(namespace.confcutdir, abs=True)
+             if namespace.confcutdir
+             else None
+         )
+@@ -396,17 +396,18 @@ class PytestPluginManager(PluginManager):
+                 if x.check(dir=1):
+                     self._getconftestmodules(x)
+ 
++    def _get_directory(self, path):
++        if path.isfile():
++            return path.dirpath()
++        else:
++            return path
++
+     @lru_cache(maxsize=128)
+     def _getconftestmodules(self, path):
+         if self._noconftest:
+             return []
+ 
+-        if path.isfile():
+-            directory = path.dirpath()
+-        else:
+-            directory = path
+-
+-        directory = unique_path(directory)
++        directory = self._get_directory(path)
+ 
+         # XXX these days we may rather want to use config.rootdir
+         # and allow users to opt into looking into the rootdir parent
+@@ -432,12 +433,14 @@ class PytestPluginManager(PluginManager):
+         raise KeyError(name)
+ 
+     def _importconftest(self, conftestpath):
+-        # Use realpath to avoid loading the same conftest twice
++        # Use a resolved Path object as key to avoid loading the same conftest twice
+         # with build systems that create build directories containing
+         # symlinks to actual files.
+-        conftestpath = unique_path(conftestpath)
++        # Using Path().resolve() is better than py.path.realpath because
++        # it resolves to the correct path/drive in case-insensitive file systems (see #5792)
++        key = Path(str(conftestpath)).resolve()
+         try:
+-            return self._conftestpath2mod[conftestpath]
++            return self._conftestpath2mod[key]
+         except KeyError:
+             pkgpath = conftestpath.pypkgpath()
+             if pkgpath is None:
+@@ -454,7 +457,7 @@ class PytestPluginManager(PluginManager):
+                 raise ConftestImportFailure(conftestpath, sys.exc_info())
+ 
+             self._conftest_plugins.add(mod)
+-            self._conftestpath2mod[conftestpath] = mod
++            self._conftestpath2mod[key] = mod
+             dirpath = conftestpath.dirpath()
+             if dirpath in self._dirpath2confmods:
+                 for path, mods in self._dirpath2confmods.items():
