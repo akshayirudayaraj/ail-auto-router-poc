@@ -1,0 +1,18 @@
+diff --git a/tests/settings.py b/tests/settings.py
+new file mode 100644
+index 0000000000..bb99ffec65
+--- /dev/null
++++ b/tests/settings.py
+@@ -0,0 +1,12 @@
++# Minimal Django settings for test runner
++SECRET_KEY = 'test'
++INSTALLED_APPS = []
++MIDDLEWARE = []
++DATABASES = {
++    'default': {
++        'ENGINE': 'django.db.backends.sqlite3',
++        'NAME': ':memory:',
++    }
++}
++ROOT_URLCONF = 'tests.urls'
++TEMPLATES = []

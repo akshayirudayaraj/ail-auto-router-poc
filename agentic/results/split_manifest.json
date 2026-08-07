@@ -9,26 +9,26 @@
   },
   "strata": {
     "both_pass": {
-      "holdout": 7,
+      "holdout": 8,
       "train": 9
     },
     "none": {
       "holdout": 0,
       "train": 11
     },
+    "disagree": {
+      "holdout": 12,
+      "train": 16
+    },
     "both_fail": {
       "holdout": 5,
       "train": 59
-    },
-    "disagree": {
-      "holdout": 8,
-      "train": 11
     }
   },
-  "n_tasks": 110,
-  "n_sessions": 224,
-  "n_holdout_tasks": 20,
-  "n_train_tasks": 90,
+  "n_tasks": 120,
+  "n_sessions": 244,
+  "n_holdout_tasks": 25,
+  "n_train_tasks": 95,
   "task_split": {
     "easy-01-reverse-words": "train",
     "easy-02-is-even": "train",
@@ -43,23 +43,33 @@
     "med-02-csv-quotes": "train",
     "med-03-interval-merge": "train",
     "med-04-lru-cache": "train",
+    "swe-django__django-10880": "train",
     "swe-django__django-10914": "holdout",
     "swe-django__django-10999": "train",
     "swe-django__django-11119": "holdout",
     "swe-django__django-11133": "train",
+    "swe-django__django-11179": "holdout",
     "swe-django__django-11490": "holdout",
     "swe-django__django-11951": "holdout",
     "swe-django__django-11964": "holdout",
+    "swe-django__django-12193": "train",
+    "swe-django__django-12308": "holdout",
     "swe-django__django-12419": "holdout",
+    "swe-django__django-13023": "train",
     "swe-django__django-13821": "train",
     "swe-django__django-13933": "train",
+    "swe-django__django-14089": "holdout",
     "swe-django__django-14373": "train",
     "swe-django__django-14539": "train",
     "swe-django__django-14580": "train",
+    "swe-django__django-14765": "train",
+    "swe-django__django-14787": "holdout",
     "swe-django__django-14915": "train",
     "swe-django__django-15315": "holdout",
     "swe-django__django-15851": "train",
     "swe-django__django-15863": "holdout",
+    "swe-django__django-15987": "holdout",
+    "swe-django__django-16569": "train",
     "swe-django__django-16642": "train",
     "swe-django__django-9296": "train",
     "swe-mwaskom__seaborn-3069": "train",
@@ -386,6 +396,24 @@
       "has_executable_oracle": null
     },
     {
+      "task_id": "swe-django__django-10880",
+      "arm": "frontier",
+      "session_id": "swe-django__django-10880__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-10880",
+      "arm": "local",
+      "session_id": "swe-django__django-10880__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
       "task_id": "swe-django__django-10914",
       "arm": "frontier",
       "session_id": "swe-django__django-10914__frontier__b90e91cf",
@@ -458,6 +486,24 @@
       "has_executable_oracle": true
     },
     {
+      "task_id": "swe-django__django-11179",
+      "arm": "frontier",
+      "session_id": "swe-django__django-11179__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-11179",
+      "arm": "local",
+      "session_id": "swe-django__django-11179__local__8512972e",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
       "task_id": "swe-django__django-11490",
       "arm": "frontier",
       "session_id": "swe-django__django-11490__frontier__b90e91cf",
@@ -512,6 +558,42 @@
       "has_executable_oracle": true
     },
     {
+      "task_id": "swe-django__django-12193",
+      "arm": "frontier",
+      "session_id": "swe-django__django-12193__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-12193",
+      "arm": "local",
+      "session_id": "swe-django__django-12193__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-12308",
+      "arm": "frontier",
+      "session_id": "swe-django__django-12308__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-12308",
+      "arm": "local",
+      "session_id": "swe-django__django-12308__local__8512972e",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
       "task_id": "swe-django__django-12419",
       "arm": "frontier",
       "session_id": "swe-django__django-12419__frontier__b90e91cf",
@@ -525,6 +607,24 @@
       "arm": "local",
       "session_id": "swe-django__django-12419__local__8512972e",
       "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-13023",
+      "arm": "frontier",
+      "session_id": "swe-django__django-13023__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-13023",
+      "arm": "local",
+      "session_id": "swe-django__django-13023__local__8512972e",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -561,6 +661,24 @@
       "arm": "local",
       "session_id": "swe-django__django-13933__local__8512972e",
       "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14089",
+      "arm": "frontier",
+      "session_id": "swe-django__django-14089__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14089",
+      "arm": "local",
+      "session_id": "swe-django__django-14089__local__8512972e",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -615,6 +733,42 @@
       "arm": "local",
       "session_id": "swe-django__django-14580__local__8512972e",
       "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14765",
+      "arm": "frontier",
+      "session_id": "swe-django__django-14765__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14765",
+      "arm": "local",
+      "session_id": "swe-django__django-14765__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14787",
+      "arm": "frontier",
+      "session_id": "swe-django__django-14787__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14787",
+      "arm": "local",
+      "session_id": "swe-django__django-14787__local__8512972e",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -687,6 +841,42 @@
       "arm": "local",
       "session_id": "swe-django__django-15863__local__8512972e",
       "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-15987",
+      "arm": "frontier",
+      "session_id": "swe-django__django-15987__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-15987",
+      "arm": "local",
+      "session_id": "swe-django__django-15987__local__8512972e",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-16569",
+      "arm": "frontier",
+      "session_id": "swe-django__django-16569__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-16569",
+      "arm": "local",
+      "session_id": "swe-django__django-16569__local__8512972e",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
