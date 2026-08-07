@@ -101,7 +101,8 @@ def _difficulty_proxy(rec: dict) -> dict:
 def select_instances(ds, n: int, per_repo_cap: int | None = None,
                      allowed_difficulty: set[str] | None = None,
                      exclude_ids: set[str] | None = None,
-                     max_patch_lines: int | None = None) -> tuple[list, dict]:
+                     max_patch_lines: int | None = None,
+                     allowed_repos: set[str] | None = None) -> tuple[list, dict]:
     """Rank + pick N instances deterministically, diversified across repos.
     Returns (chosen_records, manifest) where manifest logs picks and drops.
 
@@ -109,17 +110,25 @@ def select_instances(ds, n: int, per_repo_cap: int | None = None,
       is in the set (e.g. {"<15 min fix"}) — the strongest signal for "local can
       plausibly solve it", which is what raises the chance of routing to local.
     exclude_ids: instance_ids to skip (e.g. already-materialized) so a fresh batch
-      spends its N budget on genuinely NEW easy instances, not re-picks."""
+      spends its N budget on genuinely NEW easy instances, not re-picks.
+    allowed_repos: if set, keep only these repos — e.g. {"django/django"} to build a
+      django-only batch (django images build reliably and local solves more of them,
+      whereas sympy/sklearn images OOM at the 7.7GB Docker cap and local often times
+      out on their long tasks). Bypasses the diversify-across-repos default."""
     exclude_ids = exclude_ids or set()
     dropped_big = []
     dropped_bad = []
     dropped_hard = []
     dropped_existing = []
+    dropped_repo = []
     scored = []
     for rec in ds:
         repo = rec["repo"]
         if rec["instance_id"] in exclude_ids:
             dropped_existing.append(rec["instance_id"])
+            continue
+        if allowed_repos and repo not in allowed_repos:
+            dropped_repo.append(rec["instance_id"])
             continue
         if allowed_difficulty and (rec.get("difficulty") not in allowed_difficulty):
             dropped_hard.append((rec["instance_id"], rec.get("difficulty")))
@@ -145,8 +154,9 @@ def select_instances(ds, n: int, per_repo_cap: int | None = None,
     scored.sort(key=lambda x: (x[0], x[1]))
 
     if per_repo_cap is None:
-        # Diversify: no single repo dominates the set.
-        per_repo_cap = max(1, math.ceil(n / 5))
+        # With an explicit repo allowlist the caller WANTS to concentrate on those
+        # repos, so don't diversify-cap; otherwise keep no single repo dominating.
+        per_repo_cap = n if allowed_repos else max(1, math.ceil(n / 5))
 
     chosen, chosen_meta, per_repo = [], [], {}
     skipped_cap = []
@@ -171,6 +181,8 @@ def select_instances(ds, n: int, per_repo_cap: int | None = None,
         "allowed_difficulty": sorted(allowed_difficulty) if allowed_difficulty else None,
         "dropped_big_repo": {"count": len(dropped_big), "repos": sorted(BIG_REPOS)},
         "dropped_too_hard": {"count": len(dropped_hard)},
+        "dropped_repo_not_allowed": {"count": len(dropped_repo),
+                                     "allowed": sorted(allowed_repos) if allowed_repos else None},
         "dropped_already_materialized": {"count": len(dropped_existing)},
         "dropped_malformed": dropped_bad,
         "skipped_for_repo_cap_count": len(skipped_cap),
@@ -275,6 +287,10 @@ def main():
                     help="allow big-repo (django/sympy/…) instances through the "
                          "big-repo exclusion when their reference patch is at most "
                          "this many lines — tiny fixes stay fast even in big repos.")
+    ap.add_argument("--repos", default=os.environ.get("SWE_REPOS", ""),
+                    help="comma list of repos to restrict selection to, e.g. "
+                         "'django/django'. Empty = no restriction. Use to build a "
+                         "django-only batch (reliable image builds, more both_pass).")
     ap.add_argument("--dry-run", action="store_true",
                     help="write the selection manifest and print the picks, but do "
                          "NOT clone/materialize (preview the batch before committing).")
@@ -314,10 +330,12 @@ def main():
             for p in tasks_dir.glob("swe-*"):
                 if p.is_dir():
                     exclude_ids.add(p.name[len("swe-"):])
+        allowed_repos = {r.strip() for r in args.repos.split(",") if r.strip()}
         chosen, manifest = select_instances(
             ds, args.n, args.per_repo_cap,
             allowed_difficulty=allowed or None, exclude_ids=exclude_ids,
-            max_patch_lines=args.max_patch_lines)
+            max_patch_lines=args.max_patch_lines,
+            allowed_repos=allowed_repos or None)
 
     # Write the selection manifest FIRST (no silent truncation — every pick/drop
     # is on the record even if a later clone fails).
