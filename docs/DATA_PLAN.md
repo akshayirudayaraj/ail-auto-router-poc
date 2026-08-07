@@ -536,6 +536,44 @@ consume it safely, and stop the old templated generator from polluting signal.
 
 ---
 
+### Phase 7 — Growing the gold set: the repeatable batch loop
+
+Once the pipeline exists, the gold set is grown in **batches** by a single driver
+(`scratchpad/batch_pipeline.sh`, generalizing the Phase 1–6 stages):
+
+```
+materialize (easy / new-only / tiny-patch, repo-restricted)
+  → build per-instance images → run BOTH arms → grade (executed oracle)
+  → fuse → split → re-fuse → materialize
+```
+
+Selection levers on `materialize_swe.py`:
+
+- `--easy` — restrict to the human `<15 min fix` difficulty tier (the strongest
+  prior that the local rung can plausibly solve it).
+- `--new-only` — skip already-materialized instances so a batch spends its budget
+  on genuinely new tasks.
+- `--max-patch-lines N` — let a **tiny-patch instance in a big repo** through the
+  big-repo exclusion (the easy small-repo pool is finite and quickly exhausted).
+- `--repos` / `SWE_REPOS` — **repo allowlist**. In practice **django-only**:
+  django images build reliably at the 7.7GB Docker cap, whereas sympy/scikit-learn
+  images OOM (exit 137) and their long tasks time out.
+
+Split fractions are tuned so the scarce, valuable cells survive the holdout:
+`both_pass`/`disagree` hold out ~0.5 each (both are scarce and carry the routing
+signal), while the abundant `both_fail` holds out only ~0.08 (realistic ballast
+that would otherwise flood the gold and crush the oracle local-share headline).
+Env-overridable via `AIL_BOTHPASS_FRAC` / `AIL_DISAGREE_FRAC` / `AIL_BOTHFAIL_FRAC`.
+
+**Empirical finding (see DECISIONS D23, `docs/EVAL_PROGRESSION.md`).** Growing the
+corpus with SWE-bench Verified tasks skews it toward the **disagree** cell,
+because `gpt-oss:20b` solves few of them — so the oracle ceiling and router AUC
+*fall* as the set grows. SWE-bench Verified behaves as a hard-escalation stress
+set, not a reliable source of `both_pass` (local-adequate) rows. Sourcing
+`both_pass` likely needs an easier task track or a stronger local rung.
+
+---
+
 ## 3. Sequencing & dependencies
 
 ```text
