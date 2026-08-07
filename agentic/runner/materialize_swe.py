@@ -55,7 +55,7 @@ BIG_REPOS = {
 
 SWEBENCH_PY = os.environ.get(
     "SWEBENCH_PY",
-    str(Path.home() / "development/spectro/ail-self-routing/.venv_swe/bin/python"))
+    str(Path.home() / "dev/ail-routing-test-swe/.venv-swe/bin/python"))
 
 
 def _ensure_datasets():
@@ -98,21 +98,43 @@ def _difficulty_proxy(rec: dict) -> dict:
     }
 
 
-def select_instances(ds, n: int, per_repo_cap: int | None = None) -> tuple[list, dict]:
+def select_instances(ds, n: int, per_repo_cap: int | None = None,
+                     allowed_difficulty: set[str] | None = None,
+                     exclude_ids: set[str] | None = None,
+                     max_patch_lines: int | None = None) -> tuple[list, dict]:
     """Rank + pick N instances deterministically, diversified across repos.
-    Returns (chosen_records, manifest) where manifest logs picks and drops."""
+    Returns (chosen_records, manifest) where manifest logs picks and drops.
+
+    allowed_difficulty: if set, keep only rows whose human `difficulty` annotation
+      is in the set (e.g. {"<15 min fix"}) — the strongest signal for "local can
+      plausibly solve it", which is what raises the chance of routing to local.
+    exclude_ids: instance_ids to skip (e.g. already-materialized) so a fresh batch
+      spends its N budget on genuinely NEW easy instances, not re-picks."""
+    exclude_ids = exclude_ids or set()
     dropped_big = []
     dropped_bad = []
+    dropped_hard = []
+    dropped_existing = []
     scored = []
     for rec in ds:
         repo = rec["repo"]
-        if repo in BIG_REPOS:
-            dropped_big.append(rec["instance_id"])
+        if rec["instance_id"] in exclude_ids:
+            dropped_existing.append(rec["instance_id"])
+            continue
+        if allowed_difficulty and (rec.get("difficulty") not in allowed_difficulty):
+            dropped_hard.append((rec["instance_id"], rec.get("difficulty")))
             continue
         try:
             d = _difficulty_proxy(rec)
         except Exception as e:  # malformed row
             dropped_bad.append((rec.get("instance_id"), str(e)))
+            continue
+        # Big repos are normally excluded (slow clone/agent/grade). But a TINY-patch
+        # instance in a big repo is still a fast, genuinely-easy fix — let it through
+        # when its patch is under max_patch_lines. The easy SMALL-repo pool is finite
+        # and quickly exhausted, so this is the only way to grow the easy set.
+        if repo in BIG_REPOS and not (max_patch_lines and d["patch_lines"] <= max_patch_lines):
+            dropped_big.append(rec["instance_id"])
             continue
         if d["n_f2p"] < 1:
             dropped_bad.append((rec["instance_id"], "no FAIL_TO_PASS"))
@@ -146,7 +168,10 @@ def select_instances(ds, n: int, per_repo_cap: int | None = None) -> tuple[list,
         "per_repo_cap": per_repo_cap,
         "per_repo_counts": per_repo,
         "selected": chosen_meta,
+        "allowed_difficulty": sorted(allowed_difficulty) if allowed_difficulty else None,
         "dropped_big_repo": {"count": len(dropped_big), "repos": sorted(BIG_REPOS)},
+        "dropped_too_hard": {"count": len(dropped_hard)},
+        "dropped_already_materialized": {"count": len(dropped_existing)},
         "dropped_malformed": dropped_bad,
         "skipped_for_repo_cap_count": len(skipped_cap),
         "contamination_note": (
@@ -237,6 +262,22 @@ def main():
     ap.add_argument("--instance-id", default=None, help="single instance (back-compat)")
     ap.add_argument("--record-json", default=None, help="pre-fetched record JSON (single)")
     ap.add_argument("--per-repo-cap", type=int, default=None)
+    ap.add_argument("--difficulty", default=os.environ.get("SWE_DIFFICULTY", ""),
+                    help="comma list of allowed human difficulty labels, e.g. "
+                         "'<15 min fix'. Empty = no filter. --easy is a shortcut.")
+    ap.add_argument("--easy", action="store_true",
+                    help="shortcut for --difficulty '<15 min fix' (the easiest tier "
+                         "— most likely the local model can solve it).")
+    ap.add_argument("--new-only", action="store_true",
+                    help="skip instances already materialized under --tasks-dir so a "
+                         "fresh batch adds genuinely new instances.")
+    ap.add_argument("--max-patch-lines", type=int, default=None,
+                    help="allow big-repo (django/sympy/…) instances through the "
+                         "big-repo exclusion when their reference patch is at most "
+                         "this many lines — tiny fixes stay fast even in big repos.")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="write the selection manifest and print the picks, but do "
+                         "NOT clone/materialize (preview the batch before committing).")
     ap.add_argument("--tasks-dir",
                     default=str(Path(__file__).resolve().parent.parent / "tasks"))
     args = ap.parse_args()
@@ -265,7 +306,18 @@ def main():
         manifest = {"dataset": DATASET, "explicit": explicit, "missing": missing,
                     "selected_n": len(chosen)}
     else:
-        chosen, manifest = select_instances(ds, args.n, args.per_repo_cap)
+        allowed = {d.strip() for d in args.difficulty.split(",") if d.strip()}
+        if args.easy:
+            allowed.add("<15 min fix")
+        exclude_ids = set()
+        if args.new_only:
+            for p in tasks_dir.glob("swe-*"):
+                if p.is_dir():
+                    exclude_ids.add(p.name[len("swe-"):])
+        chosen, manifest = select_instances(
+            ds, args.n, args.per_repo_cap,
+            allowed_difficulty=allowed or None, exclude_ids=exclude_ids,
+            max_patch_lines=args.max_patch_lines)
 
     # Write the selection manifest FIRST (no silent truncation — every pick/drop
     # is on the record even if a later clone fails).
@@ -273,6 +325,15 @@ def main():
     sel_path.write_text(json.dumps(manifest, indent=2))
     print(f"[materialize] selection -> {sel_path} "
           f"(selected {manifest.get('selected_n')} of requested {args.n})")
+
+    if args.dry_run:
+        for m in manifest.get("selected", []):
+            print(f"[dry-run] {m['instance_id']:34s} repo={m['repo']:24s} "
+                  f"diff={m.get('difficulty')} patch_lines={m['patch_lines']} "
+                  f"f2p={m['n_f2p']} p2p={m['n_p2p']}")
+        print(f"[dry-run] would materialize {manifest.get('selected_n')} instances "
+              f"(no clone performed)")
+        return
 
     created_n = existed_n = failed_n = 0
     for rec in chosen:
