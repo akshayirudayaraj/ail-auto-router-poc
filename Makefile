@@ -14,7 +14,7 @@ CACHE   ?= cache
 .PHONY: all gen extract train eval test build clean fmt vet tidy demo serve \
 	agentic agentic-smoke agentic-tasks agentic-image agentic-proxy \
 	agentic-proxy-stop agentic-gold agentic-materialize agentic-train agentic-eval \
-	agentic-fit-eval agentic-swe agentic-generate agentic-split \
+	agentic-fit-eval agentic-swe agentic-generate agentic-split agentic-reorganize \
 	frontend-install frontend-build console-dev
 
 DATA_AGENTIC ?= data_agentic
@@ -186,6 +186,12 @@ agentic-generate: build agentic-proxy
 ## agentic-split: (re)write split_manifest.json over existing results (Phase 4)
 agentic-split:
 	python3 agentic/runner/split.py
+
+## agentic-reorganize: partition results/ into per-type subdirs (synthetic/,
+## semi-synthetic/, logs/) by provenance. Idempotent; run after generation.
+## Readers are layout-agnostic (internal/resultsfs + recursive globs).
+agentic-reorganize:
+	python3 agentic/runner/reorganize_by_type.py
 
 ## agentic-materialize: offline-engine bridge (O6) — turn the fused canonical
 ## labels (labels/resolved.jsonl) into pointwise/pairwise/gold for train + eval.

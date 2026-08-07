@@ -51,7 +51,7 @@ def _prompt_for(base: str, rec: dict) -> str:
 
 def backfill(results_dir: str, dry_run: bool) -> int:
     n_ok = n_skip = 0
-    for ev_path in sorted(glob.glob(os.path.join(results_dir, "*.events.jsonl"))):
+    for ev_path in sorted(glob.glob(os.path.join(results_dir, "**", "*.events.jsonl"), recursive=True)):
         base = ev_path[: -len(".events.jsonl")]
         rec_path = base + ".json"
         if not os.path.exists(rec_path):

@@ -22,6 +22,7 @@ import (
 
 	"github.com/akshayirudayaraj/ail-routing-test/internal/config"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/feature"
+	"github.com/akshayirudayaraj/ail-routing-test/internal/resultsfs"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/schema"
 )
 
@@ -44,33 +45,33 @@ func billable(r Result) int { return r.InputTokens + r.OutputTokens }
 // "absent" (nil → not yet graded) from "graded as false", which BuildGold needs
 // so it can refuse to fabricate a 0 outcome (see the guard there).
 type Result struct {
-	TaskID              string `json:"task_id"`
-	Tier                string `json:"tier"`
-	Arm                 string `json:"arm"`
-	Model               string `json:"model"`
-	OllamaModel         string `json:"ollama_model"`
-	ServedModel         string `json:"served_model"`          // real model behind the arm (roster source)
-	HasExecutableOracle bool   `json:"has_executable_oracle"` // record carries a gradable oracle
-	Resolved            *bool  `json:"resolved"`              // nil = not yet graded (offline engine)
-	FailToPassOK        bool   `json:"fail_to_pass_ok"`
-	PassToPassOK        bool   `json:"pass_to_pass_ok"`
-	WallClockS         float64 `json:"wall_clock_s"`
-	TimedOut           bool    `json:"timed_out"`
-	HitTurnCap         bool    `json:"hit_turn_cap"`
-	EmptyPatch         bool    `json:"empty_patch"`
-	NumTurns           int     `json:"num_turns"`
-	ToolCallsAttempted int     `json:"tool_calls_attempted"`
-	ToolCallsErrored   int     `json:"tool_calls_errored"`
-	AnyValidToolCall   bool    `json:"any_valid_tool_call"`
-	InputTokens        int     `json:"input_tokens"`
-	OutputTokens       int     `json:"output_tokens"`
-	TotalTokens        int     `json:"total_tokens"`
-	NativeToolCalls    int     `json:"native_tool_calls"`
-	RescuedToolCalls   int     `json:"rescued_tool_calls"`
-	CostUnits          float64 `json:"cost_units"`
-	ReportedCostUSD    float64 `json:"reported_cost_usd"`
-	ResultSubtype      string  `json:"result_subtype"`
-	IsError            bool    `json:"is_error"`
+	TaskID              string  `json:"task_id"`
+	Tier                string  `json:"tier"`
+	Arm                 string  `json:"arm"`
+	Model               string  `json:"model"`
+	OllamaModel         string  `json:"ollama_model"`
+	ServedModel         string  `json:"served_model"`          // real model behind the arm (roster source)
+	HasExecutableOracle bool    `json:"has_executable_oracle"` // record carries a gradable oracle
+	Resolved            *bool   `json:"resolved"`              // nil = not yet graded (offline engine)
+	FailToPassOK        bool    `json:"fail_to_pass_ok"`
+	PassToPassOK        bool    `json:"pass_to_pass_ok"`
+	WallClockS          float64 `json:"wall_clock_s"`
+	TimedOut            bool    `json:"timed_out"`
+	HitTurnCap          bool    `json:"hit_turn_cap"`
+	EmptyPatch          bool    `json:"empty_patch"`
+	NumTurns            int     `json:"num_turns"`
+	ToolCallsAttempted  int     `json:"tool_calls_attempted"`
+	ToolCallsErrored    int     `json:"tool_calls_errored"`
+	AnyValidToolCall    bool    `json:"any_valid_tool_call"`
+	InputTokens         int     `json:"input_tokens"`
+	OutputTokens        int     `json:"output_tokens"`
+	TotalTokens         int     `json:"total_tokens"`
+	NativeToolCalls     int     `json:"native_tool_calls"`
+	RescuedToolCalls    int     `json:"rescued_tool_calls"`
+	CostUnits           float64 `json:"cost_units"`
+	ReportedCostUSD     float64 `json:"reported_cost_usd"`
+	ResultSubtype       string  `json:"result_subtype"`
+	IsError             bool    `json:"is_error"`
 }
 
 // Task is the minimal task metadata (issue text drives PromptText/Features).
@@ -83,7 +84,7 @@ type Task struct {
 // LoadResults reads every *.json result from the runner results dir, keeping the
 // newest per (task,arm) if duplicates exist.
 func LoadResults(dir string) ([]Result, error) {
-	paths, _ := filepath.Glob(filepath.Join(dir, "*.json"))
+	paths := resultsfs.Records(dir) // layout-agnostic (flat or type subdirs)
 	best := map[string]Result{}
 	for _, p := range paths {
 		b, err := os.ReadFile(p)

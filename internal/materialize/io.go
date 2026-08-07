@@ -5,27 +5,17 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/akshayirudayaraj/ail-routing-test/internal/resultsfs"
 )
 
 // LoadSessions reads the runner result JSONs under resultsDir and returns the
 // billable token counts keyed by session_id, for gold cost. Non-run-record files
 // (logs, manifests, prediction files) are skipped.
 func LoadSessions(resultsDir string) (map[string]Session, error) {
-	paths, _ := filepath.Glob(filepath.Join(resultsDir, "*.json"))
+	paths := resultsfs.Records(resultsDir) // layout-agnostic (flat or type subdirs)
 	out := map[string]Session{}
 	for _, p := range paths {
-		base := filepath.Base(p)
-		if strings.HasSuffix(base, ".session.jsonl") || strings.HasSuffix(base, ".events.jsonl") {
-			continue
-		}
-		switch base {
-		case "split_manifest.json", "swe_selection.json", "gold_meta.json":
-			continue
-		}
-		if strings.HasPrefix(base, "pred_") {
-			continue
-		}
 		b, err := os.ReadFile(p)
 		if err != nil {
 			continue

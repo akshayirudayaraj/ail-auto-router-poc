@@ -19,12 +19,14 @@ func repoRoot() string { return filepath.Join("..", "..") }
 func realSampleKey(t *testing.T) string {
 	t.Helper()
 	const prefix = "swe-psf__requests-2931__local__"
-	matches, err := filepath.Glob(filepath.Join(repoRoot(), "agentic", "results", prefix+"*.json"))
-	if err != nil {
-		t.Fatalf("glob sample: %v", err)
-	}
+	results := filepath.Join(repoRoot(), "agentic", "results")
+	// Layout-agnostic: results may be flat or partitioned into type subdirs, so
+	// glob both the root and one level of subdirectory.
+	matches, _ := filepath.Glob(filepath.Join(results, prefix+"*.json"))
+	sub, _ := filepath.Glob(filepath.Join(results, "*", prefix+"*.json"))
+	matches = append(matches, sub...)
 	if len(matches) == 0 {
-		t.Skipf("no committed %s* sample in agentic/results", prefix)
+		t.Skipf("no committed %s* sample under agentic/results", prefix)
 	}
 	return strings.TrimSuffix(filepath.Base(matches[0]), ".json")
 }

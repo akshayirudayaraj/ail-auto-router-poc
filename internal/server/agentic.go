@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/akshayirudayaraj/ail-routing-test/internal/resultsfs"
 )
 
 // Agentic corpus browser (DATA_PLAN Phase 5): read-only views over the log-first
@@ -68,7 +70,7 @@ func loadSplitMap() map[string]string {
 // ---- /api/agentic : one row per (task, arm) session ----
 
 func (s *Server) handleAgentic(w http.ResponseWriter, r *http.Request) {
-	paths, _ := filepath.Glob(filepath.Join(agenticResultsDir(), "*.json"))
+	paths := resultsfs.Records(agenticResultsDir()) // flat or type subdirs
 	splitMap := loadSplitMap()
 	resolved := resolvedBySession() // fused canonical labels, joined per session
 	sort.Strings(paths)
@@ -148,7 +150,7 @@ func (s *Server) handleAgenticSession(w http.ResponseWriter, r *http.Request) {
 	reveal := r.URL.Query().Get("reveal") == "1"
 
 	// Find the run record whose session_id matches.
-	paths, _ := filepath.Glob(filepath.Join(agenticResultsDir(), "*.json"))
+	paths := resultsfs.Records(agenticResultsDir()) // flat or type subdirs
 	var rec map[string]any
 	var base string
 	for _, p := range paths {
