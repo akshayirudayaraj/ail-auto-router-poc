@@ -1,4 +1,4 @@
-# ail-routing-test
+# AI Launchpad Routing POC
 
 A framework for building and honestly evaluating a **predictive auto-router**
 for Claude Code (CC): for every LLM call CC makes, pick the *cheapest* model
