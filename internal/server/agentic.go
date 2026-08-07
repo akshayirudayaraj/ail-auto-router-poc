@@ -90,6 +90,9 @@ func (s *Server) handleAgentic(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		sid, _ := rec["session_id"].(string)
+		if sid == "" {
+			continue // malformed/stale partial record (no session id) — not a real session
+		}
 		split := ""
 		if v, ok := rec["split"].(string); ok {
 			split = v
