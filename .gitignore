@@ -63,3 +63,6 @@ agentic/results/*.offline_*.json
 # stray root-level build binary (canonical output is /bin/)
 /serve
 agentic/runner/logs/
+
+# persisted eval runs (runtime artifact of POST /api/evals; store.FileStore)
+eval_runs.jsonl

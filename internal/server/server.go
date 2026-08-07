@@ -27,6 +27,7 @@ import (
 	"github.com/akshayirudayaraj/ail-routing-test/internal/gold"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/router"
 	"github.com/akshayirudayaraj/ail-routing-test/internal/schema"
+	"github.com/akshayirudayaraj/ail-routing-test/internal/store"
 )
 
 var errNoData = errors.New("no dataset loaded — run `make extract` first")
@@ -46,11 +47,14 @@ type Server struct {
 	routers   []router.Router // fitted, for /api/route
 	fitSource schema.LabelSource
 	fitThresh float64
+
+	store store.Store // persistence seam for eval runs (file today, DB later)
 }
 
 // New builds a server and loads whatever datasets are present.
 func New(cfg config.Config, be *backend.Client, lg *log.Logger) *Server {
-	s := &Server{cfg: cfg, be: be, lg: lg, fitSource: schema.LabelImplicit, fitThresh: 0.5}
+	s := &Server{cfg: cfg, be: be, lg: lg, fitSource: schema.LabelImplicit, fitThresh: 0.5,
+		store: store.NewFileStore(cfg.DataDir)}
 	s.loadData()
 	// fit on startup so /api/route works immediately (best-effort). Pick the
 	// source the loaded data actually carries — synthetic corpora are implicit,
@@ -102,6 +106,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/reports", s.handleReports)
 	mux.HandleFunc("/api/fit", s.handleFit)
 	mux.HandleFunc("/api/eval", s.handleEval)
+	mux.HandleFunc("/api/evals", s.handleEvals)
 	mux.HandleFunc("/api/route", s.handleRoute)
 	mux.HandleFunc("/api/routers", s.handleRouters)
 	mux.HandleFunc("/api/agentic/session", s.handleAgenticSession)
@@ -125,7 +130,7 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{
 		"service": "ail-routing-test API",
 		"ui":      "run `make console-dev` and open http://localhost:5173 (proxies /api here)",
-		"api":     []string{"/api/summary", "/api/agentic", "/api/pointwise", "/api/pairwise", "/api/gold", "/api/fit", "/api/route", "/api/routers", "/api/labels"},
+		"api":     []string{"/api/summary", "/api/agentic", "/api/pointwise", "/api/pairwise", "/api/gold", "/api/fit", "/api/eval", "/api/evals", "/api/route", "/api/routers", "/api/labels"},
 	})
 }
 
