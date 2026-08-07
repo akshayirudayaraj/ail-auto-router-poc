@@ -258,6 +258,37 @@ function SecondaryTable({ leaderboard }: { leaderboard: LeaderRow[] }) {
   );
 }
 
+// Headline STAT (not a row): the best achievable local offload on this eval —
+// the oracle's local share (max routable to local at 100% Opus quality) — next
+// to the best a learned router reaches today (offload_isoq).
+function BestLocalStat({ anchors, rows }: { anchors: Anchor[]; rows: LeaderRow[] }) {
+  const oracle = anchors.find((a) => a.name === "oracle");
+  if (!oracle) return null;
+  const ceiling = Math.round(oracle.local_share * 100);
+  const best = Math.round(Math.max(0, ...rows.map((r) => (r.metrics["offload_isoq"] as number) || 0)) * 100);
+  return (
+    <div className="cards" style={{ margin: "0 0 20px", gridTemplateColumns: "repeat(2, minmax(190px, 260px))" }}>
+      <div
+        className="card"
+        style={{ borderColor: "var(--local)", background: "color-mix(in srgb, var(--local) 6%, var(--panel))" }}
+      >
+        <div className="big" style={{ color: "var(--local)" }}>{ceiling}%</div>
+        <div className="lbl">best local offload · ceiling</div>
+        <div className="muted small" style={{ marginTop: 4 }}>
+          max routable to local at 100% Opus quality (perfect oracle)
+        </div>
+      </div>
+      <div className="card">
+        <div className="big">{best}%</div>
+        <div className="lbl">best learned router today</div>
+        <div className="muted small" style={{ marginTop: 4 }}>
+          local kept at full quality (offload_isoq)
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function EvalsTab() {
   const { fit, routers, ensureFit, runEval } = useConsole();
   const [busy, setBusy] = useState(false);
@@ -334,6 +365,7 @@ export function EvalsTab() {
 
       {hasGold && (
         <>
+          <BestLocalStat anchors={anchors} rows={learnedRows} />
           <h3>
             Router scorecard <span className="muted">(the POC goal: keep requests on local without losing quality)</span>
           </h3>

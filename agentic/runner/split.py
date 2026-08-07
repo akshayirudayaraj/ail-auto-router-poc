@@ -82,20 +82,26 @@ def task_cells(results_dir: Path) -> dict[str, str]:
     cells: dict[str, str] = {}
     for t, arms in by.items():
         if "local" in arms and "frontier" in arms:
-            cells[t] = "disagree" if arms["local"] != arms["frontier"] else "agree"
+            if arms["local"] != arms["frontier"]:
+                cells[t] = "disagree"          # local fails / frontier passes — must escalate
+            elif arms["local"] == 1:
+                cells[t] = "both_pass"         # local ADEQUATE — routable to local (the signal we want in eval)
+            else:
+                cells[t] = "both_fail"         # neither adequate — escalate, but no quality to gain
     return cells
 
 
 def build_manifest(recs: list[dict], seed: int, holdout_frac: float,
                    cells: dict[str, str] | None = None,
-                   disagree_frac: float = 0.5, agree_frac: float = 0.25) -> dict:
-    # Stratified, disagreement-enriched holdout: reserve HALF the escalation-worthy
-    # (disagreement) pairs for the gold eval so the leaderboard has real signal,
-    # while keeping the other half in train so the routers can learn the boundary;
-    # only a quarter of the (less informative) agreement pairs go to gold. Tasks
-    # with no executed dual-arm outcome can never be gold, so they stay in train.
+                   fracs: dict[str, float] | None = None) -> dict:
+    # Stratified holdout: fracs maps each outcome cell (both_pass / disagree /
+    # both_fail) to the fraction of that cell reserved for gold. Equal fracs =
+    # representative; a higher both_pass frac = local-favoring (more chances to
+    # route local in the eval, raising the achievable ceiling). Tasks with no
+    # executed dual-arm outcome can never be gold, so they always stay in train.
     # Falls back to a uniform holdout_frac when no executed labels exist yet.
     cells = cells or {}
+    fracs = fracs or {}
     stratified = bool(cells)
     task_split: dict[str, str] = {}
     for r in recs:
@@ -103,8 +109,7 @@ def build_manifest(recs: list[dict], seed: int, holdout_frac: float,
         if tid in task_split:
             continue
         if stratified:
-            cell = cells.get(tid)
-            frac = disagree_frac if cell == "disagree" else agree_frac if cell == "agree" else 0.0
+            frac = fracs.get(cells.get(tid), 0.0)
         else:
             frac = holdout_frac
         task_split[tid] = "holdout" if bucket(seed, tid) < frac else "train"
@@ -129,12 +134,15 @@ def build_manifest(recs: list[dict], seed: int, holdout_frac: float,
         for t in tasks:
             c = cells.get(t, "none")
             strata.setdefault(c, {"holdout": 0, "train": 0})[task_split[t]] += 1
+    uniform = stratified and len(set(round(v, 6) for v in fracs.values())) <= 1
+    policy = "by_task"
+    if stratified:
+        policy = "representative" if uniform else "local_favoring" if fracs.get("both_pass", 0) > fracs.get("disagree", 0) else "disagreement_enriched"
     return {
         "seed": seed,
         "holdout_frac": holdout_frac,
-        "policy": ("representative" if abs(disagree_frac - agree_frac) < 1e-9 else "stratified_disagreement_enriched") if stratified else "by_task",
-        "disagree_frac": disagree_frac if stratified else None,
-        "agree_frac": agree_frac if stratified else None,
+        "policy": policy,
+        "fracs": fracs if stratified else None,
         "strata": strata,
         "n_tasks": len(tasks),
         "n_sessions": len(items),
@@ -162,24 +170,26 @@ def main():
                     default=int(os.environ.get("AIL_SPLIT_SEED", "1337")))
     ap.add_argument("--holdout-frac", type=float,
                     default=float(os.environ.get("AIL_HOLDOUT_FRAC", "0.4")))
-    # By default the split is REPRESENTATIVE: every executed dual-arm cell is held
-    # out at holdout_frac, so the gold set mirrors the population (and thrift has a
-    # real local-pass denominator). Set AIL_DISAGREE_FRAC / AIL_AGREE_FRAC to
-    # deliberately enrich/deplete a cell (e.g. disagreement-enriched for a harder,
-    # more discriminating eval).
+    # Per-cell holdout fractions. Default is LOCAL-FAVORING: hold out more of the
+    # scarce both_pass (local-adequate) tasks so the eval carries more chances to
+    # route local — which raises the achievable local ceiling (the oracle stat) —
+    # while still keeping most disagreement/both_fail in train. Set any of the
+    # env vars to override (equal values => representative; high disagree =>
+    # a harder, more discriminating eval).
+    ap.add_argument("--both-pass-frac", type=float,
+                    default=float(os.environ.get("AIL_BOTHPASS_FRAC", "0.65")))
     ap.add_argument("--disagree-frac", type=float,
-                    default=(float(os.environ["AIL_DISAGREE_FRAC"]) if os.environ.get("AIL_DISAGREE_FRAC") else None))
-    ap.add_argument("--agree-frac", type=float,
-                    default=(float(os.environ["AIL_AGREE_FRAC"]) if os.environ.get("AIL_AGREE_FRAC") else None))
+                    default=float(os.environ.get("AIL_DISAGREE_FRAC", "0.3")))
+    ap.add_argument("--both-fail-frac", type=float,
+                    default=float(os.environ.get("AIL_BOTHFAIL_FRAC", "0.3")))
     ap.add_argument("--results-dir", default=str(RESULTS_DIR))
     ap.add_argument("--out", default=str(RESULTS_DIR / "split_manifest.json"))
     args = ap.parse_args()
 
-    df = args.disagree_frac if args.disagree_frac is not None else args.holdout_frac
-    af = args.agree_frac if args.agree_frac is not None else args.holdout_frac
+    fracs = {"both_pass": args.both_pass_frac, "disagree": args.disagree_frac, "both_fail": args.both_fail_frac}
     recs = load_records(Path(args.results_dir))
     cells = task_cells(Path(args.results_dir))
-    manifest = build_manifest(recs, args.seed, args.holdout_frac, cells, df, af)
+    manifest = build_manifest(recs, args.seed, args.holdout_frac, cells, fracs)
     verify(manifest)
     Path(args.out).write_text(json.dumps(manifest, indent=2))
     print(f"[split] {manifest['n_sessions']} sessions / {manifest['n_tasks']} tasks "
