@@ -5,6 +5,7 @@ import { fmt, taskOf } from "../format";
 import { useConsole } from "../store";
 import { ModelChip } from "../components/chips";
 import { ChatView } from "../components/ChatView";
+import { HelpTip } from "../components/HelpTip";
 
 type Cat = "internal" | "semi" | "synth";
 
@@ -38,6 +39,31 @@ const DATA_COLS: [string, string][] = [
   ["conf", "num"],
   ["reasoning", "wrap muted"],
 ];
+
+// One-liner explanations surfaced on each column header (same for all three data
+// sources — the table shape is shared). The `method` entry also documents the
+// consensus fusion the offline label engine runs when there's no executable oracle.
+const COL_HELP: Record<string, string> = {
+  session:
+    "One agentic session = one (task, arm) run. The id encodes task + arm + config hash; a dual-arm task has both a local and a frontier session. Click any row to open its full trace (conversation, produced patch, and per-source labels).",
+  model:
+    "The model rung that ran this session: the cheap local open-weight model (gpt-oss:20b) or the frontier model (Opus). On gold tasks both arms are run on the same prompt so their outcomes can be compared head-to-head.",
+  split:
+    "train vs holdout, partitioned BY TASK before any labeling. holdout is reserved for the dual-arm gold eval and is never used to fit a router (prevents label circularity); train feeds the weak-label training set.",
+  method:
+    "How this row's outcome was labeled, strongest → weakest: " +
+    "executed = ran the hidden tests in the sandbox → pass/fail (non-circular, the gold standard); " +
+    "judge = a frontier LLM-as-judge scores adequacy over a distilled evidence pack; " +
+    "implicit = behavioral heuristics (retry/rephrase, pasted stack trace, negative correction, a local→frontier switch); " +
+    "consensus = the fusion used when there is NO executable oracle. " +
+    "Consensus is judge-primary: the judge sets the outcome and the implicit signal only modulates the confidence — EXCEPT a strong behavioral failure cue (pasted stack trace, “that's wrong”, a retry, or a local→frontier escalation) VETOES a judge “success” and flips it to inadequate, because a false “adequate” is the costly routing error (it makes the router under-escalate). Weak implicit defaults (a clean-completing chain, an ambiguous continuation) are treated as noise.",
+  outcome:
+    "Whether the served model's attempt was adequate (good enough to solve the task) or inadequate. “local adequate” means the request is safely routable to the cheap model; “local inadequate but frontier adequate” is the escalation signal the router must catch.",
+  conf:
+    "Confidence in the label, 0–1. Used as a per-row training sample WEIGHT, not a gate: a low-confidence label barely moves a router's fit while a high-confidence one dominates. executed-oracle labels are ~1.0; judge/implicit/consensus rows carry the fused confidence.",
+  reasoning:
+    "The evidence behind the label: for executed = the test tallies (FAIL_TO_PASS / PASS_TO_PASS); for judge = the rationale (with vote count k); for implicit/consensus = which behavioral signal fired (and a ⚠ when judge and heuristic disagreed). The audit trail for why this outcome was assigned.",
+};
 
 function srcClass(s?: string | null) {
   return s === "executed" ? "ok" : s === "judge" ? "" : "warn";
@@ -160,7 +186,10 @@ export function DataTab() {
                   <tr>
                     {DATA_COLS.map(([c, cls]) => (
                       <th key={c} className={cls}>
-                        {c}
+                        <span className="th-help">
+                          {c}
+                          {COL_HELP[c] && <HelpTip text={COL_HELP[c]} />}
+                        </span>
                       </th>
                     ))}
                   </tr>
