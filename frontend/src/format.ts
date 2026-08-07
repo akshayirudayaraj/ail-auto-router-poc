@@ -7,11 +7,6 @@ export const fmt = (x: unknown): string | number => {
 
 export const signed = (x: number): string => (x >= 0 ? "+" : "") + Number(x).toFixed(2);
 
-export const trunc = (s: unknown, n: number): string => {
-  const str = String(s);
-  return str.length > n ? str.slice(0, n - 1) + "…" : str;
-};
-
 // A session id is "{task}__{arm}__{hash}" — and the TASK itself can contain "__"
 // (e.g. swe-mwaskom__seaborn-3187), so the task is everything except the last
 // two segments (arm, hash). Returns the whole string if it has no separators.
