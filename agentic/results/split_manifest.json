@@ -10,25 +10,25 @@
   "strata": {
     "both_pass": {
       "holdout": 5,
-      "train": 5
+      "train": 6
     },
     "none": {
       "holdout": 0,
       "train": 11
     },
-    "disagree": {
-      "holdout": 4,
-      "train": 4
-    },
     "both_fail": {
       "holdout": 5,
-      "train": 57
+      "train": 58
+    },
+    "disagree": {
+      "holdout": 5,
+      "train": 9
     }
   },
-  "n_tasks": 91,
-  "n_sessions": 186,
-  "n_holdout_tasks": 14,
-  "n_train_tasks": 77,
+  "n_tasks": 99,
+  "n_sessions": 202,
+  "n_holdout_tasks": 15,
+  "n_train_tasks": 84,
   "task_split": {
     "easy-01-reverse-words": "train",
     "easy-02-is-even": "train",
@@ -44,11 +44,16 @@
     "med-03-interval-merge": "train",
     "med-04-lru-cache": "train",
     "swe-django__django-11119": "holdout",
+    "swe-django__django-11133": "train",
     "swe-django__django-11490": "holdout",
     "swe-django__django-12419": "holdout",
+    "swe-django__django-13821": "train",
+    "swe-django__django-14539": "train",
+    "swe-django__django-14580": "train",
     "swe-django__django-15851": "train",
     "swe-django__django-15863": "holdout",
     "swe-django__django-16642": "train",
+    "swe-django__django-9296": "train",
     "swe-mwaskom__seaborn-3069": "train",
     "swe-mwaskom__seaborn-3187": "train",
     "swe-pallets__flask-5014": "train",
@@ -117,9 +122,12 @@
     "swe-sphinx-doc__sphinx-9591": "train",
     "swe-sphinx-doc__sphinx-9698": "train",
     "swe-sympy__sympy-12096": "train",
+    "swe-sympy__sympy-12481": "train",
     "swe-sympy__sympy-14711": "train",
+    "swe-sympy__sympy-16450": "holdout",
     "swe-sympy__sympy-16886": "holdout",
     "swe-sympy__sympy-19637": "holdout",
+    "swe-sympy__sympy-22714": "train",
     "swe-sympy__sympy-23534": "holdout"
   },
   "items": [
@@ -385,6 +393,24 @@
       "has_executable_oracle": true
     },
     {
+      "task_id": "swe-django__django-11133",
+      "arm": "frontier",
+      "session_id": "swe-django__django-11133__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-11133",
+      "arm": "local",
+      "session_id": "swe-django__django-11133__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
       "task_id": "swe-django__django-11490",
       "arm": "frontier",
       "session_id": "swe-django__django-11490__frontier__b90e91cf",
@@ -416,6 +442,60 @@
       "arm": "local",
       "session_id": "swe-django__django-12419__local__8512972e",
       "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-13821",
+      "arm": "frontier",
+      "session_id": "swe-django__django-13821__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-13821",
+      "arm": "local",
+      "session_id": "swe-django__django-13821__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14539",
+      "arm": "frontier",
+      "session_id": "swe-django__django-14539__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14539",
+      "arm": "local",
+      "session_id": "swe-django__django-14539__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14580",
+      "arm": "frontier",
+      "session_id": "swe-django__django-14580__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-14580",
+      "arm": "local",
+      "session_id": "swe-django__django-14580__local__8512972e",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -469,6 +549,24 @@
       "task_id": "swe-django__django-16642",
       "arm": "local",
       "session_id": "swe-django__django-16642__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-9296",
+      "arm": "frontier",
+      "session_id": "swe-django__django-9296__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-django__django-9296",
+      "arm": "local",
+      "session_id": "swe-django__django-9296__local__8512972e",
       "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
@@ -1726,6 +1824,24 @@
       "has_executable_oracle": true
     },
     {
+      "task_id": "swe-sympy__sympy-12481",
+      "arm": "frontier",
+      "session_id": "swe-sympy__sympy-12481__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-12481",
+      "arm": "local",
+      "session_id": "swe-sympy__sympy-12481__local__8512972e",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
       "task_id": "swe-sympy__sympy-14711",
       "arm": "frontier",
       "session_id": "swe-sympy__sympy-14711__frontier__b90e91cf",
@@ -1739,6 +1855,24 @@
       "arm": "local",
       "session_id": "swe-sympy__sympy-14711__local__8512972e",
       "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-16450",
+      "arm": "frontier",
+      "session_id": "swe-sympy__sympy-16450__frontier__b90e91cf",
+      "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-16450",
+      "arm": "local",
+      "session_id": "swe-sympy__sympy-16450__local__8512972e",
+      "split": "holdout",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true
@@ -1775,6 +1909,24 @@
       "arm": "local",
       "session_id": "swe-sympy__sympy-19637__local__8512972e",
       "split": "holdout",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-22714",
+      "arm": "frontier",
+      "session_id": "swe-sympy__sympy-22714__frontier__b90e91cf",
+      "split": "train",
+      "provenance": "swe_verified",
+      "grounding": "benchmark",
+      "has_executable_oracle": true
+    },
+    {
+      "task_id": "swe-sympy__sympy-22714",
+      "arm": "local",
+      "session_id": "swe-sympy__sympy-22714__local__8512972e",
+      "split": "train",
       "provenance": "swe_verified",
       "grounding": "benchmark",
       "has_executable_oracle": true

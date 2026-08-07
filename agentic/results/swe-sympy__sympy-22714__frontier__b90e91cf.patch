@@ -1,0 +1,28 @@
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..a07075d6d5 100644
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -23,7 +23,7 @@
+ from sympy.core.add import Add
+ from sympy.core.containers import Tuple
+ from sympy.core.numbers import Float
+-from sympy.core.parameters import global_parameters
++from sympy.core.parameters import global_parameters, evaluate as evaluate_ctx
+ from sympy.simplify import nsimplify, simplify
+ from sympy.geometry.exceptions import GeometryError
+ from sympy.functions.elementary.miscellaneous import sqrt
+@@ -152,8 +152,12 @@ def __new__(cls, *args, **kwargs):
+                         'warn' or 'ignore'.'''))
+         if any(coords[dim:]):
+             raise ValueError('Nonzero coordinates cannot be removed.')
+-        if any(a.is_number and im(a) for a in coords):
+-            raise ValueError('Imaginary coordinates are not permitted.')
++        # imaginary coordinates are not permitted; the check needs to be
++        # made with evaluation on so that `im` of a real number returns 0
++        # even under a global `evaluate(False)` context (issue #22684)
++        with evaluate_ctx(True):
++            if any(a.is_number and im(a) for a in coords):
++                raise ValueError('Imaginary coordinates are not permitted.')
+         if not all(isinstance(a, Expr) for a in coords):
+             raise TypeError('Coordinates must be valid SymPy expressions.')
+ 

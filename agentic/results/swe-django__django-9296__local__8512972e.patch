@@ -1,0 +1,31 @@
+diff --git a/django/core/paginator.py b/django/core/paginator.py
+index 1f92da5d4f..8635432850 100644
+--- a/django/core/paginator.py
++++ b/django/core/paginator.py
+@@ -100,12 +100,14 @@ class Paginator:
+ 
+     @property
+     def page_range(self):
+-        """
+-        Return a 1-based range of pages for iterating through within
+-        a template for loop.
+-        """
++        """Return a 1‑based range of pages for iterating in templates."""
+         return range(1, self.num_pages + 1)
+ 
++    def __iter__(self):
++        """Iterate over all Page objects in order."""
++        for page_num in self.page_range:
++            yield self.page(page_num)
++
+     def _check_object_list_is_ordered(self):
+         """
+         Warn if self.object_list is unordered (typically a QuerySet).
+diff --git a/django_settings.py b/django_settings.py
+new file mode 100644
+index 0000000000..e4c30d1e3b
+--- /dev/null
++++ b/django_settings.py
+@@ -0,0 +1,2 @@
++SECRET_KEY = 'dummy'
++INSTALLED_APPS = []
