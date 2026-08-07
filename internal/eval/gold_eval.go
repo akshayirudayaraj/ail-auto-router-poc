@@ -68,16 +68,16 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 		curve := CostQualityCurve(scores, d.Gold)
 		hull := UpperHull(curve)
 		aiq := AIQ(curve)
-		// Operate at the TUNED isoquality point (max local share while matching
-		// frontier quality), not an arbitrary fixed threshold — so local_share,
-		// thrift, safety and the scorecard all report the same operating point the
-		// offload_isoq headline advertises. Fall back to the fixed threshold only
-		// when the router can never reach frontier quality (then offload is 0).
-		offload, tunedThr, ok := IsoQualityOffload(curve)
-		opThr := g.Threshold
-		if ok {
-			opThr = tunedThr
-		}
+		// Operate at the QUALITY-CALIBRATED threshold: the highest (most-local,
+		// cheapest) threshold whose quality retention is still ≥ 100% of always-
+		// frontier. This is CalibrateForQuality at target=1.0 — the same tuned
+		// isoquality point offload_isoq advertises — so local_share, thrift, safety
+		// and the scorecard all report that one operating point. If 100% quality is
+		// unreachable without escalating everything, CalibrateForQuality returns the
+		// always-escalate threshold (local_share → 0), which is the honest answer.
+		offload, _, _ := IsoQualityOffload(curve)
+		const qualityTarget = 1.0 // hold 100% of always-frontier quality (POC goal)
+		opThr := CalibrateForQuality(scores, d.Gold, qualityTarget)
 		op := Operating(scores, d.Gold, opThr)
 		localShare := 1 - op.EscalationRate
 		savingsCapture := 0.0
@@ -100,6 +100,7 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 				"under_escal_cellB": op.Cells.UnderEscalation,
 				// secondary / diagnostic
 				"offload_isoq":    offload, // max local share while matching frontier quality
+				"qual_cal_thr":    opThr,   // CalibrateForQuality@100%: the operating threshold above
 				"escalation@thr":  op.EscalationRate,
 				"quality@thr":     op.Quality,
 				"over_escalation": op.Cells.OverEscalation,
@@ -113,7 +114,7 @@ func (g *GoldEval) Run(routers []router.Router, d Data) (Report, error) {
 	}
 	rep.Detail = GoldReportDetail{Curves: details, Anchors: anchors}
 	rep.Notes = append(rep.Notes,
-		"Operating point is TUNED PER ROUTER to the isoquality frontier: the threshold that keeps the most requests on local while holding qual_retention ≥ 1.0 (matching always-frontier). local_share@thr therefore equals offload_isoq, and thrift/safety are read at that same point.",
+		"Operating point is TUNED PER ROUTER by CalibrateForQuality at target=1.0: the highest (most-local, cheapest) threshold that still holds qual_retention ≥ 100% of always-frontier. Reported as qual_cal_thr. local_share@thr therefore equals offload_isoq, and thrift/safety are read at that same point.",
 		"safety = of prompts where local fails, the share correctly escalated (protects quality). thrift = of prompts where local passes, the share kept local (captures savings).",
 		"savings_capture = local share as a fraction of the oracle's (a perfect router escalates iff local would fail). cell-B (under_escal) = stayed local but frontier would have passed — the quality leak to minimize.",
 		"Anchors: always-local / oracle / always-frontier bound the achievable region. AIQ (secondary) is threshold-independent.",

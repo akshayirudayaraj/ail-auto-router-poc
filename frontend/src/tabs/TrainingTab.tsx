@@ -44,6 +44,14 @@ export function TrainingTab() {
   const training = fit?.training || {};
   const abilities = fit?.abilities || [];
   const hasPlanted = abilities.some((a) => a.planted != null);
+  // Per-router quality-calibrated operating threshold, keyed by router name. This
+  // is CalibrateForQuality@100% from the gold leaderboard — the threshold the eval
+  // actually operates each router at (max local kept while holding Opus quality).
+  const qualThr: Record<string, number> = {};
+  for (const row of fit?.leaderboard ?? []) {
+    const t = row.metrics?.qual_cal_thr;
+    if (t != null) qualThr[row.router] = t;
+  }
 
   const onFitAll = async () => {
     setBusyAll(true);
@@ -170,6 +178,12 @@ export function TrainingTab() {
               <th>data shape</th>
               <th>trained on</th>
               <th>label source</th>
+              <th className="num">
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  op. threshold
+                  <HelpTip text="The router's operating threshold, set by CalibrateForQuality at target = 100%: the highest (most-local, cheapest) escalate-score cutoff that still holds quality retention ≥ 100% of always-frontier on the gold set. A prompt escalates when its score ≥ this. This is the point every headline metric (local_share, thrift, safety) is read at. '—' means no dual-arm gold yet, or 100% quality is only reachable by escalating everything." />
+                </span>
+              </th>
               <th></th>
             </tr>
           </thead>
@@ -183,6 +197,7 @@ export function TrainingTab() {
                 sources={sourcesForShape(r.shape, ds)}
                 busy={!!busyRouter[r.name]}
                 status={routerStatus[r.name]}
+                opThr={qualThr[r.name]}
                 onSource={(s) => setSrcByRouter((m) => ({ ...m, [r.name]: s }))}
                 onFit={() => onFitRouter(r.name)}
               />
@@ -261,6 +276,7 @@ function MethodRow({
   sources,
   busy,
   status,
+  opThr,
   onSource,
   onFit,
 }: {
@@ -270,6 +286,7 @@ function MethodRow({
   sources: string[];
   busy: boolean;
   status?: string;
+  opThr?: number;
   onSource: (s: string) => void;
   onFit: () => void;
 }) {
@@ -307,6 +324,13 @@ function MethodRow({
           </select>
         ) : (
           <span className="muted">—</span>
+        )}
+      </td>
+      <td className="num" title="CalibrateForQuality @ 100% retention">
+        {opThr == null ? (
+          <span className="muted">—</span>
+        ) : (
+          opThr.toFixed(3)
         )}
       </td>
       <td className="num">
