@@ -449,6 +449,24 @@ export function EvalsTab() {
       </h3>
       <GoldTable />
 
+      <h3 style={{ marginTop: 22 }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          Temporal backtest <span className="muted">(ranks routers on held-out future logs)</span>
+          <HelpTip text="Replays the logs in time order — splitting by session + timestamp — and RANKS each router on the held-out FUTURE it never trained on, the honest test of whether a router generalizes forward rather than memorizing its teacher. Eval labels are enforced to be a strictly-stronger source than the training labels, so a router is never scored against its own labeler (no circularity). It only RANKS routers relative to each other; absolute cost/quality numbers come solely from the dual-arm gold set above. Empty until enough time-stamped log sessions are ingested to form a held-out future window." />
+        </span>
+      </h3>
+      <div className="tablewrap">
+        <table style={{ width: "100%" }}>
+          <tbody>
+            <tr>
+              <td className="muted" style={{ textAlign: "center", padding: "28px 0" }}>
+                Empty table
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <h3>Harness methods</h3>
       <EvalMethods />
     </section>
