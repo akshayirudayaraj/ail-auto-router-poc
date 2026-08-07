@@ -1,0 +1,12 @@
+diff --git a/settings.py b/settings.py
+new file mode 100644
+index 0000000000..83a07ce1e3
+--- /dev/null
++++ b/settings.py
+@@ -0,0 +1,6 @@
++DEBUG = True
++INSTALLED_APPS = []
++MIDDLEWARE = []
++ROOT_URLCONF = ''
++SECRET_KEY = 'test'
++ALLOWED_HOSTS = ['*']

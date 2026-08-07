@@ -2,113 +2,111 @@
   "dataset": "princeton-nlp/SWE-bench_Verified",
   "requested_n": 10,
   "selected_n": 10,
-  "per_repo_cap": 3,
+  "per_repo_cap": 8,
   "per_repo_counts": {
-    "django/django": 3,
-    "scikit-learn/scikit-learn": 3,
-    "sympy/sympy": 3,
-    "sphinx-doc/sphinx": 1
+    "django/django": 6,
+    "sympy/sympy": 4
   },
   "selected": [
     {
-      "instance_id": "django__django-12419",
+      "instance_id": "django__django-13821",
       "repo": "django/django",
       "n_f2p": 1,
-      "n_p2p": 0,
-      "patch_lines": 11,
-      "test_lines": 11,
+      "n_p2p": 14,
+      "patch_lines": 16,
+      "test_lines": 16,
       "difficulty": "<15 min fix",
-      "score": 25.0
+      "score": 37.8
     },
     {
-      "instance_id": "scikit-learn__scikit-learn-14141",
-      "repo": "scikit-learn/scikit-learn",
-      "n_f2p": 1,
-      "n_p2p": 2,
-      "patch_lines": 11,
-      "test_lines": 11,
-      "difficulty": "<15 min fix",
-      "score": 25.4
-    },
-    {
-      "instance_id": "sympy__sympy-14711",
-      "repo": "sympy/sympy",
-      "n_f2p": 1,
-      "n_p2p": 2,
-      "patch_lines": 12,
-      "test_lines": 12,
-      "difficulty": "<15 min fix",
-      "score": 27.4
-    },
-    {
-      "instance_id": "django__django-15851",
+      "instance_id": "django__django-14539",
       "repo": "django/django",
-      "n_f2p": 1,
-      "n_p2p": 8,
-      "patch_lines": 14,
-      "test_lines": 12,
-      "difficulty": "<15 min fix",
-      "score": 30.6
-    },
-    {
-      "instance_id": "django__django-15863",
-      "repo": "django/django",
-      "n_f2p": 1,
-      "n_p2p": 9,
-      "patch_lines": 12,
+      "n_f2p": 2,
+      "n_p2p": 14,
+      "patch_lines": 15,
       "test_lines": 14,
       "difficulty": "<15 min fix",
-      "score": 30.8
+      "score": 37.8
     },
     {
-      "instance_id": "sympy__sympy-23534",
+      "instance_id": "django__django-9296",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 20,
+      "patch_lines": 14,
+      "test_lines": 17,
+      "difficulty": "<15 min fix",
+      "score": 38.0
+    },
+    {
+      "instance_id": "sympy__sympy-16450",
+      "repo": "sympy/sympy",
+      "n_f2p": 1,
+      "n_p2p": 38,
+      "patch_lines": 12,
+      "test_lines": 17,
+      "difficulty": "<15 min fix",
+      "score": 39.6
+    },
+    {
+      "instance_id": "sympy__sympy-22714",
       "repo": "sympy/sympy",
       "n_f2p": 1,
       "n_p2p": 11,
       "patch_lines": 12,
-      "test_lines": 16,
+      "test_lines": 23,
       "difficulty": "<15 min fix",
-      "score": 33.2
+      "score": 40.2
     },
     {
-      "instance_id": "sympy__sympy-16886",
+      "instance_id": "django__django-12304",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 17,
+      "patch_lines": 11,
+      "test_lines": 23,
+      "difficulty": "<15 min fix",
+      "score": 40.4
+    },
+    {
+      "instance_id": "sympy__sympy-12481",
       "repo": "sympy/sympy",
       "n_f2p": 1,
-      "n_p2p": 42,
-      "patch_lines": 12,
-      "test_lines": 12,
-      "difficulty": "<15 min fix",
-      "score": 35.4
-    },
-    {
-      "instance_id": "sphinx-doc__sphinx-9698",
-      "repo": "sphinx-doc/sphinx",
-      "n_f2p": 1,
-      "n_p2p": 45,
-      "patch_lines": 12,
-      "test_lines": 12,
-      "difficulty": "<15 min fix",
-      "score": 36.0
-    },
-    {
-      "instance_id": "scikit-learn__scikit-learn-13439",
-      "repo": "scikit-learn/scikit-learn",
-      "n_f2p": 1,
-      "n_p2p": 40,
-      "patch_lines": 16,
-      "test_lines": 10,
-      "difficulty": "<15 min fix",
-      "score": 37.0
-    },
-    {
-      "instance_id": "scikit-learn__scikit-learn-12585",
-      "repo": "scikit-learn/scikit-learn",
-      "n_f2p": 1,
-      "n_p2p": 22,
-      "patch_lines": 12,
+      "n_p2p": 7,
+      "patch_lines": 18,
       "test_lines": 19,
       "difficulty": "<15 min fix",
-      "score": 38.4
+      "score": 41.4
+    },
+    {
+      "instance_id": "django__django-11133",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 64,
+      "patch_lines": 12,
+      "test_lines": 14,
+      "difficulty": "<15 min fix",
+      "score": 41.8
+    },
+    {
+      "instance_id": "django__django-14580",
+      "repo": "django/django",
+      "n_f2p": 1,
+      "n_p2p": 49,
+      "patch_lines": 12,
+      "test_lines": 17,
+      "difficulty": "<15 min fix",
+      "score": 41.8
+    },
+    {
+      "instance_id": "sympy__sympy-16766",
+      "repo": "sympy/sympy",
+      "n_f2p": 1,
+      "n_p2p": 7,
+      "patch_lines": 15,
+      "test_lines": 23,
+      "difficulty": "<15 min fix",
+      "score": 42.4
     }
   ],
   "allowed_difficulty": [
@@ -130,9 +128,9 @@
     "count": 267
   },
   "dropped_already_materialized": {
-    "count": 62
+    "count": 82
   },
   "dropped_malformed": [],
-  "skipped_for_repo_cap_count": 9,
+  "skipped_for_repo_cap_count": 0,
   "contamination_note": "SWE-bench Verified is a PUBLIC benchmark; these instances carry contamination risk (models may have seen the fixes in training). Recorded per DATA_PLAN Phase 2A; prefer SWE-bench Pro / held-out later."
 }
