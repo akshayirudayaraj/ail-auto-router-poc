@@ -68,6 +68,18 @@ func main() {
 			fp.HeurAccuracy = c.Accuracy
 		}
 		resolved := label.ResolveWithFusion(recs, fp)
+		// split_manifest.json is the authoritative train/holdout assignment — re-join
+		// it onto the fused labels so a re-split (e.g. the disagreement-enriched
+		// policy) propagates to gold WITHOUT re-grading. Tasks absent from the
+		// manifest default to train.
+		if splitByTask := label.LoadSplitByTask(*results); len(splitByTask) > 0 {
+			for k, r := range resolved {
+				if s, ok := splitByTask[r.TaskID]; ok && s != "" {
+					r.Split = s
+					resolved[k] = r
+				}
+			}
+		}
 		if err := label.SaveResolved(*results, resolved); err != nil {
 			lg.Fatalf("save resolved: %v", err)
 		}

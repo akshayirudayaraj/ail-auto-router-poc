@@ -1,0 +1,27 @@
+diff --git a/xarray/core/dataset.py b/xarray/core/dataset.py
+index 620f32f8..655b78b0 100644
+--- a/xarray/core/dataset.py
++++ b/xarray/core/dataset.py
+@@ -365,7 +365,9 @@ class DataVariables(Mapping[Any, "DataArray"]):
+         )
+ 
+     def __len__(self) -> int:
+-        return len(self._dataset._variables) - len(self._dataset._coord_names)
++        length = len(self._dataset._variables) - len(self._dataset._coord_names)
++        assert length >= 0, "something is wrong with Dataset._coord_names"
++        return length
+ 
+     def __contains__(self, key: Hashable) -> bool:
+         return key in self._dataset._variables and key not in self._dataset._coord_names
+@@ -4177,7 +4179,10 @@ class Dataset(
+         }
+         variables.update(new_variables)
+ 
+-        coord_names = set(new_variables) | self._coord_names
++        # a coordinate name may no longer refer to an existing variable (e.g. it
++        # has just been dropped): make sure ``_coord_names`` stays consistent with
++        # ``_variables``
++        coord_names = set(new_variables) | (self._coord_names - set(drop_variables))
+ 
+         return self._replace(variables, coord_names=coord_names, indexes=indexes)
+ 
