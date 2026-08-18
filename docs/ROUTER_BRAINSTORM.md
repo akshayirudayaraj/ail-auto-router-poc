@@ -8,9 +8,7 @@
   2026-08-03, clarity pass on 2026-08-04.
 -->
 
-# Auto Routing — Design (Source of Truth)
-
-*Status: Authoritative design. Owner: Akshay Irudayaraj.*
+# Auto Router Design Brainstorm
 
 ## Abstract
 
